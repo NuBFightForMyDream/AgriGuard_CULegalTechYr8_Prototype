@@ -9,7 +9,7 @@ export type Org = {
   verified: boolean;
 };
 
-export type User = { id: string; name: string; email: string; role: Role; title: string | null; organization: Org };
+export type User = { id: string; name: string; email: string; role: Role; title: string | null; organization: Org; auth?: "google" | "demo" };
 
 export type TrustSummary = {
   score: number | null;

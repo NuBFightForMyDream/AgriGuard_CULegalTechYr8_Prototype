@@ -140,6 +140,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         fetcher,
         onError: (e) => {
           if (e instanceof ApiError && e.status === 401) signOut();
+          if (e instanceof ApiError && e.status === 409 && e.message === "ONBOARDING_REQUIRED") router.replace("/onboarding");
         },
       }}
     >

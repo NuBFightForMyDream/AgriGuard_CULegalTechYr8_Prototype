@@ -1,3 +1,5 @@
+import { accessToken } from "./supabase";
+
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 export const SESSION_KEY = "agriguard.user";
 
@@ -10,13 +12,23 @@ export class ApiError extends Error {
   }
 }
 
-function currentUserId(): string | null {
+type Stored = { id: string; auth?: "google" | "demo" };
+
+function storedSession(): Stored | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
-    return raw ? (JSON.parse(raw) as { id: string }).id : null;
+    return raw ? (JSON.parse(raw) as Stored) : null;
   } catch {
     return null;
   }
+}
+
+/** Google users send their Supabase access token; demo users send the picked demo id. */
+async function authHeaders(): Promise<Record<string, string>> {
+  const token = await accessToken();
+  if (token) return { Authorization: `Bearer ${token}` };
+  const s = storedSession();
+  return s && s.auth !== "google" ? { "X-Demo-User": s.id } : {};
 }
 
 function errorMessage(body: unknown, status: number): string {
@@ -31,14 +43,14 @@ function errorMessage(body: unknown, status: number): string {
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const userId = currentUserId();
+  const auth = await authHeaders();
   let res: Response;
   try {
     res = await fetch(`${API_URL}/api${path}`, {
       ...init,
       headers: {
         "content-type": "application/json",
-        ...(userId ? { "X-Demo-User": userId } : {}),
+        ...auth,
         ...init?.headers,
       },
     });
