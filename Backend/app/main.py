@@ -5,8 +5,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import models  # noqa: F401  (register tables on Base.metadata)
 from app.config import settings
-from app.db import Base, SessionLocal, engine
+from app.db import SessionLocal
+from app.migrate import upgrade_to_head
 from app.routers import (
+    auth,
     contracts,
     dashboard,
     health,
@@ -24,8 +26,8 @@ from app.seed import seed_if_empty
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    # Dev convenience only. Replace with Alembic migrations before real data exists (Technical/deployment.md).
-    Base.metadata.create_all(engine)
+    if settings.run_migrations:
+        upgrade_to_head()
     if settings.demo_seed:
         with SessionLocal() as db:
             seed_if_empty(db)
@@ -36,9 +38,10 @@ app = FastAPI(title=settings.app_name, lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
+    allow_origin_regex=settings.cors_origin_regex,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-for r in (health, meta, dashboard, listings, purchase_requests, offers, contracts, lots, settlements, trust, history):
+for r in (health, auth, meta, dashboard, listings, purchase_requests, offers, contracts, lots, settlements, trust, history):
     app.include_router(r.router, prefix="/api")
