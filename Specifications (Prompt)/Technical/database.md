@@ -7,6 +7,7 @@
 ## Key relationships
 
 - organization has users, farms or buyer profile
+- user links to Supabase Auth via unique `auth_user_id` (= `auth.users.id`); roles and memberships live in AgriGuard tables, not in the token
 - purchase request has many offers; accepted offers create allocations
 - allocation belongs to one HarvestLock and delivery lots
 - inspection belongs to lot and contract version

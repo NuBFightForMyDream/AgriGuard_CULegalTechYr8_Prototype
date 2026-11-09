@@ -41,3 +41,4 @@ cd Frontend && npm run lint && npm run build
 
 - Tables are created by `Base.metadata.create_all` on API startup. Switch to Alembic migrations before keeping real data.
 - Config: `Backend/.env.example`, `Frontend/.env.example`.
+- Online deployment plan (Vercel + Cloud Run + Supabase, Google sign-in): [`Specifications (Prompt)/Technical/deployment.md`](<Specifications (Prompt)/Technical/deployment.md>).

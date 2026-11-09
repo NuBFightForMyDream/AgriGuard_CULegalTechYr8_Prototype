@@ -6,17 +6,18 @@ Design documents for a B2B procurement platform for fruit and agricultural produ
 
 1. [Overview](overview.md) — Vision, scope, and system principles
 2. [Ordering Flow](ordering-flow.md) — Order lifecycle and state machine
-3. [Matching](matching.md) — Matching orchards with buyers
-4. [Allocation](allocation.md) — Splitting produce across multiple buyers using optimization
-5. [AgriTrust](agitrust.md) — Reliability score based on verified transactions
-6. [HarvestLock](harvestlock.md) — Locking terms before harvest
-7. [GradeProof](gradeproof.md) — Quality evidence and computer vision
-8. [Settlement & Disputes](settlement-disputes.md) — Amount calculation, payment, and disputes
-9. [AI Forecasting](ai-forecasting.md) — Yield forecasting and uncertainty
-10. [Legal AI](legal-ai.md) — Contract and policy reading assistant with guardrails
-11. [Architecture](architecture.md) — Service boundaries and deployment
-12. [Database](database.md) — Entity model and constraints
-13. [Roadmap](roadmap.md) — Delivery sequence from MVP to scale
+3. [Matching](../Technical/matching.md) — Matching orchards with buyers
+4. [Allocation](../Technical/allocation.md) — Splitting produce across multiple buyers using optimization
+5. [AgriTrust](<../Business & Legals/agitrust.md>) — Reliability score based on verified transactions
+6. [HarvestLock](<../Business & Legals/harvestlock.md>) — Locking terms before harvest
+7. [GradeProof](../Technical/gradeproof.md) — Quality evidence and computer vision
+8. [Settlement & Disputes](<../Business & Legals/settlement-disputes.md>) — Amount calculation, payment, and disputes
+9. [AI Forecasting](../Technical/ai-forecasting.md) — Yield forecasting and uncertainty
+10. [Legal AI](<../Business & Legals/legal-ai.md>) — Contract and policy reading assistant with guardrails
+11. [Architecture](../Technical/architecture.md) — Service boundaries
+12. [Deployment](../Technical/deployment.md) — Hosting, Google sign-in via Supabase, environments, and CI/CD
+13. [Database](../Technical/database.md) — Entity model and constraints
+14. [Roadmap](roadmap.md) — Delivery sequence from MVP to scale
 
 ## Scope note
 
