@@ -1,45 +1,57 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+export const SESSION_KEY = "agriguard.user";
 
-export type Health = { status: string; database: string; dialect: string };
-
-export type PurchaseRequestInput = {
-  product_type: string;
-  variety: string | null;
-  grade: string | null;
-  quantity_kg: number;
-  delivery_start: string;
-  delivery_end: string;
-  location: string;
-};
-
-export type PurchaseRequest = Omit<PurchaseRequestInput, "quantity_kg"> & {
-  id: number;
-  quantity_kg: string; // Decimal serialized as string by the API
-  status: string;
-  created_at: string;
-};
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}/api${path}`, {
-    ...init,
-    headers: { "content-type": "application/json", ...init?.headers },
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    const detail = Array.isArray(body?.detail)
-      ? body.detail.map((d: { msg: string }) => d.msg).join("; ")
-      : body?.detail;
-    throw new Error(detail ?? `Request failed (${res.status})`);
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
   }
-  return res.json() as Promise<T>;
 }
 
-export const api = {
-  health: () => request<Health>("/health"),
-  listPurchaseRequests: () => request<PurchaseRequest[]>("/purchase-requests"),
-  createPurchaseRequest: (input: PurchaseRequestInput) =>
-    request<PurchaseRequest>("/purchase-requests", {
-      method: "POST",
-      body: JSON.stringify(input),
-    }),
-};
+function currentUserId(): string | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? (JSON.parse(raw) as { id: string }).id : null;
+  } catch {
+    return null;
+  }
+}
+
+function errorMessage(body: unknown, status: number): string {
+  const detail = (body as { detail?: unknown } | null)?.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((d) => (typeof d === "string" ? d : String((d as { msg?: string }).msg ?? "")).replace(/^Value error, /, ""))
+      .join(" · ");
+  }
+  return `คำขอไม่สำเร็จ (${status})`;
+}
+
+export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const userId = currentUserId();
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api${path}`, {
+      ...init,
+      headers: {
+        "content-type": "application/json",
+        ...(userId ? { "X-Demo-User": userId } : {}),
+        ...init?.headers,
+      },
+    });
+  } catch {
+    throw new ApiError(`เชื่อมต่อ API ไม่ได้ (${API_URL})`, 0);
+  }
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new ApiError(errorMessage(body, res.status), res.status);
+  return body as T;
+}
+
+export const fetcher = <T,>(path: string) => api<T>(path);
+
+export function post<T>(path: string, body?: unknown, headers?: Record<string, string>) {
+  return api<T>(path, { method: "POST", body: JSON.stringify(body ?? {}), headers });
+}
