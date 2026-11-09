@@ -312,6 +312,8 @@ class QcInspection(Base):
     evidence_note: Mapped[str | None] = mapped_column(Text)
     notes: Mapped[str | None] = mapped_column(Text)
     flags: Mapped[list] = mapped_column(JSON, default=list)
+    # Set when the inspector started from an AI photo suggestion (the decision is still the inspector's).
+    ai_run_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
 
     lot: Mapped[ProduceLot] = relationship(back_populates="inspections")
     inspector: Mapped[User] = relationship()
@@ -498,6 +500,25 @@ class Notification(Base):
     link: Mapped[str | None] = mapped_column(String(255))
     read_at: Mapped[datetime | None] = mapped_column(TS)
     created_at: Mapped[datetime] = mapped_column(TS, default=utcnow, index=True)
+
+
+class AiRun(Base):
+    """Audit record of every AI call: task, model, prompt version, input hash and output (Business & Legals/legal-ai.md)."""
+
+    __tablename__ = "ai_runs"
+
+    id: Mapped[uuid.UUID] = pk()
+    task: Mapped[str] = mapped_column(String(32), index=True)  # CONTRACT_REVIEW | LEGAL_QA | QC_PHOTO_ASSIST
+    model: Mapped[str] = mapped_column(String(64))
+    prompt_version: Mapped[str] = mapped_column(String(32))
+    input_hash: Mapped[str] = mapped_column(String(64), index=True)
+    entity_type: Mapped[str | None] = mapped_column(String(32))
+    entity_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, index=True)
+    user_id: Mapped[uuid.UUID | None] = fk("users.id", nullable=True)
+    output: Mapped[dict] = mapped_column(JSON)
+    input_tokens: Mapped[int | None] = mapped_column(Integer)
+    output_tokens: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
 
 
 # --- System -------------------------------------------------------------------------------

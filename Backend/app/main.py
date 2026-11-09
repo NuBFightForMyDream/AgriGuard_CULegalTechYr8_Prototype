@@ -9,6 +9,7 @@ from app.db import SessionLocal
 from app.migrate import upgrade_to_head
 from app.routers import (
     admin,
+    ai,
     auth,
     contracts,
     dashboard,
@@ -50,5 +51,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for r in (health, auth, meta, admin, notifications, dashboard, disputes, files, listings, purchase_requests, offers, contracts, lots, settlements, trust, history):
+for r in (health, auth, meta, admin, ai, notifications, dashboard, disputes, files, listings, purchase_requests, offers, contracts, lots, settlements, trust, history):
     app.include_router(r.router, prefix="/api")

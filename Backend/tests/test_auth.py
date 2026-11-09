@@ -89,10 +89,16 @@ def test_migrations_build_the_full_schema():
 
 
 def test_rls_migration_covers_every_table():
+    """Every table must get RLS in some migration (c1d2e3f4a5b6 for the original set, RLS_TABLES in later ones)."""
     import importlib.util
     from app.migrate import ROOT
 
-    spec = importlib.util.spec_from_file_location("rls", ROOT / "migrations/versions/c1d2e3f4a5b6_enable_rls_on_postgres.py")
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    assert set(Base.metadata.tables) <= set(mod._tables())
+    covered = set()
+    for path in (ROOT / "migrations" / "versions").glob("*.py"):
+        spec = importlib.util.spec_from_file_location(path.stem, path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        covered |= set(getattr(mod, "RLS_TABLES", []))
+        if hasattr(mod, "_tables"):
+            covered |= set(mod._tables())
+    assert set(Base.metadata.tables) <= covered, set(Base.metadata.tables) - covered

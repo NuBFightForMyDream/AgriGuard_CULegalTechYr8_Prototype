@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     max_upload_mb: int = 10
     # Signs local-storage download links. Set it in production so links survive restarts and multiple workers.
     file_url_secret: str = secrets.token_hex(16)
+    # Claude API for the AI assistants (Legal AI, QC photo assist). Without a key the rule-based parts still work.
+    anthropic_api_key: str | None = None
+    ai_model: str = "claude-opus-5-5"
+    ai_effort: str = "medium"
     # How long an allocation reservation waits for the buyer to accept the HarvestLock.
     reservation_hours: int = 72
 
