@@ -3,7 +3,7 @@ from sqlalchemy import select
 
 from app.catalog import PRODUCTS, PROVINCES, REJECTION_REASONS
 from app.deps import DB, CurrentUser
-from app.models import User
+from app.models import QualityStandard, User
 from app.seed import reset
 from app.views import user_out
 
@@ -11,9 +11,14 @@ router = APIRouter(tags=["meta"])
 
 
 @router.get("/catalog")
-def catalog():
+def catalog(db: DB):
+    stds = {s.product_type: s for s in db.scalars(select(QualityStandard))}
     return {
-        "products": [{"key": k, **v} for k, v in PRODUCTS.items()],
+        "products": [
+            {"key": k, **v, "grades": [g["grade"] for g in stds[k].grades] if k in stds else v["grades"],
+             "grade_criteria": stds[k].grades if k in stds else []}
+            for k, v in PRODUCTS.items()
+        ],
         "provinces": list(PROVINCES),
         "rejection_reasons": [{"key": k, "label": v} for k, v in REJECTION_REASONS.items()],
     }

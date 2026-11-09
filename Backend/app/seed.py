@@ -171,6 +171,9 @@ def seed(db: Session) -> None:
                     occurred_at=when,
                 ))
     db.commit()
+    from app.services.standards import ensure_standards  # local import avoids a cycle
+
+    ensure_standards(db)
 
 
 def seed_if_empty(db: Session) -> None:

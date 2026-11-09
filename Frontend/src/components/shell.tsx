@@ -2,6 +2,11 @@
 
 import {
   BadgeCheck,
+  BookCheck,
+  Building2,
+  ClipboardList,
+  Siren,
+  Users,
   ClipboardCheck,
   FileSignature,
   History,
@@ -27,6 +32,7 @@ import { ApiError, fetcher } from "@/lib/api";
 import { ROLE } from "@/lib/labels";
 import { useSession } from "@/lib/session";
 import type { Role, User } from "@/lib/types";
+import { NotificationBell } from "./notifications";
 import { cx } from "./ui";
 
 type NavItem = { href: string; label: string; icon: React.ElementType };
@@ -78,9 +84,14 @@ function navFor(user: User): NavItem[] {
     ],
     ADMIN: [
       { ...common.dashboard, label: "ภาพรวมแพลตฟอร์ม" },
+      { href: "/admin/users", label: "ผู้ใช้และสิทธิ์", icon: Users },
+      { href: "/admin/verification", label: "ยืนยันธุรกิจ", icon: Building2 },
       { ...common.contracts, label: "ธุรกรรมทั้งหมด" },
       { ...common.disputes, label: "ข้อพิพาท" },
-      { href: "/buyers", label: "Trust & Risk", icon: ShieldCheck },
+      { href: "/admin/quality", label: "มาตรฐานคุณภาพ", icon: ClipboardList },
+      { href: "/admin/risk", label: "Trust & Risk", icon: Siren },
+      { href: "/admin/appeals", label: "อุทธรณ์ AgriTrust", icon: BookCheck },
+      { href: "/buyers", label: "AgriTrust ผู้ซื้อ", icon: ShieldCheck },
       { ...common.history, label: "Audit Logs" },
     ],
   };
@@ -135,7 +146,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ))}
       </div>
       <div className="border-t border-slate-200 p-4 text-xs text-slate-500">
-        Phase 1 · เดโม — การชำระเงินและลายเซ็นเป็นการจำลอง
+        ต้นแบบ — การชำระเงินและลายเซ็นอิเล็กทรอนิกส์เป็นการจำลอง
       </div>
     </nav>
   );
@@ -169,6 +180,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
           <Logo className="lg:hidden" />
           <div className="ml-auto flex items-center gap-3">
+            <NotificationBell />
             <div className="hidden text-right text-sm leading-tight sm:block">
               <div className="font-medium text-slate-900">{user.name}</div>
               <div className="text-xs text-slate-500">
