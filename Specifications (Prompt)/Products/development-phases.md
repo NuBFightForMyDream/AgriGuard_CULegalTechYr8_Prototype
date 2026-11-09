@@ -1,6 +1,6 @@
 # Development Phases
 
-The prototype is built in two phases. Phase 1 makes the core ordering workflow work end to end on a real backend and database; Phase 2 adds the advanced operations, real sign-in, and online deployment. This maps onto [roadmap.md](roadmap.md) Phase 0–1 and part of Phase 2.
+The prototype was built in two phases. Phase 1 made the core ordering workflow work end to end on a real backend and database; Phase 2 added the advanced operations, Google sign-in, and everything needed to deploy online. AI features stay in [roadmap.md](roadmap.md) Phase 3.
 
 ## Phase 1 — Working MVP (done)
 
@@ -8,38 +8,41 @@ Every step of the demo scenario (overall_flow §20) runs through the API and is 
 
 | Step | Pages | API |
 | --- | --- | --- |
-| Demo sign-in and role selection | `/login` | `GET /api/demo/users`, `X-Demo-User` header |
-| Role dashboards (Farmer, Buyer, Inspector, Admin) | `/dashboard` | `GET /api/dashboard` |
+| Sign-in and role selection | `/login` | demo picker (`X-Demo-User`) |
+| Role dashboards | `/dashboard` | `GET /api/dashboard` |
 | Produce listings with inventory states | `/produce`, `/produce/new`, `/produce/{id}` | `/api/listings` |
 | Purchase requests (4-step wizard) | `/requests`, `/requests/new` | `/api/purchase-requests` |
 | Buyer-first matching (heuristic, explainable) | `/requests/{id}`, `/marketplace` | `GET /api/purchase-requests/{id}/matches` |
 | Offer submission | `/farms`, `/requests/{id}`, `/offers` | `/api/offers` |
 | AgriTrust buyer profiles | `/buyers`, `/buyers/{id}` | `GET /api/organizations/{id}/trust` |
-| Manual and proportional multi-buyer allocation | `/allocation`, `/allocation/{id}` | `/api/listings/{id}/allocation/preview`, `/confirm` |
-| HarvestLock agreements (versioned terms, SHA-256 hash, two-party acceptance, reservation expiry) | `/contracts`, `/contracts/{id}` | `/api/contracts/{id}/accept`, `/decline` |
-| Order state machine with audit trail | `/contracts/{id}` (stepper + swimlane timeline) | every transition writes `audit_logs` |
-| Harvest, lot, dispatch, receipt | `/contracts/{id}`, `/deliveries` | `/api/contracts/{id}/lots`, `/api/lots/{id}/dispatch`, `/receive` |
-| GradeProof inspection with contract comparison flags | `/contracts/{id}`, `/quality` | `POST /api/lots/{id}/inspections` |
-| Settlement calculation and simulated, idempotent payment | `/contracts/{id}`, `/payments` | `/api/settlements/{id}/payments` |
+| Manual and proportional allocation | `/allocation`, `/allocation/{id}` | `/api/listings/{id}/allocation/*` |
+| HarvestLock agreements | `/contracts`, `/contracts/{id}` | `/api/contracts/{id}/accept`, `/decline` |
+| Order state machine with audit trail | `/contracts/{id}` (stepper + swimlane) | every transition writes `audit_logs` |
+| Harvest, lot, dispatch, receipt | `/contracts/{id}`, `/deliveries` | `/api/contracts/{id}/lots`, `/api/lots/{id}/*` |
+| GradeProof with contract comparison flags | `/contracts/{id}`, `/quality` | `POST /api/lots/{id}/inspections` |
+| Settlement and simulated, idempotent payment | `/contracts/{id}`, `/payments` | `/api/settlements/{id}/payments` |
 | Completion feeds verified AgriTrust events | `/contracts/{id}` | `POST /api/contracts/{id}/complete` |
 | Transaction history | `/history` | `GET /api/history` |
 
-**Explicitly simulated in Phase 1** (labelled in the UI): sign-in (demo user picker), electronic acceptance (authenticated click, no e-signature), payments and deposits (no money moves, no escrow), and QC evidence (a text note instead of uploaded files).
+## Phase 2 — Advanced operations and going online (done)
 
-**Verification:** backend unit and end-to-end tests (`Backend/tests`), the full demo flow run against Postgres, and a headless-browser run of the 20-step demo through the UI.
-
-## Phase 2 — Advanced operations and going online
-
-| Area | Work | Spec |
+| Area | What was built | Pages / API |
 | --- | --- | --- |
-| Sign-in and deployment | Google sign-in via Supabase Auth replacing `X-Demo-User`; JWT verification in FastAPI; onboarding and roles; Vercel + Cloud Run + Supabase | [deployment.md](../Technical/deployment.md) |
-| Database | Alembic migrations instead of `create_all`; RLS / schema isolation on Supabase | [deployment.md](../Technical/deployment.md), [database.md](../Technical/database.md) |
-| Allocation | Revenue optimization with OR-Tools (grade-aware, minimum lots, logistics cost); dynamic reallocation after cancellation or harvest shortfall | [allocation.md](../Technical/allocation.md) |
-| HarvestLock | Amendments with version diff and re-acceptance; contract PDF; e-signature provider | [harvestlock.md](<../Business & Legals/harvestlock.md>) |
-| Disputes | Dispute workflow, evidence gallery, reinspection, settlement adjustment, held amounts | [settlement-disputes.md](<../Business & Legals/settlement-disputes.md>) |
-| Evidence | File uploads to Supabase Storage with signed URLs and hashes; QR traceability per lot; multiple lots per contract | [gradeproof.md](../Technical/gradeproof.md) |
-| AgriTrust | Appeals with versioned recalculation | [agitrust.md](<../Business & Legals/agitrust.md>) |
-| Admin | User management, business verification, per-fruit quality templates, trust and risk monitoring, analytics | overall_flow §5 |
-| Notifications | Reservation expiry, pending acceptance, payment due | overall_flow §23 |
+| Google sign-in | Supabase Auth (PKCE); API verifies JWTs via JWKS; first sign-in onboarding (Farmer or Buyer only); demo picker behind `DEMO_LOGIN` | `/login`, `/auth/callback`, `/onboarding`; `/api/auth/*`, `/api/onboarding` |
+| Database | Alembic migrations applied on startup; RLS enabled on every table on Postgres | `Backend/migrations/` |
+| Allocation | Exact revenue optimizer (min lots, net of logistics cost) and risk-aware caps by AgriTrust band; reallocation after cancellation/expiry | `/allocation/{id}`; `/api/listings/{id}/reallocation` |
+| HarvestLock | Versioned amendments with diff and re-signing; harvest shortfall → proportional-reduction proposals; typed-name e-signature (simulated); printable contract PDF | `/contracts/{id}`, `/contracts/{id}/document`; `/api/contracts/{id}/amendments*`, `/api/listings/{id}/shortfall*` |
+| Disputes | Open with evidence, statements, held amount, reviewer, reinspection, settlement adjustment; AgriTrust counts verified fault only | `/disputes`, `/disputes/{id}`; `/api/disputes/*` |
+| Evidence | Photo/PDF uploads with SHA-256, private storage (local or Supabase Storage), 5-minute signed links | evidence panels; `/api/files*` |
+| Logistics | Multiple lots per contract; QR per lot with public trace page (no personal data or prices) | `/trace/{token}`; `/api/trace/{token}` |
+| Admin | Users and roles, business verification, per-fruit quality standards, trust & risk signals, AgriTrust appeals | `/admin/*` |
+| Notifications | In-app notifications from audit events, header bell | `/api/notifications` |
+| Delivery | Render blueprint, Vercel settings, CI (tests, Postgres migrations, lint, build) | [DEPLOY.md](../../DEPLOY.md), `render.yaml`, `.github/workflows/ci.yml` |
 
-AI features (Learning-to-Rank matching, vision-assisted QC, forecasting, legal RAG) stay in roadmap Phase 3 and are added only when validated data exists.
+**Still simulated** (labelled in the UI): payments, deposits and refunds (no money moves); e-signature (typed name + consent, not a certified provider); business verification (manual review, no registry lookup).
+
+**Verification:** 48 backend tests (unit, end-to-end, auth, migrations, disputes, amendments, lots/files, admin) plus headless-browser runs of the demo, dispute, amendment, multi-lot/QR and admin flows.
+
+## Not built yet
+
+Email/SMS/LINE notifications, maps, a payment gateway or escrow, a certified e-signature provider, Learning-to-Rank matching, vision-assisted QC, harvest forecasting, legal RAG (roadmap Phase 3–4).
