@@ -8,6 +8,7 @@ import useSWR from "swr";
 import { PendingAmendment, ProposeAmendmentButton } from "@/components/amendments";
 import { NextAction } from "@/components/contract-actions";
 import { EvidencePanel } from "@/components/evidence";
+import { LegalAssistant } from "@/components/legal-assistant";
 import { LotQr } from "@/components/lot-qr";
 import { OpenDisputeButton } from "@/components/dispute-open";
 import { TrustBadge } from "@/components/trust";
@@ -148,6 +149,8 @@ export default function ContractWorkspace() {
           <p className="mt-4 text-xs text-slate-500">SHA-256 ของเงื่อนไขช่วยตรวจว่าเอกสารไม่ถูกแก้ไข แต่ hash อย่างเดียวไม่ได้ยืนยันผลทางกฎหมาย ฉบับที่ยอมรับแล้วไม่ถูกเขียนทับ</p>
         </Card>
       </div>
+
+      {user?.role !== "INSPECTOR" && <LegalAssistant c={c} />}
 
       {(c.lots.length > 0 || s) && (
         <div className="mt-6 grid gap-6 lg:grid-cols-3">

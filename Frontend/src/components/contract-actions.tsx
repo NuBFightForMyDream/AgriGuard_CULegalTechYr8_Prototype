@@ -8,6 +8,7 @@ import { fmtDateTime, fmtKg, fmtTHB } from "@/lib/format";
 import { REJECTION } from "@/lib/labels";
 import type { ContractDetail, Lot } from "@/lib/types";
 import { useAction } from "@/lib/useAction";
+import { AiPhotoAssist } from "./ai-photo-assist";
 import { Button, Field, Input, Modal, Select, Textarea } from "./ui";
 
 const WAITING: Record<string, string> = {
@@ -215,6 +216,7 @@ function QcForm({ c, lot, pending, submit }: { c: ContractDetail; lot: Lot; pend
   const [rejected, setRejected] = useState("0");
   const [reason, setReason] = useState("");
   const [evidence, setEvidence] = useState("");
+  const [aiRunId, setAiRunId] = useState<string | null>(null);
   const criteria = catalog?.products.find((p) => p.key === c.product_type)?.grade_criteria ?? [];
   const lotFiles = c.files.filter((f) => f.entity_type === "lot" && f.entity_id === lot.id).length;
   const total = grades.reduce((s, g) => s + Number(qty[g] || 0), 0) + Number(rejected || 0);
@@ -237,10 +239,23 @@ function QcForm({ c, lot, pending, submit }: { c: ContractDetail; lot: Lot; pend
           sampling_method: f.get("sampling_method"),
           evidence_note: evidence || null,
           notes: f.get("notes") || null,
+          ai_run_id: aiRunId,
         });
       }}
     >
       <div className="text-sm text-slate-600">ล็อต {lot.code} · รับมา <b className="tabular">{fmtKg(received)}</b> · ราคาตามสัญญา {grades.map((g) => `${g} ${fmtTHB(c.terms.grade_prices[g])}`).join(" · ")}</div>
+      <AiPhotoAssist
+        lotId={lot.id}
+        photos={c.files.filter((f) => f.entity_type === "lot" && f.entity_id === lot.id && f.content_type.startsWith("image/")).length}
+        onApply={(s) => {
+          if (!s.suggested_kg.grades) return;
+          setQty(Object.fromEntries(grades.map((g) => [g, String(s.suggested_kg.grades![g] ?? 0)])));
+          setRejected(String(s.suggested_kg.rejected_kg ?? 0));
+          const top = s.defects.find((d) => c.terms.rejection_conditions.includes(d.type));
+          if ((s.suggested_kg.rejected_kg ?? 0) > 0 && top) setReason(top.type);
+          setAiRunId(s.run_id);
+        }}
+      />
       {criteria.length > 0 && (
         <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
           <div className="mb-1 font-medium text-slate-700">เกณฑ์คัดเกรดของผลผลิตนี้ (มาตรฐานแพลตฟอร์ม)</div>
@@ -273,7 +288,10 @@ function QcForm({ c, lot, pending, submit }: { c: ContractDetail; lot: Lot; pend
       <Field label="บันทึกเพิ่มเติม"><Textarea name="notes" /></Field>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-slate-50 p-3 text-sm">
         <span>มูลค่าล็อตนี้ประมาณ <b className="tabular">{fmtTHB(preview.gross)}</b> {c.lots.length > 1 ? "· ยอดชำระคำนวณเมื่อตรวจครบทุกล็อต" : `· หักมัดจำ ${fmtTHB(c.terms.deposit_thb)}`}</span>
-        <Button type="submit" loading={pending} disabled={mismatch || (Number(rejected) > 0 && !reason)}>บันทึกผล GradeProof</Button>
+        <span className="flex items-center gap-2">
+          {aiRunId && <span className="text-xs text-violet-700">เริ่มจากคำแนะนำ AI — ผลที่บันทึกคือการตัดสินของคุณ</span>}
+          <Button type="submit" loading={pending} disabled={mismatch || (Number(rejected) > 0 && !reason)}>บันทึกผล GradeProof</Button>
+        </span>
       </div>
     </form>
   );

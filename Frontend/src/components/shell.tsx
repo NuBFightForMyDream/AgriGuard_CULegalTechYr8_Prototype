@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   Scale,
+  Sparkles,
   Search,
   ShieldCheck,
   ShoppingBasket,
@@ -46,6 +47,7 @@ function navFor(user: User): NavItem[] {
     payments: { href: "/payments", label: "การชำระเงิน", icon: Wallet },
     history: { href: "/history", label: "ประวัติธุรกรรม", icon: History },
     disputes: { href: "/disputes", label: "ข้อพิพาท", icon: Scale },
+    assistant: { href: "/assistant", label: "ผู้ช่วยกฎหมาย AI", icon: Sparkles },
   };
   const byRole: Record<Role, NavItem[]> = {
     FARMER: [
@@ -60,6 +62,7 @@ function navFor(user: User): NavItem[] {
       common.payments,
       common.disputes,
       { href: "/buyers", label: "AgriTrust ผู้ซื้อ", icon: ShieldCheck },
+      common.assistant,
       common.history,
     ],
     BUYER: [
@@ -73,6 +76,7 @@ function navFor(user: User): NavItem[] {
       common.payments,
       common.disputes,
       { href: `/buyers/${user.organization.id}`, label: "AgriTrust ของฉัน", icon: ShieldCheck },
+      common.assistant,
       common.history,
     ],
     INSPECTOR: [
@@ -92,6 +96,7 @@ function navFor(user: User): NavItem[] {
       { href: "/admin/risk", label: "Trust & Risk", icon: Siren },
       { href: "/admin/appeals", label: "อุทธรณ์ AgriTrust", icon: BookCheck },
       { href: "/buyers", label: "AgriTrust ผู้ซื้อ", icon: ShieldCheck },
+      common.assistant,
       { ...common.history, label: "Audit Logs" },
     ],
   };
