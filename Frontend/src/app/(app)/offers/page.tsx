@@ -6,7 +6,7 @@ import useSWR from "swr";
 import { FarmerOffersTable, OfferPrices } from "@/components/offers-table";
 import { Button, Card, Empty, ErrorState, PageHeader, PageSkeleton, StatusBadge, Table, Tabs, Td } from "@/components/ui";
 import { post } from "@/lib/api";
-import { fmtDate, fmtKg, fmtTHB } from "@/lib/format";
+import { fmtDate, fmtKg } from "@/lib/format";
 import { OFFER_STATUS, productName } from "@/lib/labels";
 import { useSession } from "@/lib/session";
 import type { Offer } from "@/lib/types";
