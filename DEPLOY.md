@@ -21,7 +21,7 @@ The API creates all tables itself on first start (Alembic migrations) and turns 
 
 ## 3. Backend on Render
 
-1. render.com → **New → Blueprint** → choose this repo. Render reads [`render.yaml`](render.yaml) and creates `agriguard-api` (Docker, Singapore, free plan).
+1. render.com → **New → Blueprint** → choose this repo. Render reads [`render.yaml`](render.yaml) and creates `agriguard-api` (Docker, Singapore, free plan). It generates `FILE_URL_SECRET` (signs file links) for you.
 2. Fill in the environment variables it asks for:
 
 | Variable | Value |
@@ -29,7 +29,6 @@ The API creates all tables itself on first start (Alembic migrations) and turns 
 | `DATABASE_URL` | Supabase session pooler string from step 1.3 |
 | `SUPABASE_URL` | `https://<project-ref>.supabase.co` |
 | `SUPABASE_SECRET_KEY` | secret key from step 1.2 |
-| `FILE_URL_SECRET` | any long random string (e.g. `openssl rand -hex 32`) |
 | `CORS_ORIGINS` | `["https://<your-app>.vercel.app"]` (fill after step 4, then redeploy) |
 | `CORS_ORIGIN_REGEX` | optional, for preview deploys: `https://.*-<your-team>\.vercel\.app` |
 

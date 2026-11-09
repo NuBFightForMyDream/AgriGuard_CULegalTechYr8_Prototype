@@ -18,6 +18,8 @@ services:
         sync: false
       - key: SUPABASE_SECRET_KEY
         sync: false
+      - key: FILE_URL_SECRET
+        generateValue: true
       - key: CORS_ORIGINS
         sync: false
       - key: CORS_ORIGIN_REGEX
