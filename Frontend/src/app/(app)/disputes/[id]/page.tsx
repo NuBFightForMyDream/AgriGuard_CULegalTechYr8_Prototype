@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import useSWR from "swr";
 import { ActivityList } from "@/components/activity";
+import { EvidencePanel } from "@/components/evidence";
 import { Badge, Button, Card, DL, ErrorState, Field, Input, PageHeader, PageSkeleton, Select, StatusBadge, Textarea, cx } from "@/components/ui";
 import { post } from "@/lib/api";
 import { fmtDateTime, fmtKg, fmtTHB } from "@/lib/format";
@@ -83,6 +84,10 @@ export default function DisputePage() {
       </div>
 
       <DisputeActions d={d} />
+
+      <Card title="หลักฐานประกอบข้อพิพาท" className="mt-6">
+        <EvidencePanel files={d.files} entityType="dispute" entityId={d.id} canUpload={!["RESOLVED", "CLOSED"].includes(d.status)} label="ไฟล์ที่แนบ" />
+      </Card>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         {sides.map((s) => (

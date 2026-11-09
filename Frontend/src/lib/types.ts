@@ -355,7 +355,21 @@ export type TrustProfile = {
 };
 
 export type Catalog = {
-  products: { key: string; th: string; varieties: string[]; grades: string[] }[];
+  products: { key: string; th: string; varieties: string[]; grades: string[]; grade_criteria: { grade: string; criteria: string }[] }[];
   provinces: string[];
   rejection_reasons: { key: string; label: string }[];
+};
+
+export type Appeal = {
+  id: string;
+  status: "OPEN" | "ACCEPTED" | "REJECTED";
+  reason: string;
+  evidence_note: string | null;
+  decision_note: string | null;
+  score_before: number | null;
+  score_after: number | null;
+  created_at: string;
+  decided_at: string | null;
+  buyer: Org;
+  event: { id: string; dimension: string; success: boolean; verified: boolean; transaction_ref: string; note: string | null; occurred_at: string };
 };

@@ -8,6 +8,7 @@ from app.config import settings
 from app.db import SessionLocal
 from app.migrate import upgrade_to_head
 from app.routers import (
+    admin,
     auth,
     contracts,
     dashboard,
@@ -18,12 +19,14 @@ from app.routers import (
     listings,
     lots,
     meta,
+    notifications,
     offers,
     purchase_requests,
     settlements,
     trust,
 )
 from app.seed import seed_if_empty
+from app.services.standards import ensure_standards
 
 
 @asynccontextmanager
@@ -33,6 +36,8 @@ async def lifespan(_: FastAPI):
     if settings.demo_seed:
         with SessionLocal() as db:
             seed_if_empty(db)
+    with SessionLocal() as db:
+        ensure_standards(db)
     yield
 
 
@@ -45,5 +50,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for r in (health, auth, meta, dashboard, disputes, files, listings, purchase_requests, offers, contracts, lots, settlements, trust, history):
+for r in (health, auth, meta, admin, notifications, dashboard, disputes, files, listings, purchase_requests, offers, contracts, lots, settlements, trust, history):
     app.include_router(r.router, prefix="/api")

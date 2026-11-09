@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Backend
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: agriguard
+          POSTGRES_PASSWORD: agriguard
+          POSTGRES_DB: agriguard
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U agriguard" --health-interval 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - name: Unit and end-to-end API tests (SQLite)
+        run: uv run python -m pytest -q
+      - name: Migrations apply cleanly on Postgres
+        env:
+          DATABASE_URL: postgresql+psycopg://agriguard:agriguard@localhost:5432/agriguard
+        run: uv run alembic upgrade head && uv run alembic check
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build

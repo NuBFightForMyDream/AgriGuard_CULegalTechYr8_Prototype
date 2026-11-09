@@ -8,7 +8,7 @@ B2B agricultural procurement and transaction-assurance platform: buyer demand â†
 | `Backend/` | REST API and business logic | FastAPI, SQLAlchemy 2, uv |
 | `Database/` | Postgres init scripts | PostgreSQL 17 (Docker) |
 
-**Status: Phase 1 (working MVP) is done.** The whole ordering workflow runs end to end against the database. Phase 2 (Google sign-in, deployment, optimization, disputes, QR, PDF) is planned in [development-phases.md](<Specifications (Prompt)/Products/development-phases.md>).
+**Status: Phase 1 and Phase 2 are done** ([development-phases.md](<Specifications (Prompt)/Products/development-phases.md>)): the full ordering workflow, Google sign-in, revenue/risk-aware allocation, amendments and shortfall, disputes, evidence uploads, multi-lot QR traceability, admin console, AgriTrust appeals and notifications. **To put it online, follow [DEPLOY.md](DEPLOY.md)** (Supabase + Render + Vercel).
 
 ## Run
 
@@ -44,14 +44,14 @@ The contract page shows the 10-stage journey, next action per role, risks, terms
 ## Test
 
 ```bash
-cd Backend && uv run python -m pytest     # unit + end-to-end API tests (SQLite)
+cd Backend && uv run python -m pytest     # 48 unit, end-to-end, auth and migration tests (SQLite)
 cd Frontend && npm run lint && npm run build
 ```
 
 ## Notes
 
-- Phase 1 sign-in is a demo user picker that sends `X-Demo-User`; Phase 2 replaces it with Supabase JWTs.
-- Payments, deposits and acceptance are simulated and labelled as such in the UI.
-- Tables are created by `Base.metadata.create_all` on API startup. Switch to Alembic migrations before keeping real data.
+- Sign-in: Google via Supabase when configured; the demo user picker stays available while `DEMO_LOGIN=true` (turn it off before real users).
+- Payments, deposits, refunds and e-signatures are simulated and labelled as such in the UI.
+- Schema changes go through Alembic (`Backend/migrations/`), applied on API startup.
 - Config: `Backend/.env.example`, `Frontend/.env.example`.
 - Online deployment plan (Vercel + Cloud Run + Supabase, Google sign-in): [`Specifications (Prompt)/Technical/deployment.md`](<Specifications (Prompt)/Technical/deployment.md>).

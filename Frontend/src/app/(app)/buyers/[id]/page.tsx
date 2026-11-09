@@ -3,12 +3,15 @@
 import { CheckCircle2, Info, ShieldQuestion, XCircle } from "lucide-react";
 import { useParams } from "next/navigation";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useState } from "react";
 import useSWR from "swr";
-import { Badge, Button, Card, DL, Empty, ErrorState, Meter, PageHeader, PageSkeleton, StatusBadge, Table, Td } from "@/components/ui";
+import { Badge, Button, Card, DL, Empty, ErrorState, Field, Input, Meter, Modal, PageHeader, PageSkeleton, StatusBadge, Table, Td, Textarea } from "@/components/ui";
+import { post } from "@/lib/api";
+import { useAction } from "@/lib/useAction";
 import { fmtDate } from "@/lib/format";
 import { BUSINESS_TYPE, TRUST_BAND } from "@/lib/labels";
 import { useSession } from "@/lib/session";
-import type { TrustProfile } from "@/lib/types";
+import type { Appeal, TrustProfile } from "@/lib/types";
 
 const DIM_LABEL: Record<string, string> = {
   PAYMENT: "การชำระเงิน",
@@ -24,10 +27,14 @@ export default function BuyerTrustPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useSession();
   const { data, error } = useSWR<TrustProfile>(`/organizations/${id}/trust`);
+  const isOwn = user?.organization.id === id && user?.role === "BUYER";
+  const { data: appeals } = useSWR<Appeal[]>(isOwn ? "/trust/appeals" : null);
+  const [appealFor, setAppealFor] = useState<TrustProfile["recent_events"][number] | null>(null);
+  const { run, pending } = useAction();
   if (error) return <ErrorState error={error} />;
   if (!data) return <PageSkeleton />;
   const { organization: org, profile: p } = data;
-  const isOwn = user?.organization.id === org.id;
+  const appealed = new Set((appeals ?? []).filter((a) => a.status !== "REJECTED").map((a) => a.event.id));
   const history = data.history.map((h) => ({ ...h, label: MONTHS[Number(h.month.slice(5)) - 1] }));
 
   return (
@@ -100,21 +107,37 @@ export default function BuyerTrustPage() {
         </Card>
         <Card title="อุทธรณ์ข้อมูล">
           <p className="text-sm text-slate-600">
-            {isOwn ? "หากเหตุการณ์ใดไม่ถูกต้อง คุณสามารถยื่นอุทธรณ์พร้อมหลักฐาน ระบบจะคำนวณคะแนนใหม่แบบมีเวอร์ชันและแสดงก่อน/หลัง" : "ผู้ซื้อสามารถอุทธรณ์เหตุการณ์ที่กระทบคะแนนได้"}
+            {isOwn ? "หากเหตุการณ์ใดไม่ถูกต้อง กด “อุทธรณ์” ที่เหตุการณ์นั้นพร้อมหลักฐาน หากผู้ดูแลรับอุทธรณ์ เหตุการณ์จะไม่ถูกนำมาคิดคะแนน และแสดงคะแนนก่อน/หลัง" : "ผู้ซื้อสามารถอุทธรณ์เหตุการณ์ที่กระทบคะแนนได้"}
           </p>
-          {isOwn && <Button variant="secondary" className="mt-4" disabled title="Phase 2">ยื่นอุทธรณ์ (Phase 2)</Button>}
+          {isOwn && !!appeals?.length && (
+            <ul className="mt-3 space-y-2 text-sm">
+              {appeals.map((a) => (
+                <li key={a.id} className="flex flex-wrap items-center gap-2">
+                  <Badge tone={a.status === "ACCEPTED" ? "green" : a.status === "OPEN" ? "amber" : "gray"}>{a.status === "ACCEPTED" ? "รับอุทธรณ์" : a.status === "OPEN" ? "รอพิจารณา" : "ไม่รับ"}</Badge>
+                  {a.event.transaction_ref} · {DIM_LABEL[a.event.dimension]}
+                  {a.status === "ACCEPTED" && <span className="tabular text-xs text-slate-500">{a.score_before} → {a.score_after}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       </div>
       <Card title="เหตุการณ์ล่าสุดที่ตรวจสอบแล้ว" className="mt-6">
         {data.recent_events.length ? (
-          <Table head={["วันที่", "ธุรกรรม", "มิติ", "ผล", "หมายเหตุ"]}>
+          <Table head={["วันที่", "ธุรกรรม", "มิติ", "ผล", "หมายเหตุ", ...(isOwn ? [""] : [])]}>
             {data.recent_events.map((e) => (
               <tr key={e.id}>
                 <Td>{fmtDate(e.occurred_at)}</Td>
                 <Td>{e.transaction_ref}</Td>
                 <Td>{DIM_LABEL[e.dimension] ?? e.dimension}</Td>
                 <Td>{e.success ? <CheckCircle2 className="size-4 text-green-600" /> : <XCircle className="size-4 text-red-500" />}</Td>
-                <Td className="whitespace-normal text-slate-600">{e.note ?? "—"}</Td>
+                <Td className="whitespace-normal text-slate-600">{e.note ?? "—"}{!e.verified && <Badge tone="gray" className="ml-2">ไม่นำมาคิดคะแนน</Badge>}</Td>
+                {isOwn && (
+                  <Td>
+                    {e.verified && !appealed.has(e.id) && <Button size="sm" variant="ghost" onClick={() => setAppealFor(e)}>อุทธรณ์</Button>}
+                    {appealed.has(e.id) && <span className="text-xs text-slate-500">อุทธรณ์แล้ว</span>}
+                  </Td>
+                )}
               </tr>
             ))}
           </Table>
@@ -122,6 +145,25 @@ export default function BuyerTrustPage() {
           <Empty title="ยังไม่มีเหตุการณ์" />
         )}
       </Card>
+      <Modal open={!!appealFor} onClose={() => setAppealFor(null)} title={`อุทธรณ์เหตุการณ์ ${appealFor?.transaction_ref ?? ""}`}>
+        <form
+          className="space-y-4"
+          onSubmit={async (ev) => {
+            ev.preventDefault();
+            const f = new FormData(ev.currentTarget);
+            const ok = await run(() => post(`/trust/events/${appealFor!.id}/appeals`, { reason: f.get("reason"), evidence_note: f.get("evidence_note") || null }), "ส่งคำอุทธรณ์แล้ว");
+            if (ok) setAppealFor(null);
+          }}
+        >
+          <p className="text-sm text-slate-600">{appealFor && `${DIM_LABEL[appealFor.dimension]} · ${appealFor.note ?? ""}`}</p>
+          <Field label="เหตุผล"><Textarea name="reason" required minLength={10} /></Field>
+          <Field label="หลักฐาน"><Input name="evidence_note" placeholder="เช่น สลิปโอนเงิน, ข้อความยืนยันการรับสินค้า" /></Field>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={() => setAppealFor(null)}>ยกเลิก</Button>
+            <Button type="submit" loading={pending}>ส่งคำอุทธรณ์</Button>
+          </div>
+        </form>
+      </Modal>
     </>
   );
 }

@@ -205,7 +205,7 @@ function ReceiveForm({ lot, pending, submit }: { lot: Lot; pending: boolean; sub
   );
 }
 
-type Reasons = { rejection_reasons: { key: string; label: string }[] };
+type Reasons = { rejection_reasons: { key: string; label: string }[]; products: { key: string; grade_criteria: { grade: string; criteria: string }[] }[] };
 
 function QcForm({ c, lot, pending, submit }: { c: ContractDetail; lot: Lot; pending: boolean; submit: (b: unknown) => void }) {
   const received = Number(lot.received_kg ?? 0);
@@ -215,6 +215,7 @@ function QcForm({ c, lot, pending, submit }: { c: ContractDetail; lot: Lot; pend
   const [rejected, setRejected] = useState("0");
   const [reason, setReason] = useState("");
   const [evidence, setEvidence] = useState("");
+  const criteria = catalog?.products.find((p) => p.key === c.product_type)?.grade_criteria ?? [];
   const lotFiles = c.files.filter((f) => f.entity_type === "lot" && f.entity_id === lot.id).length;
   const total = grades.reduce((s, g) => s + Number(qty[g] || 0), 0) + Number(rejected || 0);
   const mismatch = Math.abs(total - received) > 1;
@@ -240,6 +241,12 @@ function QcForm({ c, lot, pending, submit }: { c: ContractDetail; lot: Lot; pend
       }}
     >
       <div className="text-sm text-slate-600">ล็อต {lot.code} · รับมา <b className="tabular">{fmtKg(received)}</b> · ราคาตามสัญญา {grades.map((g) => `${g} ${fmtTHB(c.terms.grade_prices[g])}`).join(" · ")}</div>
+      {criteria.length > 0 && (
+        <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+          <div className="mb-1 font-medium text-slate-700">เกณฑ์คัดเกรดของผลผลิตนี้ (มาตรฐานแพลตฟอร์ม)</div>
+          <ul className="space-y-0.5">{criteria.map((g) => <li key={g.grade}><b>{g.grade}</b>: {g.criteria}</li>)}</ul>
+        </div>
+      )}
       <div className="grid gap-3 sm:grid-cols-4">
         {grades.map((g) => (
           <Field key={g} label={`เกรด ${g} (กก.)`}><Input type="number" min="0" value={qty[g]} onChange={(e) => setQty((q) => ({ ...q, [g]: e.target.value }))} /></Field>

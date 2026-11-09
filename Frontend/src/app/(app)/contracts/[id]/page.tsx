@@ -7,17 +7,21 @@ import { useState } from "react";
 import useSWR from "swr";
 import { PendingAmendment, ProposeAmendmentButton } from "@/components/amendments";
 import { NextAction } from "@/components/contract-actions";
+import { EvidencePanel } from "@/components/evidence";
+import { LotQr } from "@/components/lot-qr";
 import { OpenDisputeButton } from "@/components/dispute-open";
 import { TrustBadge } from "@/components/trust";
 import { Badge, Card, DL, ErrorState, LinkButton, PageHeader, PageSkeleton, StatusBadge } from "@/components/ui";
 import { ACTOR_LABEL, ACTOR_TONE_OF, STAGES, Stepper, Swimlane, currentStage, effectiveStatus, isStopped } from "@/components/workflow";
 import { fmtDate, fmtDateTime, fmtKg, fmtRange, fmtTHB } from "@/lib/format";
 import { DISPUTE_CATEGORY, DISPUTE_STATUS, SIGN_METHOD, VERSION_STATUS, FLAG_LABEL, LOT_STATUS, ORDER_STATUS, REJECTION, SETTLEMENT_STATUS, SHORTFALL_POLICY, productName } from "@/lib/labels";
+import { useSession } from "@/lib/session";
 import type { ContractDetail } from "@/lib/types";
 
 export default function ContractWorkspace() {
   const { id } = useParams<{ id: string }>();
   const { data: c, error } = useSWR<ContractDetail>(`/contracts/${id}`);
+  const { user } = useSession();
   const [picked, setPicked] = useState<number | null>(null);
   if (error) return <ErrorState error={error} />;
   if (!c) return <PageSkeleton />;
@@ -29,8 +33,7 @@ export default function ContractWorkspace() {
   const stageEvents = c.timeline.filter(stage.match);
   const stageState = isStopped(c.order_status) && selected === currentStage(status) ? "หยุดที่ขั้นนี้" : selected < currentStage(status) ? "เสร็จแล้ว" : selected === currentStage(status) ? (c.active_dispute ? "ระงับ: มีข้อพิพาท" : "ขั้นปัจจุบัน") : "ยังไม่ถึง";
   const t = c.terms;
-  const lot = c.lots[0];
-  const insp = c.inspection;
+  const canUploadLot = user?.role === "INSPECTOR" || user?.organization.id === c.farmer.id || user?.organization.id === c.buyer.id;
   const s = c.settlement;
 
   return (
@@ -146,43 +149,50 @@ export default function ContractWorkspace() {
         </Card>
       </div>
 
-      {(lot || insp || s) && (
+      {(c.lots.length > 0 || s) && (
         <div className="mt-6 grid gap-6 lg:grid-cols-3">
-          {lot && (
-            <Card title={`ล็อต ${lot.code}`} action={<StatusBadge map={LOT_STATUS} value={lot.status} />}>
+          {c.lots.map((lt) => (
+            <Card key={lt.id} title={`ล็อต ${lt.code}`} action={<StatusBadge map={LOT_STATUS} value={lt.status} />}>
               <DL cols={1} items={[
-                ["เก็บเกี่ยว", `${fmtDate(lot.harvest_date)} · ${fmtKg(lot.harvested_kg)}`],
-                ["ขนส่ง", lot.vehicle ? `${lot.vehicle}${lot.transport_operator ? ` · ${lot.transport_operator}` : ""}` : "—"],
-                ["น้ำหนัก รวม / ภาชนะ / สุทธิ", lot.gross_kg ? `${fmtKg(lot.gross_kg)} / ${fmtKg(lot.tare_kg)} / ${fmtKg(lot.net_kg)}` : "—"],
-                ["รับที่ปลายทาง", lot.received_kg ? `${fmtKg(lot.received_kg)} · ${fmtDateTime(lot.received_at)}` : "—"],
+                ["เก็บเกี่ยว", `${fmtDate(lt.harvest_date)} · ${fmtKg(lt.harvested_kg)}`],
+                ["ขนส่ง", lt.vehicle ? `${lt.vehicle}${lt.transport_operator ? ` · ${lt.transport_operator}` : ""}` : "—"],
+                ["น้ำหนัก รวม / ภาชนะ / สุทธิ", lt.gross_kg ? `${fmtKg(lt.gross_kg)} / ${fmtKg(lt.tare_kg)} / ${fmtKg(lt.net_kg)}` : "—"],
+                ["รับที่ปลายทาง", lt.received_kg ? `${fmtKg(lt.received_kg)} · ${fmtDateTime(lt.received_at)}` : "—"],
               ]} />
-              <p className="mt-3 text-xs text-slate-500">QR code สำหรับติดตามล็อตอยู่ใน Phase 2</p>
+              {lt.trace_token && <div className="mt-4"><LotQr token={lt.trace_token} code={lt.code} /></div>}
+              <div className="mt-4 border-t border-slate-100 pt-3">
+                <EvidencePanel files={c.files} entityType="lot" entityId={lt.id} canUpload={canUploadLot} label="ภาพ/หลักฐานของล็อต" />
+              </div>
             </Card>
-          )}
-          {insp && (
+          ))}
+          {c.inspections.length > 0 && (
             <Card title="ผล GradeProof">
-              <ul className="divide-y divide-slate-100 text-sm">
-                {insp.grades.map((g) => (
-                  <li key={g.grade} className="flex justify-between py-1.5"><span>เกรด {g.grade}</span><span className="tabular">{fmtKg(g.quantity_kg)}</span></li>
+              <ul className="space-y-4 text-sm">
+                {c.inspections.map((i) => (
+                  <li key={i.id}>
+                    <div className="font-medium">{i.lot_code}{i.notes?.startsWith("ตรวจซ้ำ") ? " · ตรวจซ้ำ" : ""}</div>
+                    <ul className="mt-1 divide-y divide-slate-100">
+                      {i.grades.map((g) => (
+                        <li key={g.grade} className="flex justify-between py-1"><span>เกรด {g.grade}</span><span className="tabular">{fmtKg(g.quantity_kg)}</span></li>
+                      ))}
+                      <li className="flex justify-between gap-2 py-1">
+                        <span>ปฏิเสธ{i.rejection_reason ? ` (${REJECTION[i.rejection_reason]})` : ""}</span>
+                        <span className="tabular">{fmtKg(i.rejected_kg)}</span>
+                      </li>
+                    </ul>
+                    <div className="mt-1 text-xs text-slate-500">{i.inspector.name} · {fmtDateTime(i.inspected_at)} · หลักฐาน: {i.evidence_note ?? "—"}</div>
+                    {i.flags.length > 0 && <div className="mt-2 flex flex-wrap gap-1">{i.flags.map((f) => <Badge key={f.code} tone="amber">{FLAG_LABEL[f.code] ?? f.code}</Badge>)}</div>}
+                  </li>
                 ))}
-                <li className="flex justify-between gap-2 py-1.5">
-                  <span>ปฏิเสธ{insp.rejection_reason ? ` (${REJECTION[insp.rejection_reason]})` : ""}</span>
-                  <span className="tabular">{fmtKg(insp.rejected_kg)}</span>
-                </li>
               </ul>
-              <div className="mt-3 text-xs text-slate-500">{insp.inspector.name} · {fmtDateTime(insp.inspected_at)} · {insp.sampling_method}</div>
-              <div className="mt-1 text-xs text-slate-500">หลักฐาน: {insp.evidence_note ?? "—"}</div>
-              {insp.flags.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1">{insp.flags.map((f) => <Badge key={f.code} tone="amber">{FLAG_LABEL[f.code] ?? f.code}</Badge>)}</div>
-              )}
             </Card>
           )}
           {s && (
             <Card title="การคำนวณยอดชำระ" action={<StatusBadge map={SETTLEMENT_STATUS} value={s.status} />}>
               <ul className="space-y-1 text-sm">
-                {s.lines.map((l) => (
-                  <li key={l.grade} className="flex justify-between gap-2">
-                    <span>{l.grade === "REJECTED" ? "ปฏิเสธ" : `เกรด ${l.grade}`}: {fmtKg(l.quantity_kg)} × {fmtTHB(l.price)}</span>
+                {s.lines.map((l, idx) => (
+                  <li key={l.grade + idx} className="flex justify-between gap-2">
+                    <span>{l.grade === "REJECTED" ? "ปฏิเสธ" : l.grade === "ADJUSTMENT" ? "ปรับยอดจากข้อพิพาท" : `เกรด ${l.grade}`}{l.grade !== "ADJUSTMENT" && `: ${fmtKg(l.quantity_kg)} × ${fmtTHB(l.price)}`}</span>
                     <span className="tabular">{fmtTHB(l.amount)}</span>
                   </li>
                 ))}
@@ -192,6 +202,9 @@ export default function ContractWorkspace() {
                 <li className="flex justify-between text-slate-600"><span>ชำระแล้ว</span><span className="tabular">{fmtTHB(s.paid_amount)}</span></li>
               </ul>
               <div className="mt-3 text-xs text-slate-500">ครบกำหนด {fmtDate(s.due_date)}</div>
+              <div className="mt-4 border-t border-slate-100 pt-3">
+                <EvidencePanel files={c.files} entityType="settlement" entityId={s.id} canUpload={user?.organization.id === c.buyer.id} label="หลักฐานการชำระเงิน" />
+              </div>
             </Card>
           )}
         </div>

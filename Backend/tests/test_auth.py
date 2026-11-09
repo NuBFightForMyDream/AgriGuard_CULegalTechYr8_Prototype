@@ -86,3 +86,13 @@ def test_migrations_build_the_full_schema():
     Base.metadata.drop_all(engine)
     with engine.begin() as c:
         c.execute(text("DROP TABLE alembic_version"))
+
+
+def test_rls_migration_covers_every_table():
+    import importlib.util
+    from app.migrate import ROOT
+
+    spec = importlib.util.spec_from_file_location("rls", ROOT / "migrations/versions/c1d2e3f4a5b6_enable_rls_on_postgres.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert set(Base.metadata.tables) <= set(mod._tables())

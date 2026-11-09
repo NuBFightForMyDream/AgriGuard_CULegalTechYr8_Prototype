@@ -452,6 +452,54 @@ class EvidenceFile(Base):
     uploader: Mapped[User] = relationship()
 
 
+class TrustAppeal(Base):
+    """A buyer's appeal against one AgriTrust event. An accepted appeal un-verifies the event and records before/after."""
+
+    __tablename__ = "trust_appeals"
+
+    id: Mapped[uuid.UUID] = pk()
+    buyer_org_id: Mapped[uuid.UUID] = fk("organizations.id")
+    trust_event_id: Mapped[uuid.UUID] = fk("trust_events.id")
+    submitted_by: Mapped[uuid.UUID] = fk("users.id")
+    reason: Mapped[str] = mapped_column(Text)
+    evidence_note: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(16), default="OPEN")  # OPEN | ACCEPTED | REJECTED
+    reviewer_user_id: Mapped[uuid.UUID | None] = fk("users.id", nullable=True)
+    decision_note: Mapped[str | None] = mapped_column(Text)
+    score_before: Mapped[float | None] = mapped_column(Numeric(5, 1))
+    score_after: Mapped[float | None] = mapped_column(Numeric(5, 1))
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
+    decided_at: Mapped[datetime | None] = mapped_column(TS)
+
+    event: Mapped[TrustEvent] = relationship()
+    buyer_org: Mapped[Organization] = relationship()
+
+
+class QualityStandard(Base):
+    """Per-fruit grading template used by GradeProof (overall_flow §13: not one template for all produce)."""
+
+    __tablename__ = "quality_standards"
+
+    id: Mapped[uuid.UUID] = pk()
+    product_type: Mapped[str] = mapped_column(String(32), unique=True)
+    grades: Mapped[list] = mapped_column(JSON)  # [{"grade": "A", "criteria": "..."}]
+    sampling_method: Mapped[str] = mapped_column(String(255))
+    updated_by: Mapped[uuid.UUID | None] = fk("users.id", nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id: Mapped[uuid.UUID] = pk()
+    organization_id: Mapped[uuid.UUID] = fk("organizations.id")
+    title: Mapped[str] = mapped_column(String(160))
+    body: Mapped[str] = mapped_column(Text)
+    link: Mapped[str | None] = mapped_column(String(255))
+    read_at: Mapped[datetime | None] = mapped_column(TS)
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow, index=True)
+
+
 # --- System -------------------------------------------------------------------------------
 
 

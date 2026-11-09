@@ -11,6 +11,7 @@ from app.models import AllocationItem, AllocationPlan, Farm, Offer, ProduceListi
 from app.schemas import AllocationConfirm, AllocationPreview, ListingCreate, ShortfallIn
 from app.services import amendments as amend
 from app.services import allocation, matching
+from app.services.standards import grades_for
 from app.services.matching import distance_km
 from app.services.contracts import create_contract
 from app.services.inventory import expire_reservations, listing_inventory
@@ -42,7 +43,7 @@ def create_listing(payload: ListingCreate, db: DB, user: CurrentUser):
     farm = db.scalars(select(Farm).where(Farm.organization_id == user.organization_id)).first()
     if farm is None:
         raise HTTPException(409, "ยังไม่มีข้อมูลสวน")
-    allowed = PRODUCTS[payload.product_type]["grades"]
+    allowed = grades_for(db, payload.product_type)
     if not set(payload.expected_grades) <= set(allowed):
         raise HTTPException(422, f"เกรดของ{PRODUCTS[payload.product_type]['th']}ต้องเป็น {', '.join(allowed)}")
     listing = ProduceListing(

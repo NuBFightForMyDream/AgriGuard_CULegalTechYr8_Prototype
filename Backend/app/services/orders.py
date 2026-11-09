@@ -55,6 +55,9 @@ def audit(
         message=message,
     )
     db.add(log)
+    from app.services.notify import notify_from_audit  # local import avoids a cycle
+
+    notify_from_audit(db, log, actor.organization_id if actor else None)
     return log
 
 

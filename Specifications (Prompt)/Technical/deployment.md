@@ -22,6 +22,8 @@ Yes. The current scaffold (`Frontend/` Next.js, `Backend/` FastAPI, `Database/` 
 
 Alternative backend host without a billing account: Render (Docker web service). Free instances sleep when idle and take tens of seconds to wake, so warm the service before a live demo.
 
+**As built:** the repo ships a Render blueprint (`render.yaml`) as the quickest path for the hackathon, and the same `Backend/Dockerfile` runs on Cloud Run unchanged (it binds `$PORT`). Step-by-step setup: [DEPLOY.md](../../DEPLOY.md).
+
 Keep all services in Singapore regions to minimise latency to Thai users and keep data in one jurisdiction (see [Data protection](#data-protection)).
 
 ## Authentication (Google via Supabase)
@@ -93,14 +95,7 @@ The platform stores personal data (names, emails, phone numbers, farm locations)
 
 ## Prototype gaps
 
-What the current scaffold needs before going online:
-
-- Alembic migrations instead of `create_all` on startup
-- Supabase JWT verification dependency in FastAPI, and `401` on protected routes
-- `users` / membership tables with `auth_user_id`, plus an onboarding flow
-- Supabase client, sign-in page, and `/auth/callback` route in `Frontend/`
-- SQLAlchemy pool settings and `sslmode=require` for the pooler
-- Bind uvicorn to the `PORT` environment variable (required by Cloud Run)
+All closed in Phase 2: Alembic migrations (with RLS on Postgres), Supabase JWT verification and onboarding, the frontend sign-in and `/auth/callback`, `$PORT` binding, evidence storage on Supabase Storage with signed URLs, and CI. Remaining before real users: turn off `DEMO_LOGIN`, set `FILE_URL_SECRET`, and tune the SQLAlchemy pool for the pooler's connection limit.
 
 ## Acceptance criteria
 
