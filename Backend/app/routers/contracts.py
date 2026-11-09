@@ -81,9 +81,11 @@ def risks_for(c: Contract, trust: dict) -> list[str]:
     elif trust["band"] == "HIGH_RISK":
         risks.append("AgriTrust ของผู้ซื้ออยู่ในระดับต้องระวัง ควรพิจารณาเงินมัดจำ")
     tolerance = terms["tolerance_pct"] / 100
+    harvested = sum(float(lot.harvested_kg) for lot in c.lots)
+    # Judge the total once no more lots can be added (after the first shipment).
+    if c.lots and c.order_status not in ("CONFIRMED", "HARVESTED") and harvested < terms["quantity_kg"] * (1 - tolerance):
+        risks.append(f"เก็บเกี่ยวรวม {harvested:,.0f} กก. ต่ำกว่าปริมาณที่ตกลง {terms['quantity_kg']:,.0f} กก. เกินค่าคลาดเคลื่อน")
     for lot in c.lots:
-        if float(lot.harvested_kg) < terms["quantity_kg"] * (1 - tolerance):
-            risks.append(f"ล็อต {lot.code} เก็บเกี่ยวได้ต่ำกว่าปริมาณที่ตกลงเกินค่าคลาดเคลื่อน")
         for insp in lot.inspections:
             risks.extend(f["message"] for f in insp.flags)
     s = c.settlement
