@@ -19,7 +19,11 @@ Workers: matching, optimizer, forecast, vision inference, legal RAG, notificatio
 
 ## Security
 
-RBAC by role and organization, signed upload URLs, encryption at rest/in transit, tenant isolation, secrets manager, append-only audit log
+Supabase Auth (Google sign-in) with the JWT verified by the API, RBAC by role and organization, signed upload URLs, encryption at rest/in transit, tenant isolation, secrets manager, append-only audit log
+
+## Deployment
+
+Vercel (frontend), Google Cloud Run (API), and Supabase (Postgres, Auth, Storage) in Singapore regions. See [deployment.md](deployment.md).
 
 ## Acceptance criteria
 

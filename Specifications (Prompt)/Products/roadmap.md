@@ -2,9 +2,9 @@
 
 ## Phase 0 — Foundation
 
-Auth/RBAC, organizations, farm/product master data, purchase request, offer, order state machine, audit timeline, sample data
+Auth/RBAC, organizations, farm/product master data, purchase request, offer, order state machine, audit timeline, sample data, online demo deployment with Google sign-in ([deployment.md](../Technical/deployment.md))
 
-**Exit:** create and track a basic multi-fruit transaction end-to-end in demo mode
+**Exit:** create and track a basic multi-fruit transaction end-to-end in demo mode, from a public URL
 
 ## Phase 1 — MVP assurance
 
