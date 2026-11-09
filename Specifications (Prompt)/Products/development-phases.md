@@ -47,11 +47,11 @@ Every step of the demo scenario (overall_flow §20) runs through the API and is 
 
 | Feature | What it does | Guardrails |
 | --- | --- | --- |
-| Legal AI (contract review + Q&A) | Rule engine checks required/risky clauses; Claude (`claude-opus-5-5`) summarises in plain Thai, lists risks and answers questions | Grounded only in the contract's clauses and approved policy documents (`Backend/app/knowledge/`); every point cites a real source id, invented ids are dropped; "not found" instead of guessing; personal data redacted; labelled AI-generated; high-risk → human review; every call logged in `ai_runs` |
-| QC photo assist | Claude vision estimates grade shares and defects from lot photos | Suggestion only; inspector edits and submits; inspection records `ai_run_id`; "cannot assess" allowed |
+| Legal AI (contract review + Q&A) | Rule engine checks required/risky clauses; the configured model (Gemini `gemini-3.8-flash` via `GEMINI_API_KEY`, or Claude `claude-opus-5-5` via `ANTHROPIC_API_KEY`) summarises in plain Thai, lists risks and answers questions | Grounded only in the contract's clauses and approved policy documents (`Backend/app/knowledge/`); every point cites a real source id, invented ids are dropped; "not found" instead of guessing; personal data redacted; labelled AI-generated; high-risk → human review; every call logged in `ai_runs` |
+| QC photo assist | The model's vision input estimates grade shares and defects from lot photos | Suggestion only; inspector edits and submits; inspection records `ai_run_id`; "cannot assess" allowed |
 | Harvest forecast | p10/p50/p90 from yield-per-rai ranges and farm area; warns when estimate or commitments exceed it | Labelled as a baseline, not a trained model, until real harvest data exists |
 
-Pages: contract workspace (ผู้ช่วยอ่านสัญญา), `/assistant`, QC form, produce detail. API: `/api/legal/*`, `/api/lots/{id}/ai-grade`, `/api/listings/{id}/forecast`, `/api/ai/status`. Without `ANTHROPIC_API_KEY` the rule engine, retrieval and forecast still work.
+Pages: contract workspace (ผู้ช่วยอ่านสัญญา), `/assistant`, QC form, produce detail. API: `/api/legal/*`, `/api/lots/{id}/ai-grade`, `/api/listings/{id}/forecast`, `/api/ai/status`. Without an AI key the rule engine, retrieval and forecast still work. The Gemini free tier allows Google to use submitted content to improve its products: fine for demo data, not for real customers.
 
 ## Not built yet
 

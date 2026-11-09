@@ -28,7 +28,7 @@ export default function AssistantPage() {
             <li className="flex gap-2"><Info className="mt-0.5 size-4 shrink-0" />ระบบตัดอีเมลและเบอร์โทรออกก่อนส่งให้ AI และบันทึกทุกคำตอบไว้ตรวจสอบ</li>
             <li className="flex gap-2"><Info className="mt-0.5 size-4 shrink-0" />ถามเรื่องสัญญาฉบับใดฉบับหนึ่งได้ที่หน้าสัญญานั้น (ผู้ช่วยอ่านสัญญา)</li>
           </ul>
-          {status && <p className="mt-4 text-xs text-slate-500">{status.available ? `โมเดล ${status.model}` : "ยังไม่ได้ตั้งค่า AI — จะแสดงเอกสารที่เกี่ยวข้องแทนคำตอบ"}</p>}
+          {status && <p className="mt-4 text-xs text-slate-500">{status.available ? `โมเดล ${status.model} (${status.provider === "gemini" ? "Google Gemini" : "Anthropic Claude"})` : "ยังไม่ได้ตั้งค่า AI — จะแสดงเอกสารที่เกี่ยวข้องแทนคำตอบ"}</p>}
         </Card>
       </div>
     </>

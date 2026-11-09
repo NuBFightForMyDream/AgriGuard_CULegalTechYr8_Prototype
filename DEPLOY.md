@@ -30,7 +30,8 @@ The API creates all tables itself on first start (Alembic migrations) and turns 
 | `SUPABASE_URL` | `https://<project-ref>.supabase.co` |
 | `SUPABASE_SECRET_KEY` | secret key from step 1.2 |
 | `CORS_ORIGINS` | `["https://<your-app>.vercel.app"]` (fill after step 4, then redeploy) |
-| `ANTHROPIC_API_KEY` | optional: a Claude API key from console.anthropic.com, turns on the AI assistants (contract review, legal Q&A, QC photo assist) |
+| `GEMINI_API_KEY` | optional: a Gemini key from aistudio.google.com (free tier), turns on the AI assistants (contract review, legal Q&A, QC photo assist). Free-tier content may be used by Google to improve its products, so use it with demo data |
+| `ANTHROPIC_API_KEY` | optional, instead of Gemini: a Claude API key from console.anthropic.com (paid) |
 | `CORS_ORIGIN_REGEX` | optional, for preview deploys: `https://.*-<your-team>\.vercel\.app` |
 
 3. Check `https://agriguard-api.onrender.com/api/health` returns `"database": "ok", "dialect": "postgresql"`.

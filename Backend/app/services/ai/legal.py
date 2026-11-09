@@ -160,7 +160,7 @@ def review(db: Session, c: Contract, user: User, buyer_trust: dict, refresh: boo
         "disclaimer": DISCLAIMER, "ai": None, "ai_error": None,
     }
     if not ai.available():
-        base["ai_error"] = "ยังไม่ได้ตั้งค่า AI (ANTHROPIC_API_KEY) — แสดงเฉพาะผลตรวจจากกฎ"
+        base["ai_error"] = "ยังไม่ได้ตั้งค่า AI (GEMINI_API_KEY หรือ ANTHROPIC_API_KEY) — แสดงเฉพาะผลตรวจจากกฎ"
         base["human_review_required"] = any(r["severity"] == "high" for r in rules)
         return base
 
@@ -205,7 +205,7 @@ def ask(db: Session, question: str, user: User, c: Contract | None = None) -> di
     sources = clauses + policies
     if not ai.available():
         return {"answer": None, "found": False, "citations": [_cite([s.id], sources)[0] for s in policies[:3]],
-                "ai_error": "ยังไม่ได้ตั้งค่า AI (ANTHROPIC_API_KEY) — แสดงเอกสารที่เกี่ยวข้องแทน", "disclaimer": DISCLAIMER}
+                "ai_error": "ยังไม่ได้ตั้งค่า AI (GEMINI_API_KEY หรือ ANTHROPIC_API_KEY) — แสดงเอกสารที่เกี่ยวข้องแทน", "disclaimer": DISCLAIMER}
     try:
         run = ai.run(
             db, task="LEGAL_QA", prompt_version=PROMPT_VERSION, system=SYSTEM, schema=ANSWER_SCHEMA,

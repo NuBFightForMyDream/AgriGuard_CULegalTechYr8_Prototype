@@ -438,4 +438,4 @@ export type Forecast = {
   warnings?: string[];
 };
 
-export type AiStatus = { available: boolean; model: string | null };
+export type AiStatus = { available: boolean; provider: "anthropic" | "gemini" | null; model: string | null };

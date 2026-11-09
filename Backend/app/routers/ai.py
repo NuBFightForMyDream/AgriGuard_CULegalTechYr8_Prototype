@@ -3,7 +3,6 @@ import uuid
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app.config import settings
 from app.deps import DB, CurrentUser, get_or_404
 from app.models import ProduceListing, ProduceLot
 from app.routers.contracts import load_contract
@@ -25,7 +24,8 @@ class Question(BaseModel):
 def status(user: CurrentUser):
     return {
         "available": ai.available(),
-        "model": settings.ai_model if ai.available() else None,
+        "provider": ai.provider(),
+        "model": ai.model_name(),
         "features": {
             "contract_review": "rule engine always; AI summary when available",
             "legal_qa": "answers only from contract clauses and approved policy documents",

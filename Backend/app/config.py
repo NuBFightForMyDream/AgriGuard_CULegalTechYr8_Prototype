@@ -30,10 +30,15 @@ class Settings(BaseSettings):
     max_upload_mb: int = 10
     # Signs local-storage download links. Set it in production so links survive restarts and multiple workers.
     file_url_secret: str = secrets.token_hex(16)
-    # Claude API for the AI assistants (Legal AI, QC photo assist). Without a key the rule-based parts still work.
+    # AI assistants (Legal AI, QC photo assist). Set one key; without any key the rule-based parts still work.
+    # AI_PROVIDER forces a choice ("anthropic" | "gemini"); otherwise the provider whose key is set is used.
+    ai_provider: str | None = None
     anthropic_api_key: str | None = None
     ai_model: str = "claude-opus-5-5"
     ai_effort: str = "medium"
+    # Gemini API (Google AI Studio). The free tier lets Google use content to improve its products: demo data only.
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-3.8-flash"
     # How long an allocation reservation waits for the buyer to accept the HarvestLock.
     reservation_hours: int = 72
 

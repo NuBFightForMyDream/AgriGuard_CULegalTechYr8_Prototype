@@ -64,7 +64,7 @@ def test_thai_retrieval_finds_relevant_policy():
 def test_review_without_key_still_returns_rule_findings(client):
     cid = contract(client)
     r = ok(client.post(f"/api/legal/contracts/{cid}/review", headers=FARMER))
-    assert r["ai"] is None and "ANTHROPIC_API_KEY" in r["ai_error"]
+    assert r["ai"] is None and "GEMINI_API_KEY" in r["ai_error"]
     assert all(f["source"] == "RULE_ENGINE" for f in r["rule_findings"])
     assert ok(client.get("/api/ai/status", headers=FARMER))["available"] is False
 
@@ -162,3 +162,74 @@ def test_forecast_baseline_warns_on_overestimate(client):
     assert fc.forecast("mango", None, D(5000), D(0))["insufficient_data"] is True
     r = ok(client.get(f"/api/listings/{LISTING}/forecast", headers=FARMER))
     assert r["model_version"] == fc.MODEL_VERSION and r["p50_kg"] == 45000  # Green Valley: 45 rai
+
+
+# --- Gemini provider adapter (no network) ---------------------------------------------------
+
+from types import SimpleNamespace  # noqa: E402
+
+from google.genai import types as gtypes  # noqa: E402
+
+
+class FakeGemini:
+    def __init__(self, response):
+        self.response, self.calls = response, []
+        self.models = self
+
+    def generate_content(self, **kw):
+        self.calls.append(kw)
+        return self.response
+
+
+def gemini_response(text, finish="STOP", blocked=None):
+    return SimpleNamespace(
+        prompt_feedback=SimpleNamespace(block_reason=blocked) if blocked else None,
+        candidates=[SimpleNamespace(finish_reason=getattr(gtypes.FinishReason, finish))],
+        text=text, usage_metadata=SimpleNamespace(prompt_token_count=12, candidates_token_count=34),
+        model_version="gemini-3.8-flash")
+
+
+def test_provider_selection(monkeypatch):
+    monkeypatch.setattr(settings, "anthropic_api_key", None)
+    monkeypatch.setattr(settings, "gemini_api_key", "g-key")
+    assert ai.provider() == "gemini" and ai.model_name() == settings.gemini_model
+    monkeypatch.setattr(settings, "anthropic_api_key", "a-key")
+    assert ai.provider() == "anthropic"
+    monkeypatch.setattr(settings, "ai_provider", "gemini")
+    assert ai.provider() == "gemini"
+
+
+def test_gemini_call_converts_content_and_parses_json(monkeypatch):
+    monkeypatch.setattr(settings, "gemini_api_key", "g-key")
+    monkeypatch.setattr(settings, "anthropic_api_key", None)
+    fake = FakeGemini(gemini_response('{"answer": "ok", "found": true, "source_ids": []}'))
+    monkeypatch.setattr(ai, "_gemini", fake)
+    import base64
+    img = base64.standard_b64encode(_png()).decode()
+    data, model, tin, tout = ai._call("sys", [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": img}},
+                                            {"type": "text", "text": "hello"}], legal.ANSWER_SCHEMA)
+    assert data["answer"] == "ok" and model == "gemini-3.8-flash" and (tin, tout) == (12, 34)
+    sent = fake.calls[0]
+    assert sent["model"] == settings.gemini_model and sent["contents"][1] == "hello"
+    assert sent["contents"][0].inline_data.mime_type == "image/jpeg"
+    cfg = sent["config"]
+    assert cfg.response_mime_type == "application/json" and cfg.response_json_schema == legal.ANSWER_SCHEMA and cfg.system_instruction == "sys"
+
+
+@pytest.mark.parametrize("finish,blocked,exc", [("SAFETY", None, ai.AIRefused), ("STOP", "SAFETY", ai.AIRefused), ("MAX_TOKENS", None, ai.AIUnavailable)])
+def test_gemini_blocked_or_truncated(monkeypatch, finish, blocked, exc):
+    monkeypatch.setattr(settings, "gemini_api_key", "g-key")
+    monkeypatch.setattr(settings, "anthropic_api_key", None)
+    monkeypatch.setattr(ai, "_gemini", FakeGemini(gemini_response("{}", finish, blocked)))
+    with pytest.raises(exc):
+        ai._call("sys", [{"type": "text", "text": "x"}], legal.ANSWER_SCHEMA)
+
+
+def test_ask_end_to_end_with_gemini(client, monkeypatch):
+    monkeypatch.setattr(settings, "gemini_api_key", "g-key")
+    monkeypatch.setattr(settings, "anthropic_api_key", None)
+    monkeypatch.setattr(ai, "_gemini", FakeGemini(gemini_response('{"answer": "ต้องยืนยันภายใน 72 ชั่วโมง", "found": true, "source_ids": ["harvestlock-policy#2"]}')))
+    r = ok(client.post("/api/legal/ask", headers=BUYER_B, json={"question": "ถ้าไม่ยืนยันสัญญาจะเป็นอย่างไร"}))
+    assert r["found"] is True and r["model"] == "gemini-3.8-flash"
+    status = ok(client.get("/api/ai/status", headers=BUYER_B))
+    assert status["provider"] == "gemini" and status["model"] == settings.gemini_model
