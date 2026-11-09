@@ -18,6 +18,7 @@ Design documents for a B2B procurement platform for fruit and agricultural produ
 12. [Deployment](../Technical/deployment.md) — Hosting, Google sign-in via Supabase, environments, and CI/CD
 13. [Database](../Technical/database.md) — Entity model and constraints
 14. [Roadmap](roadmap.md) — Delivery sequence from MVP to scale
+15. [Development Phases](development-phases.md) — What the prototype delivers in Phase 1 and what Phase 2 adds
 
 ## Scope note
 
