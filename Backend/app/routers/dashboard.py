@@ -5,10 +5,11 @@ from fastapi import APIRouter
 from sqlalchemy import or_, select
 
 from app.deps import DB, CurrentUser
-from app.models import AuditLog, Contract, Farm, Offer, Organization, ProduceListing, ProduceLot, PurchaseRequest
+from app.models import AuditLog, Contract, Dispute, Farm, Offer, Organization, ProduceListing, ProduceLot, PurchaseRequest
 from app.routers.contracts import visible_contracts
 from app.routers.purchase_requests import _demand, _supply
 from app.services import matching, trust
+from app.services.disputes import OPEN_STATES
 from app.services.inventory import expire_reservations, listing_inventory
 from app.services.orders import INACTIVE
 from app.views import TrustCache, audit_out, contract_brief, lot_out, offer_out, top_price, trust_events
@@ -22,6 +23,7 @@ PIPELINE = [
     ("รอตรวจคุณภาพ", {"QC_PENDING"}),
     ("รอชำระเงิน", {"QC_ACCEPTED", "PAYMENT_PENDING", "PAYMENT_OVERDUE", "PAID"}),
     ("เสร็จสิ้น", {"COMPLETED"}),
+    ("ข้อพิพาท", {"DISPUTED"}),
 ]
 Z = Decimal(0)
 
@@ -119,9 +121,12 @@ def dashboard(db: DB, user: CurrentUser):
     farms = db.query(Organization).filter(Organization.kind == "FARM").count()
     buyers = db.query(Organization).filter(Organization.kind == "BUYER").count()
     completed = sum(1 for c in contracts if c.order_status == "COMPLETED")
+    disputes = db.scalars(select(Dispute)).all()
     return {
         **base,
         "kpis": {
+            "open_disputes": sum(1 for d in disputes if d.status in OPEN_STATES),
+            "dispute_rate": round(100 * len({d.contract_id for d in disputes}) / len(contracts), 1) if contracts else None,
             "transactions": len(contracts),
             "contract_value": sum((c.quantity_kg * Decimal(str(top_price(c.offer))) for c in contracts), Z),
             "farmers": farms,

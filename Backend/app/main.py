@@ -11,6 +11,7 @@ from app.routers import (
     auth,
     contracts,
     dashboard,
+    disputes,
     health,
     history,
     listings,
@@ -43,5 +44,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for r in (health, auth, meta, dashboard, listings, purchase_requests, offers, contracts, lots, settlements, trust, history):
+for r in (health, auth, meta, dashboard, disputes, listings, purchase_requests, offers, contracts, lots, settlements, trust, history):
     app.include_router(r.router, prefix="/api")

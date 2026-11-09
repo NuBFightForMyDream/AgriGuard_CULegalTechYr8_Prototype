@@ -6,11 +6,12 @@ from sqlalchemy import select
 
 from app.catalog import PRODUCTS
 from app.deps import DB, CurrentUser, get_or_404, next_code
-from app.models import Contract, ContractAcceptance, ProduceLot, User
+from app.models import Contract, ContractAcceptance, Dispute, ProduceLot, User
 from app.schemas import HarvestCreate, Reason
 from app.services.contracts import record_trust_events
 from app.services.inventory import aware, expire_reservations
-from app.services.orders import InvalidTransition, audit, transition
+from app.services.disputes import OPEN_STATES
+from app.services.orders import DISPUTABLE, InvalidTransition, audit, transition
 from app.views import TrustCache, contract_brief, contract_timeline, inspection_out, listing_out, lot_out, settlement_out
 
 router = APIRouter(prefix="/contracts", tags=["contracts"])
@@ -32,6 +33,11 @@ def load_contract(db, user: User, contract_id: uuid.UUID) -> Contract:
     if user.role == "BUYER" and c.buyer_org_id != user.organization_id:
         raise HTTPException(403, "สัญญานี้ไม่เกี่ยวข้องกับคุณ")
     return c
+
+
+def dispute_ref(d: Dispute) -> dict:
+    return {"id": d.id, "code": d.code, "status": d.status, "category": d.category,
+            "previous_order_status": d.previous_order_status, "outcome": d.outcome}
 
 
 def is_party(user: User, c: Contract, role: str) -> bool:
@@ -86,6 +92,10 @@ def get_contract(contract_id: uuid.UUID, db: DB, user: CurrentUser):
     c = load_contract(db, user, contract_id)
     current = next(v for v in c.versions if v.version == c.current_version)
     trust = TrustCache(db).summary(c.buyer_org_id)
+    disputes = db.scalars(select(Dispute).where(Dispute.contract_id == c.id).order_by(Dispute.created_at)).all()
+    active = next((d for d in disputes if d.status in OPEN_STATES), None)
+    party = user.role in ("FARMER", "BUYER") and user.organization_id in (c.farmer_org_id, c.buyer_org_id)
+    can_dispute = party and active is None and c.order_status in DISPUTABLE
     lots = [lot_out(lot) for lot in c.lots]
     inspections = [inspection_out(i) for lot in c.lots for i in lot.inspections]
     return {
@@ -109,8 +119,10 @@ def get_contract(contract_id: uuid.UUID, db: DB, user: CurrentUser):
         "inspection": inspections[-1] if inspections else None,
         "settlement": settlement_out(c.settlement) if c.settlement else None,
         "timeline": contract_timeline(db, c),
-        "actions": actions_for(c, user),
+        "actions": actions_for(c, user) + (["OPEN_DISPUTE"] if can_dispute else []),
         "risks": risks_for(c, trust),
+        "active_dispute": dispute_ref(active) if active else None,
+        "disputes": [dispute_ref(d) for d in disputes],
     }
 
 
@@ -179,6 +191,8 @@ def complete(contract_id: uuid.UUID, db: DB, user: CurrentUser):
     _require(c, user, "CONFIRM_PAYMENT_RECEIVED")
     c.status = "COMPLETED"
     c.completed_at = datetime.now(timezone.utc)
+    for d in db.scalars(select(Dispute).where(Dispute.contract_id == c.id, Dispute.status == "RESOLVED")):
+        d.status = "CLOSED"
     _apply(db, c, "COMPLETED", user, "เกษตรกรยืนยันได้รับเงินครบ ปิดธุรกรรม")
     events = record_trust_events(db, c)
     good = sum(e.success for e in events)
