@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Scale,
   Search,
   ShieldCheck,
   ShoppingBasket,
@@ -38,6 +39,7 @@ function navFor(user: User): NavItem[] {
     quality: { href: "/quality", label: "GradeProof", icon: ClipboardCheck },
     payments: { href: "/payments", label: "การชำระเงิน", icon: Wallet },
     history: { href: "/history", label: "ประวัติธุรกรรม", icon: History },
+    disputes: { href: "/disputes", label: "ข้อพิพาท", icon: Scale },
   };
   const byRole: Record<Role, NavItem[]> = {
     FARMER: [
@@ -50,6 +52,7 @@ function navFor(user: User): NavItem[] {
       common.deliveries,
       { ...common.quality, label: "ผล GradeProof" },
       common.payments,
+      common.disputes,
       { href: "/buyers", label: "AgriTrust ผู้ซื้อ", icon: ShieldCheck },
       common.history,
     ],
@@ -62,18 +65,21 @@ function navFor(user: User): NavItem[] {
       { ...common.deliveries, label: "สินค้าที่กำลังมา" },
       { ...common.quality, label: "ตรวจคุณภาพ" },
       common.payments,
+      common.disputes,
       { href: `/buyers/${user.organization.id}`, label: "AgriTrust ของฉัน", icon: ShieldCheck },
       common.history,
     ],
     INSPECTOR: [
       { ...common.dashboard, label: "คิวตรวจคุณภาพ" },
       { ...common.quality, label: "ผลการตรวจ" },
+      { ...common.disputes, label: "ตรวจซ้ำ (ข้อพิพาท)" },
       common.deliveries,
       common.history,
     ],
     ADMIN: [
       { ...common.dashboard, label: "ภาพรวมแพลตฟอร์ม" },
       { ...common.contracts, label: "ธุรกรรมทั้งหมด" },
+      { ...common.disputes, label: "ข้อพิพาท" },
       { href: "/buyers", label: "Trust & Risk", icon: ShieldCheck },
       { ...common.history, label: "Audit Logs" },
     ],

@@ -241,7 +241,46 @@ export type Action =
   | "RECEIVE_LOT"
   | "RECORD_QC"
   | "RECORD_PAYMENT"
-  | "CONFIRM_PAYMENT_RECEIVED";
+  | "CONFIRM_PAYMENT_RECEIVED"
+  | "OPEN_DISPUTE";
+
+export type DisputeRef = { id: string; code: string; status: string; category: string; previous_order_status: string; outcome: string | null };
+
+export type DisputeBrief = {
+  id: string;
+  code: string;
+  category: string;
+  category_label: string;
+  status: string;
+  contract_id: string;
+  contract_code: string;
+  opened_by_org: Org;
+  against_org: Org;
+  disputed_amount: number;
+  held_amount: number;
+  response_deadline: string;
+  outcome: string | null;
+  created_at: string;
+  resolved_at: string | null;
+};
+
+export type DisputeDetail = DisputeBrief & {
+  description: string;
+  previous_order_status: string;
+  contract: ContractBrief;
+  opened_by: { id: string; name: string };
+  reviewer: { id: string; name: string } | null;
+  reviewer_notes: string | null;
+  proposed_adjustment: number | null;
+  resolution: string | null;
+  settlement_adjustment: number | null;
+  outcome_label: string | null;
+  statements: { id: string; organization: Org; user_name: string; body: string; evidence_note: string | null; created_at: string; side: "FARMER" | "BUYER" }[];
+  inspections: Inspection[];
+  settlement: { net_amount: number; paid_amount: number; status: string } | null;
+  timeline: AuditEvent[];
+  actions: ("ADD_STATEMENT" | "START_REVIEW" | "REQUEST_REINSPECTION" | "RESOLVE" | "RECORD_REINSPECTION")[];
+};
 
 export type ContractDetail = ContractBrief & {
   terms: Terms;
@@ -261,6 +300,8 @@ export type ContractDetail = ContractBrief & {
   timeline: AuditEvent[];
   actions: Action[];
   risks: string[];
+  active_dispute: DisputeRef | null;
+  disputes: DisputeRef[];
 };
 
 export type TrustDimension = {

@@ -47,6 +47,9 @@ const CURRENT: Record<string, number> = {
 };
 
 export const isStopped = (s: string) => s === "CANCELLED" || s === "RESERVATION_EXPIRED";
+/** A disputed order is paused where it was; show the journey at that point. */
+export const effectiveStatus = (c: ContractDetail) =>
+  c.order_status === "DISPUTED" && c.active_dispute ? c.active_dispute.previous_order_status : c.order_status;
 export const currentStage = (s: string) => CURRENT[s] ?? 0;
 
 export const ACTOR_LABEL: Record<Actor, string> = {
@@ -68,7 +71,7 @@ export const ACTOR_DOT: Record<Actor, string> = {
 export const ACTOR_TONE_OF: Record<Actor, Tone> = { FARMER: "green", BUYER: "blue", INSPECTOR: "violet", SYSTEM: "gray", BOTH: "lime" };
 
 export function Stepper({ c, selected, onSelect }: { c: ContractDetail; selected: number; onSelect: (i: number) => void }) {
-  const cur = currentStage(c.order_status);
+  const cur = currentStage(effectiveStatus(c));
   const stopped = isStopped(c.order_status);
   return (
     <ol className="grid grid-cols-2 gap-2 sm:grid-cols-5 xl:grid-cols-10">

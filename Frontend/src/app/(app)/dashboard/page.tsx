@@ -26,7 +26,7 @@ type BuyerDash = Base & {
   incoming: Lot[];
 };
 type InspectorDash = Base & { kpis: { queue: number; in_transit: number }; queue: Lot[] };
-type AdminDash = Base & { kpis: { transactions: number; contract_value: number; farmers: number; buyers: number; completion_rate: number | null } };
+type AdminDash = Base & { kpis: { transactions: number; contract_value: number; farmers: number; buyers: number; completion_rate: number | null; open_disputes: number; dispute_rate: number | null } };
 
 const COLORS = { contracted: "#166534", reserved: "#22c55e", available: "#d9f99d" };
 
@@ -226,12 +226,12 @@ function Admin({ d }: { d: AdminDash }) {
   const k = d.kpis;
   return (
     <>
-      <PageHeader title="ภาพรวมแพลตฟอร์ม" subtitle="Phase 1: ตัวชี้วัดหลัก — หน้าจัดการผู้ใช้ ข้อพิพาท และมาตรฐานคุณภาพอยู่ใน Phase 2" />
+      <PageHeader title="ภาพรวมแพลตฟอร์ม" subtitle="ตัวชี้วัดหลักของธุรกรรม ข้อพิพาท และการชำระเงิน" />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="ธุรกรรม (สัญญา)" value={k.transactions} />
         <Stat label="มูลค่าสัญญา" value={fmtTHB(k.contract_value)} />
         <Stat label="เกษตรกร / ผู้ซื้อ" value={`${k.farmers} / ${k.buyers}`} />
-        <Stat label="อัตราปิดธุรกรรมสำเร็จ" value={k.completion_rate === null ? "—" : `${k.completion_rate}%`} />
+        <Stat label="อัตราปิดธุรกรรมสำเร็จ" value={k.completion_rate === null ? "—" : `${k.completion_rate}%`} hint={`ข้อพิพาทเปิดอยู่ ${k.open_disputes} · อัตราข้อพิพาท ${k.dispute_rate ?? 0}%`} />
       </div>
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <Card title="Pipeline ทั้งแพลตฟอร์ม" className="lg:col-span-2"><Pipeline data={d.pipeline} /></Card>

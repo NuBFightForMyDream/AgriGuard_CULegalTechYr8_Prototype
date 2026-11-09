@@ -22,12 +22,13 @@ const WAITING: Record<string, string> = {
   COMPLETED: "ธุรกรรมเสร็จสิ้นและบันทึก AgriTrust แล้ว",
   CANCELLED: "ยกเลิกแล้ว ผลผลิตที่จองถูกคืนให้สวน",
   RESERVATION_EXPIRED: "การจองหมดอายุ ผลผลิตถูกคืนให้สวน",
+  DISPUTED: "ระงับชั่วคราวระหว่างพิจารณาข้อพิพาท — ผลพิจารณาจะพาคำสั่งซื้อกลับสู่ขั้นตอนเดิม",
 };
 
 export function NextAction({ c }: { c: ContractDetail }) {
   const { run, pending } = useAction();
   const [declining, setDeclining] = useState(false);
-  const a = c.actions;
+  const a = c.actions.filter((x) => x !== "OPEN_DISPUTE");
 
   if (!a.length) {
     return (

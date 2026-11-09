@@ -6,11 +6,12 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import useSWR from "swr";
 import { NextAction } from "@/components/contract-actions";
+import { OpenDisputeButton } from "@/components/dispute-open";
 import { TrustBadge } from "@/components/trust";
 import { Badge, Card, DL, ErrorState, PageHeader, PageSkeleton, StatusBadge } from "@/components/ui";
-import { ACTOR_LABEL, ACTOR_TONE_OF, STAGES, Stepper, Swimlane, currentStage, isStopped } from "@/components/workflow";
+import { ACTOR_LABEL, ACTOR_TONE_OF, STAGES, Stepper, Swimlane, currentStage, effectiveStatus, isStopped } from "@/components/workflow";
 import { fmtDate, fmtDateTime, fmtKg, fmtRange, fmtTHB } from "@/lib/format";
-import { FLAG_LABEL, LOT_STATUS, ORDER_STATUS, REJECTION, SETTLEMENT_STATUS, SHORTFALL_POLICY, productName } from "@/lib/labels";
+import { DISPUTE_CATEGORY, DISPUTE_STATUS, FLAG_LABEL, LOT_STATUS, ORDER_STATUS, REJECTION, SETTLEMENT_STATUS, SHORTFALL_POLICY, productName } from "@/lib/labels";
 import type { ContractDetail } from "@/lib/types";
 
 export default function ContractWorkspace() {
@@ -20,11 +21,12 @@ export default function ContractWorkspace() {
   if (error) return <ErrorState error={error} />;
   if (!c) return <PageSkeleton />;
 
-  const cur = Math.min(currentStage(c.order_status), STAGES.length - 1);
+  const status = effectiveStatus(c);
+  const cur = Math.min(currentStage(status), STAGES.length - 1);
   const selected = picked ?? cur;
   const stage = STAGES[selected];
   const stageEvents = c.timeline.filter(stage.match);
-  const stageState = isStopped(c.order_status) && selected === currentStage(c.order_status) ? "หยุดที่ขั้นนี้" : selected < currentStage(c.order_status) ? "เสร็จแล้ว" : selected === currentStage(c.order_status) ? "ขั้นปัจจุบัน" : "ยังไม่ถึง";
+  const stageState = isStopped(c.order_status) && selected === currentStage(status) ? "หยุดที่ขั้นนี้" : selected < currentStage(status) ? "เสร็จแล้ว" : selected === currentStage(status) ? (c.active_dispute ? "ระงับ: มีข้อพิพาท" : "ขั้นปัจจุบัน") : "ยังไม่ถึง";
   const t = c.terms;
   const lot = c.lots[0];
   const insp = c.inspection;
@@ -38,6 +40,11 @@ export default function ContractWorkspace() {
         subtitle={`${productName(c.product_type, c.variety)} · ${fmtKg(c.quantity_kg)} · ${c.farmer.name} → ${c.buyer.name}`}
       />
 
+      {c.active_dispute && (
+        <Link href={`/disputes/${c.active_dispute.id}`} className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 hover:bg-red-100">
+          ข้อพิพาท {c.active_dispute.code} · {DISPUTE_CATEGORY[c.active_dispute.category]} · <StatusBadge map={DISPUTE_STATUS} value={c.active_dispute.status} /> — คำสั่งซื้อถูกระงับจนกว่าจะมีผลพิจารณา
+        </Link>
+      )}
       <Card title="เส้นทางธุรกรรม (End-to-End Ordering Workspace)" bodyClassName="p-4 sm:p-5">
         <Stepper c={c} selected={selected} onSelect={setPicked} />
         <div className="mt-4 grid gap-4 rounded-lg border border-slate-200 bg-slate-50/60 p-4 text-sm md:grid-cols-3">
@@ -62,7 +69,7 @@ export default function ContractWorkspace() {
       </Card>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <Card title="งานถัดไป" className="lg:col-span-2"><NextAction c={c} /></Card>
+        <Card title="งานถัดไป" className="lg:col-span-2" action={<OpenDisputeButton c={c} />}><NextAction c={c} /></Card>
         <Card title="ความเสี่ยงที่ควรรู้">
           {c.risks.length ? (
             <ul className="space-y-2 text-sm">
