@@ -143,3 +143,17 @@ export const REJECTION: Record<string, string> = {
 export const SHORTFALL_POLICY: Record<string, string> = {
   PROPORTIONAL_REDUCTION: "ลดปริมาณตามสัดส่วนให้ผู้ซื้อทุกราย",
 };
+
+export const VERSION_STATUS: Record<string, [string, Tone]> = {
+  PROPOSED: ["รอยอมรับ", "amber"],
+  ACCEPTED: ["มีผล", "green"],
+  REJECTED: ["ถูกปฏิเสธ", "red"],
+  SUPERSEDED: ["ถูกแทนที่", "gray"],
+};
+
+export const SIGN_METHOD: Record<string, string> = {
+  ALLOCATION_CONFIRMATION: "ยืนยันผ่านแผนจัดสรร",
+  TYPED_NAME: "ลงชื่อ (พิมพ์ชื่อ) + ยินยอม",
+  PROPOSER: "ผู้เสนอแก้ไข",
+  AUTHENTICATED_CLICK: "ยืนยันผ่านบัญชีที่เข้าสู่ระบบ",
+};

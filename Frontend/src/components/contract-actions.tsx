@@ -28,7 +28,7 @@ const WAITING: Record<string, string> = {
 export function NextAction({ c }: { c: ContractDetail }) {
   const { run, pending } = useAction();
   const [declining, setDeclining] = useState(false);
-  const a = c.actions.filter((x) => x !== "OPEN_DISPUTE");
+  const a = c.actions.filter((x) => !["OPEN_DISPUTE", "PROPOSE_AMENDMENT", "RESPOND_AMENDMENT"].includes(x));
 
   if (!a.length) {
     return (
@@ -44,7 +44,7 @@ export function NextAction({ c }: { c: ContractDetail }) {
   return (
     <div className="space-y-4">
       {a.includes("ACCEPT_HARVESTLOCK") && (
-        <AcceptForm c={c} pending={pending} onAccept={() => go(`/contracts/${c.id}/accept`, {}, "ยืนยัน HarvestLock แล้ว")} onDecline={() => setDeclining(true)} />
+        <AcceptForm c={c} pending={pending} onAccept={(name) => go(`/contracts/${c.id}/accept`, { signature_name: name, consent: true }, "ลงนามและยืนยัน HarvestLock แล้ว")} onDecline={() => setDeclining(true)} />
       )}
       {a.includes("RECORD_HARVEST") && <HarvestForm c={c} pending={pending} submit={(b) => go(`/contracts/${c.id}/lots`, b, "บันทึกการเก็บเกี่ยวและสร้างล็อตแล้ว")} />}
       {a.includes("DISPATCH_LOT") && <DispatchForm c={c} pending={pending} submit={(b) => go(`/lots/${c.lots[0].id}/dispatch`, b, "บันทึกการส่งสินค้าแล้ว")} />}
@@ -81,8 +81,9 @@ export function NextAction({ c }: { c: ContractDetail }) {
   );
 }
 
-function AcceptForm({ c, pending, onAccept, onDecline }: { c: ContractDetail; pending: boolean; onAccept: () => void; onDecline: () => void }) {
+function AcceptForm({ c, pending, onAccept, onDecline }: { c: ContractDetail; pending: boolean; onAccept: (name: string) => void; onDecline: () => void }) {
   const [agree, setAgree] = useState(false);
+  const [name, setName] = useState("");
   return (
     <div className="space-y-3 text-sm">
       <p className="text-slate-600">
@@ -92,11 +93,14 @@ function AcceptForm({ c, pending, onAccept, onDecline }: { c: ContractDetail; pe
         <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-1 accent-green-800" />
         <span>ข้าพเจ้าได้อ่านและยอมรับเงื่อนไข HarvestLock ฉบับที่ {c.current_version} <span className="font-mono text-xs text-slate-500">({c.terms_hash.slice(0, 12)}…)</span></span>
       </label>
+      <Field label="ลงชื่อ (พิมพ์ชื่อ-นามสกุลของผู้มีอำนาจลงนาม)" className="max-w-sm">
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="ชื่อ นามสกุล" />
+      </Field>
       <div className="flex flex-wrap gap-2">
-        <Button disabled={!agree} loading={pending} onClick={onAccept}>ยืนยัน HarvestLock</Button>
+        <Button disabled={!agree || name.trim().length < 2} loading={pending} onClick={() => onAccept(name.trim())}>ลงนามและยืนยัน HarvestLock</Button>
         <Button variant="danger" onClick={onDecline}>ปฏิเสธ</Button>
       </div>
-      <p className="text-xs text-slate-500">Phase 1: การยอมรับผ่านบัญชีที่เข้าสู่ระบบ (จำลอง) — ลายเซ็นอิเล็กทรอนิกส์และ PDF อยู่ใน Phase 2</p>
+      <p className="text-xs text-slate-500">ลายเซ็นอิเล็กทรอนิกส์แบบจำลอง: บันทึกชื่อที่พิมพ์ บัญชีผู้ใช้ เวลา และ hash ของเงื่อนไข — ยังไม่ใช่บริการ e-signature ที่รับรองตามกฎหมาย</p>
     </div>
   );
 }

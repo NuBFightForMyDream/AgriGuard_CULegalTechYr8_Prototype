@@ -1,5 +1,6 @@
 import uuid
 from datetime import date, datetime, timezone
+from decimal import Decimal
 
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
@@ -7,7 +8,8 @@ from sqlalchemy import select
 from app.catalog import PRODUCTS
 from app.deps import DB, CurrentUser, get_or_404, next_code
 from app.models import Contract, ContractAcceptance, Dispute, ProduceLot, User
-from app.schemas import HarvestCreate, Reason
+from app.schemas import AmendmentCreate, AmendmentResponse, HarvestCreate, Reason, Signature
+from app.services import amendments as amend
 from app.services.contracts import record_trust_events
 from app.services.inventory import aware, expire_reservations
 from app.services.disputes import OPEN_STATES
@@ -55,8 +57,14 @@ def actions_for(c: Contract, user: User) -> list[str]:
         (s == "QC_PENDING" and (user.role == "INSPECTOR" or buyer), ["RECORD_QC"]),
         (s in ("PAYMENT_PENDING", "PAYMENT_OVERDUE") and buyer, ["RECORD_PAYMENT"]),
         (s == "PAID" and farmer, ["CONFIRM_PAYMENT_RECEIVED"]),
+        (s in amend.AMENDABLE and (farmer or buyer) and c.proposed_version is None, ["PROPOSE_AMENDMENT"]),
+        (c.proposed_version is not None and (farmer or buyer) and _proposer(c) != user.organization_id, ["RESPOND_AMENDMENT"]),
     ]
     return [a for ok, acts in rules if ok for a in acts]
+
+
+def _proposer(c: Contract):
+    return next((v.proposed_by_org_id for v in c.versions if v.version == c.proposed_version), None)
 
 
 def risks_for(c: Contract, trust: dict) -> list[str]:
@@ -91,6 +99,7 @@ def get_contract(contract_id: uuid.UUID, db: DB, user: CurrentUser):
     expire_reservations(db)
     c = load_contract(db, user, contract_id)
     current = next(v for v in c.versions if v.version == c.current_version)
+    proposed = next((v for v in c.versions if v.version == c.proposed_version), None)
     trust = TrustCache(db).summary(c.buyer_org_id)
     disputes = db.scalars(select(Dispute).where(Dispute.contract_id == c.id).order_by(Dispute.created_at)).all()
     active = next((d for d in disputes if d.status in OPEN_STATES), None)
@@ -103,10 +112,20 @@ def get_contract(contract_id: uuid.UUID, db: DB, user: CurrentUser):
         "terms": current.terms,
         "terms_hash": current.terms_hash,
         "current_version": c.current_version,
-        "versions": [{"version": v.version, "terms_hash": v.terms_hash, "created_at": v.created_at} for v in c.versions],
+        "versions": [
+            {"version": v.version, "terms_hash": v.terms_hash, "status": v.status, "reason": v.reason,
+             "proposed_by_org_id": v.proposed_by_org_id, "created_at": v.created_at, "terms": v.terms}
+            for v in c.versions
+        ],
+        "proposed": None if proposed is None else {
+            "version": proposed.version, "terms": proposed.terms, "terms_hash": proposed.terms_hash,
+            "reason": proposed.reason, "proposed_by_org_id": proposed.proposed_by_org_id,
+            "created_at": proposed.created_at, "diff": amend.diff(current.terms, proposed.terms),
+        },
         "acceptances": [
             {"organization_id": a.organization_id, "user_name": a.user.name, "version": a.version,
-             "terms_hash": a.terms_hash, "accepted_at": a.accepted_at}
+             "terms_hash": a.terms_hash, "accepted_at": a.accepted_at, "signature_name": a.signature_name,
+             "method": a.method}
             for a in c.acceptances
         ],
         "confirmed_at": c.confirmed_at,
@@ -139,13 +158,15 @@ def _apply(db, c, to, user, message):
 
 
 @router.post("/{contract_id}/accept")
-def accept(contract_id: uuid.UUID, db: DB, user: CurrentUser):
+def accept(contract_id: uuid.UUID, payload: Signature, db: DB, user: CurrentUser):
     expire_reservations(db)
     c = load_contract(db, user, contract_id)
     _require(c, user, "ACCEPT_HARVESTLOCK")
     current = next(v for v in c.versions if v.version == c.current_version)
+    current.status = "ACCEPTED"
     c.acceptances.append(ContractAcceptance(
-        version=c.current_version, organization_id=user.organization_id, user_id=user.id, terms_hash=current.terms_hash))
+        version=c.current_version, organization_id=user.organization_id, user_id=user.id, terms_hash=current.terms_hash,
+        signature_name=payload.signature_name, method="TYPED_NAME"))
     c.status = "CONFIRMED"
     c.confirmed_at = datetime.now(timezone.utc)
     _apply(db, c, "CONFIRMED", user,
@@ -198,6 +219,40 @@ def complete(contract_id: uuid.UUID, db: DB, user: CurrentUser):
     good = sum(e.success for e in events)
     audit(db, entity_type="contract", entity_id=c.id, entity_code=c.code, action="TRUST_UPDATED", actor=None,
           contract=c, message=f"บันทึกเหตุการณ์ AgriTrust ที่ตรวจสอบแล้ว {len(events)} รายการ (ผ่าน {good}/{len(events)})")
+    db.commit()
+    return get_contract(contract_id, db, user)
+
+
+@router.post("/{contract_id}/amendments", status_code=201)
+def propose_amendment(contract_id: uuid.UUID, payload: AmendmentCreate, db: DB, user: CurrentUser):
+    c = load_contract(db, user, contract_id)
+    _require(c, user, "PROPOSE_AMENDMENT")
+    changes = payload.changes.model_dump(exclude_none=True)
+    if "delivery_window" in changes:
+        changes["delivery_window"] = [d.isoformat() for d in changes["delivery_window"]]
+    if "grade_prices" in changes:
+        changes["grade_prices"] = {k.strip().upper(): float(v) for k, v in changes["grade_prices"].items()}
+    if "quantity_kg" in changes:
+        from app.services.inventory import listing_inventory  # local import keeps module load light
+
+        extra = Decimal(str(changes["quantity_kg"])) - c.quantity_kg
+        if extra > listing_inventory(c.listing)["available_kg"]:
+            raise HTTPException(422, "เพิ่มปริมาณเกินผลผลิตที่ยังไม่ผูกพันของสวน")
+    try:
+        amend.propose(db, c, user, changes, payload.reason)
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from e
+    db.commit()
+    return get_contract(contract_id, db, user)
+
+
+@router.post("/{contract_id}/amendments/respond")
+def respond_amendment(contract_id: uuid.UUID, payload: AmendmentResponse, db: DB, user: CurrentUser):
+    c = load_contract(db, user, contract_id)
+    _require(c, user, "RESPOND_AMENDMENT")
+    if payload.accept and (not payload.consent or not (payload.signature_name or "").strip()):
+        raise HTTPException(422, "การยอมรับต้องลงชื่อและยืนยันความยินยอม")
+    amend.respond(db, c, user, payload.accept, payload.signature_name)
     db.commit()
     return get_contract(contract_id, db, user)
 

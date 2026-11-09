@@ -150,8 +150,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         },
       }}
     >
-      <div className="min-h-screen lg:pl-64">
-        <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-slate-200 bg-white lg:block">{sidebar}</aside>
+      <div className="min-h-screen lg:pl-64 print:pl-0">
+        <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-slate-200 bg-white lg:block print:hidden">{sidebar}</aside>
         {open && (
           <div className="fixed inset-0 z-40 lg:hidden">
             <div className="absolute inset-0 bg-slate-900/40" onClick={() => setOpen(false)} />
@@ -163,7 +163,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </aside>
           </div>
         )}
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-6">
+        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-6 print:hidden">
           <button className="rounded p-1.5 text-slate-600 hover:bg-slate-100 lg:hidden" onClick={() => setOpen(true)} aria-label="เปิดเมนู">
             <Menu className="size-5" />
           </button>

@@ -242,7 +242,11 @@ export type Action =
   | "RECORD_QC"
   | "RECORD_PAYMENT"
   | "CONFIRM_PAYMENT_RECEIVED"
-  | "OPEN_DISPUTE";
+  | "OPEN_DISPUTE"
+  | "PROPOSE_AMENDMENT"
+  | "RESPOND_AMENDMENT";
+
+export type TermsDiff = { field: string; label: string; from: unknown; to: unknown }[];
 
 export type DisputeRef = { id: string; code: string; status: string; category: string; previous_order_status: string; outcome: string | null };
 
@@ -286,8 +290,9 @@ export type ContractDetail = ContractBrief & {
   terms: Terms;
   terms_hash: string;
   current_version: number;
-  versions: { version: number; terms_hash: string; created_at: string }[];
-  acceptances: { organization_id: string; user_name: string; version: number; terms_hash: string; accepted_at: string }[];
+  versions: { version: number; terms_hash: string; status: string; reason: string | null; proposed_by_org_id: string | null; created_at: string; terms: Terms }[];
+  proposed: { version: number; terms: Terms; terms_hash: string; reason: string | null; proposed_by_org_id: string | null; created_at: string; diff: TermsDiff } | null;
+  acceptances: { organization_id: string; user_name: string; version: number; terms_hash: string; accepted_at: string; signature_name: string | null; method: string }[];
   confirmed_at: string | null;
   completed_at: string | null;
   purchase_request_code: string | null;

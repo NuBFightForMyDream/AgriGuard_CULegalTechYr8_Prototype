@@ -1,17 +1,18 @@
 "use client";
 
-import { AlertTriangle, FileCheck2, Hash, ShieldCheck } from "lucide-react";
+import { AlertTriangle, FileCheck2, FileText, Hash, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import useSWR from "swr";
+import { PendingAmendment, ProposeAmendmentButton } from "@/components/amendments";
 import { NextAction } from "@/components/contract-actions";
 import { OpenDisputeButton } from "@/components/dispute-open";
 import { TrustBadge } from "@/components/trust";
-import { Badge, Card, DL, ErrorState, PageHeader, PageSkeleton, StatusBadge } from "@/components/ui";
+import { Badge, Card, DL, ErrorState, LinkButton, PageHeader, PageSkeleton, StatusBadge } from "@/components/ui";
 import { ACTOR_LABEL, ACTOR_TONE_OF, STAGES, Stepper, Swimlane, currentStage, effectiveStatus, isStopped } from "@/components/workflow";
 import { fmtDate, fmtDateTime, fmtKg, fmtRange, fmtTHB } from "@/lib/format";
-import { DISPUTE_CATEGORY, DISPUTE_STATUS, FLAG_LABEL, LOT_STATUS, ORDER_STATUS, REJECTION, SETTLEMENT_STATUS, SHORTFALL_POLICY, productName } from "@/lib/labels";
+import { DISPUTE_CATEGORY, DISPUTE_STATUS, SIGN_METHOD, VERSION_STATUS, FLAG_LABEL, LOT_STATUS, ORDER_STATUS, REJECTION, SETTLEMENT_STATUS, SHORTFALL_POLICY, productName } from "@/lib/labels";
 import type { ContractDetail } from "@/lib/types";
 
 export default function ContractWorkspace() {
@@ -38,6 +39,12 @@ export default function ContractWorkspace() {
         eyebrow={<Link href="/contracts" className="hover:text-green-800">← สัญญาทั้งหมด</Link>}
         title={<span className="flex flex-wrap items-center gap-3">{c.code}<StatusBadge map={ORDER_STATUS} value={c.order_status} /></span>}
         subtitle={`${productName(c.product_type, c.variety)} · ${fmtKg(c.quantity_kg)} · ${c.farmer.name} → ${c.buyer.name}`}
+        actions={
+          <LinkButton href={`/contracts/${c.id}/document`} variant="secondary" size="sm">
+            <FileText className="size-4" />
+            เอกสารสัญญา (PDF)
+          </LinkButton>
+        }
       />
 
       {c.active_dispute && (
@@ -69,7 +76,7 @@ export default function ContractWorkspace() {
       </Card>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <Card title="งานถัดไป" className="lg:col-span-2" action={<OpenDisputeButton c={c} />}><NextAction c={c} /></Card>
+        <Card title="งานถัดไป" className="lg:col-span-2" action={<div className="flex flex-wrap gap-2"><ProposeAmendmentButton c={c} /><OpenDisputeButton c={c} /></div>}><NextAction c={c} /></Card>
         <Card title="ความเสี่ยงที่ควรรู้">
           {c.risks.length ? (
             <ul className="space-y-2 text-sm">
@@ -84,6 +91,8 @@ export default function ContractWorkspace() {
           </div>
         </Card>
       </div>
+
+      <PendingAmendment c={c} />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <Card title="เงื่อนไข HarvestLock" className="lg:col-span-2" action={<Badge tone="gray">ฉบับที่ {c.current_version}</Badge>}>
@@ -114,12 +123,25 @@ export default function ContractWorkspace() {
               <li key={a.organization_id + a.version} className="flex gap-2">
                 <FileCheck2 className="mt-0.5 size-4 shrink-0 text-green-700" />
                 <div>
-                  <div>{a.user_name} ยอมรับฉบับที่ {a.version}</div>
-                  <div className="text-xs text-slate-500">{fmtDateTime(a.accepted_at)} · {a.terms_hash === c.terms_hash ? "hash ตรงกับฉบับปัจจุบัน" : "hash ไม่ตรง"}</div>
+                  <div>{a.signature_name ?? a.user_name} · ฉบับที่ {a.version}</div>
+                  <div className="text-xs text-slate-500">
+                    {SIGN_METHOD[a.method] ?? a.method} · บัญชี {a.user_name} · {fmtDateTime(a.accepted_at)}
+                  </div>
                 </div>
               </li>
             ))}
           </ul>
+          <div className="mt-4 border-t border-slate-100 pt-3 text-sm">
+            <div className="mb-1 text-xs text-slate-500">ประวัติฉบับสัญญา</div>
+            <ul className="space-y-1">
+              {c.versions.map((v) => (
+                <li key={v.version} className="flex flex-wrap items-center gap-2">
+                  ฉบับที่ {v.version} <StatusBadge map={VERSION_STATUS} value={v.status} />
+                  <span className="font-mono text-xs text-slate-500">{v.terms_hash.slice(0, 10)}…</span>
+                </li>
+              ))}
+            </ul>
+          </div>
           <p className="mt-4 text-xs text-slate-500">SHA-256 ของเงื่อนไขช่วยตรวจว่าเอกสารไม่ถูกแก้ไข แต่ hash อย่างเดียวไม่ได้ยืนยันผลทางกฎหมาย ฉบับที่ยอมรับแล้วไม่ถูกเขียนทับ</p>
         </Card>
       </div>

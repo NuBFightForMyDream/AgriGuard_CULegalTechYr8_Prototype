@@ -6,6 +6,7 @@ import useSWR from "swr";
 import { InventoryBar } from "@/components/inventory";
 import { FarmerOffersTable } from "@/components/offers-table";
 import { OrdersTable } from "@/components/orders";
+import { ShortfallButton } from "@/components/shortfall";
 import { Card, DL, ErrorState, LinkButton, PageHeader, PageSkeleton, StatusBadge } from "@/components/ui";
 import { fmtKg, fmtRange, fmtTHB } from "@/lib/format";
 import { INVENTORY_STATUS, productName } from "@/lib/labels";
@@ -24,12 +25,15 @@ export default function ListingDetail() {
         title={productName(l.product_type, l.variety)}
         subtitle={`เก็บเกี่ยว ${fmtRange(l.harvest_start, l.harvest_end)} · ${l.farm.province}`}
         actions={
-          l.pending_offers > 0 && inv.available_kg > 0 ? (
-            <LinkButton href={`/allocation/${l.id}`}>
-              <SplitSquareHorizontal className="size-4" />
-              จัดสรรผลผลิต ({l.pending_offers} ข้อเสนอ)
-            </LinkButton>
-          ) : undefined
+          <>
+            <ShortfallButton listing={l} />
+            {l.pending_offers > 0 && inv.available_kg > 0 && (
+              <LinkButton href={`/allocation/${l.id}`}>
+                <SplitSquareHorizontal className="size-4" />
+                จัดสรรผลผลิต ({l.pending_offers} ข้อเสนอ)
+              </LinkButton>
+            )}
+          </>
         }
       />
       <div className="grid gap-6 lg:grid-cols-3">

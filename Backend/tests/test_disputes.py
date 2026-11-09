@@ -5,6 +5,9 @@ ADMIN = as_user("admin@agriguard.example")
 LISTING = str(sid("PL-2026-001"))
 
 
+SIGN = {"signature_name": "อนันต์ กิตติวงศ์", "consent": True}
+
+
 def ok(resp, code=200):
     assert resp.status_code == code, resp.text
     return resp.json()
@@ -15,7 +18,7 @@ def to_payment_pending(client) -> dict:
     created = ok(client.post(f"/api/listings/{LISTING}/allocation/confirm",
                              json={"items": [{"offer_id": offers["FreshFruit Export Co."], "quantity_kg": 2000}]}, headers=FARMER), 201)
     cid = created["contracts"][0]["id"]
-    ok(client.post(f"/api/contracts/{cid}/accept", headers=BUYER_B))
+    ok(client.post(f"/api/contracts/{cid}/accept", json=SIGN, headers=BUYER_B))
     lot = ok(client.post(f"/api/contracts/{cid}/lots", json={"harvest_date": "2026-12-15", "harvested_kg": 2000}, headers=FARMER), 201)["lots"][0]
     ok(client.post(f"/api/lots/{lot['id']}/dispatch", json={"vehicle": "1กข", "gross_kg": 2100, "tare_kg": 100}, headers=FARMER))
     ok(client.post(f"/api/lots/{lot['id']}/receive", json={"received_kg": 2000}, headers=BUYER_B))

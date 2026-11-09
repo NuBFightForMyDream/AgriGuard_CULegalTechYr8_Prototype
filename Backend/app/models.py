@@ -205,6 +205,8 @@ class Contract(Base):
     status: Mapped[str] = mapped_column(String(24))  # HarvestLock status
     order_status: Mapped[str] = mapped_column(String(32), index=True)  # order state machine
     current_version: Mapped[int] = mapped_column(Integer, default=1)
+    # A proposed amendment awaiting the other party (never edits the accepted version in place).
+    proposed_version: Mapped[int | None] = mapped_column(Integer)
     reservation_expires_at: Mapped[datetime | None] = mapped_column(TS)
     created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
     confirmed_at: Mapped[datetime | None] = mapped_column(TS)
@@ -237,6 +239,9 @@ class ContractVersion(Base):
     version: Mapped[int] = mapped_column(Integer)
     terms: Mapped[dict] = mapped_column(JSON)
     terms_hash: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(16), default="PROPOSED", server_default="ACCEPTED")  # PROPOSED | ACCEPTED | REJECTED | SUPERSEDED
+    reason: Mapped[str | None] = mapped_column(Text)
+    proposed_by_org_id: Mapped[uuid.UUID | None] = fk("organizations.id", nullable=True)
     created_by: Mapped[uuid.UUID] = fk("users.id")
     created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
 
@@ -253,6 +258,9 @@ class ContractAcceptance(Base):
     organization_id: Mapped[uuid.UUID] = fk("organizations.id")
     user_id: Mapped[uuid.UUID] = fk("users.id")
     terms_hash: Mapped[str] = mapped_column(String(64))
+    # Phase 2 demo e-signature: typed full name + explicit consent (no third-party e-signature provider).
+    signature_name: Mapped[str | None] = mapped_column(String(120))
+    method: Mapped[str] = mapped_column(String(32), default="TYPED_NAME", server_default="AUTHENTICATED_CLICK")
     accepted_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
 
     contract: Mapped[Contract] = relationship(back_populates="acceptances")

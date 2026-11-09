@@ -4,6 +4,9 @@ from app.seed import sid
 LISTING = str(sid("PL-2026-001"))
 
 
+SIGN = {"signature_name": "อนันต์ กิตติวงศ์", "consent": True}
+
+
 def ok(resp, code=200):
     assert resp.status_code == code, resp.text
     return resp.json()
@@ -44,7 +47,7 @@ def test_demo_scenario_end_to_end(client):
     # 12-14. Buyer B accepts its HarvestLock
     b_contract = next(c for c in created["contracts"] if c["buyer"]["name"] == "FreshFruit Export Co.")
     cid = b_contract["id"]
-    detail = ok(client.post(f"/api/contracts/{cid}/accept", headers=BUYER_B))
+    detail = ok(client.post(f"/api/contracts/{cid}/accept", json=SIGN, headers=BUYER_B))
     assert detail["order_status"] == "CONFIRMED" and len(detail["acceptances"]) == 2
     assert len({a["terms_hash"] for a in detail["acceptances"]}) == 1  # both accepted the same version
 
@@ -102,8 +105,8 @@ def test_decline_releases_supply_and_roles_enforced(client):
     created = ok(client.post(f"/api/listings/{LISTING}/allocation/confirm",
                              json={"items": [{"offer_id": c_offer["id"], "quantity_kg": 2500}]}, headers=FARMER), 201)
     cid = created["contracts"][0]["id"]
-    assert client.post(f"/api/contracts/{cid}/accept", headers=BUYER_D).status_code == 403  # not their contract
-    assert client.post(f"/api/contracts/{cid}/accept", headers=FARMER).status_code == 409  # wrong party
+    assert client.post(f"/api/contracts/{cid}/accept", json=SIGN, headers=BUYER_D).status_code == 403  # not their contract
+    assert client.post(f"/api/contracts/{cid}/accept", json=SIGN, headers=FARMER).status_code == 409  # wrong party
     ok(client.post(f"/api/contracts/{cid}/decline", json={"reason": "ไม่พร้อมรับ"}, headers=BUYER_C))
     _, listing = offers_by_buyer(client)
     assert listing["inventory"]["available_kg"] == 5000

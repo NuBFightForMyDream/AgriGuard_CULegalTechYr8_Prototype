@@ -75,11 +75,11 @@ def create_contract(
     )
     terms = build_terms(listing, offer, qty)
     h = terms_hash(terms)
-    c.versions.append(ContractVersion(version=1, terms=terms, terms_hash=h, created_by=farmer.id))
-    # Allocating is the farmer's acceptance of version 1.
-    c.acceptances.append(
-        ContractAcceptance(version=1, organization_id=farmer.organization_id, user_id=farmer.id, terms_hash=h)
-    )
+    c.versions.append(ContractVersion(version=1, terms=terms, terms_hash=h, status="PROPOSED",
+                                      proposed_by_org_id=farmer.organization_id, created_by=farmer.id))
+    # Confirming the allocation plan is the farmer's acceptance of version 1.
+    c.acceptances.append(ContractAcceptance(version=1, organization_id=farmer.organization_id, user_id=farmer.id,
+                                            terms_hash=h, signature_name=farmer.name, method="ALLOCATION_CONFIRMATION"))
     db.add(c)
     db.flush()
     offer.status = "ALLOCATED"

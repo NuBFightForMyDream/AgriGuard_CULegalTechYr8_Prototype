@@ -8,7 +8,8 @@ from sqlalchemy import select
 from app.catalog import PRODUCTS
 from app.deps import DB, CurrentUser, get_or_404, next_code, require_role
 from app.models import AllocationItem, AllocationPlan, Farm, Offer, ProduceListing, PurchaseRequest
-from app.schemas import AllocationConfirm, AllocationPreview, ListingCreate
+from app.schemas import AllocationConfirm, AllocationPreview, ListingCreate, ShortfallIn
+from app.services import amendments as amend
 from app.services import allocation, matching
 from app.services.matching import distance_km
 from app.services.contracts import create_contract
@@ -168,3 +169,38 @@ def reallocation(listing_id: uuid.UUID, db: DB, user: CurrentUser):
         "recommended_plan": plan,
         "matching_requests": requests[:5],
     }
+
+
+def _shortfall_contracts(listing: ProduceListing):
+    return [c for c in listing.contracts if c.order_status == "CONFIRMED" and c.proposed_version is None]
+
+
+@router.post("/{listing_id}/shortfall/preview")
+def shortfall_preview(listing_id: uuid.UUID, payload: ShortfallIn, db: DB, user: CurrentUser):
+    """Harvest shortfall (overall_flow §16 scenario B): impact of the agreed PROPORTIONAL_REDUCTION policy."""
+    require_role(user, "FARMER")
+    listing = _own_listing(db, user, listing_id)
+    contracts = _shortfall_contracts(listing)
+    committed = sum((c.quantity_kg for c in contracts), Decimal(0))
+    reserved = sum((c.quantity_kg for c in listing.contracts if c.order_status == "AWAITING_CONFIRMATION"), Decimal(0))
+    return {"committed_kg": committed, "reserved_kg": reserved, "actual_kg": payload.actual_kg, "policy": "PROPORTIONAL_REDUCTION",
+            "plan": amend.shortfall_plan(contracts, payload.actual_kg)}
+
+
+@router.post("/{listing_id}/shortfall")
+def apply_shortfall(listing_id: uuid.UUID, payload: ShortfallIn, db: DB, user: CurrentUser):
+    require_role(user, "FARMER")
+    listing = _own_listing(db, user, listing_id)
+    contracts = {c.id: c for c in _shortfall_contracts(listing)}
+    plan = amend.shortfall_plan(list(contracts.values()), payload.actual_kg)
+    if not plan:
+        raise HTTPException(422, "ผลผลิตจริงไม่น้อยกว่าที่ทำสัญญาไว้ หรือไม่มีสัญญาที่ปรับได้")
+    old = listing.estimated_qty_kg
+    listing.estimated_qty_kg = max(payload.actual_kg, Decimal(1))
+    audit(db, entity_type="listing", entity_id=listing.id, entity_code=listing.code, action="ESTIMATE_REVISED", actor=user,
+          farmer_org_id=user.organization_id, message=f"ปรับประมาณการผลผลิต {old:,.0f} → {payload.actual_kg:,.0f} กก. (ผลผลิตขาด)")
+    reason = f"ผลผลิตขาด: คาดว่าจะได้ {payload.actual_kg:,.0f} กก. ใช้นโยบายลดตามสัดส่วนที่ตกลงในสัญญา" + (f" — {payload.reason}" if payload.reason else "")
+    for item in plan:
+        amend.propose(db, contracts[item["contract_id"]], user, {"quantity_kg": float(item["new_kg"])}, reason)
+    db.commit()
+    return {"proposed": len(plan), "plan": plan}
