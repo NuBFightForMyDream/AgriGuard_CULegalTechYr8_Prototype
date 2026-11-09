@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { SESSION_KEY } from "./api";
+import { supabase } from "./supabase";
 import type { User } from "./types";
 
 type Session = { user: User | null; ready: boolean; signIn: (u: User) => void; signOut: () => void };
@@ -32,6 +33,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(() => {
+    supabase()?.auth.signOut().catch(() => {});
     try {
       localStorage.removeItem(SESSION_KEY);
     } catch {

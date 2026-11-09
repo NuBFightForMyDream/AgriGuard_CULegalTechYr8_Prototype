@@ -6,7 +6,7 @@ import useSWR from "swr";
 import { post } from "@/lib/api";
 import { fmtDateTime, fmtKg, fmtTHB } from "@/lib/format";
 import { REJECTION } from "@/lib/labels";
-import type { ContractDetail } from "@/lib/types";
+import type { ContractDetail, Lot } from "@/lib/types";
 import { useAction } from "@/lib/useAction";
 import { Button, Field, Input, Modal, Select, Textarea } from "./ui";
 
@@ -22,12 +22,15 @@ const WAITING: Record<string, string> = {
   COMPLETED: "ธุรกรรมเสร็จสิ้นและบันทึก AgriTrust แล้ว",
   CANCELLED: "ยกเลิกแล้ว ผลผลิตที่จองถูกคืนให้สวน",
   RESERVATION_EXPIRED: "การจองหมดอายุ ผลผลิตถูกคืนให้สวน",
+  DISPUTED: "ระงับชั่วคราวระหว่างพิจารณาข้อพิพาท — ผลพิจารณาจะพาคำสั่งซื้อกลับสู่ขั้นตอนเดิม",
 };
+
+const SIDE_ACTIONS = ["OPEN_DISPUTE", "PROPOSE_AMENDMENT", "RESPOND_AMENDMENT"];
 
 export function NextAction({ c }: { c: ContractDetail }) {
   const { run, pending } = useAction();
   const [declining, setDeclining] = useState(false);
-  const a = c.actions;
+  const a = c.actions.filter((x) => !SIDE_ACTIONS.includes(x));
 
   if (!a.length) {
     return (
@@ -41,14 +44,31 @@ export function NextAction({ c }: { c: ContractDetail }) {
   const go = (path: string, body: unknown, msg: string, headers?: Record<string, string>) => run(() => post(path, body, headers), msg);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {a.includes("ACCEPT_HARVESTLOCK") && (
-        <AcceptForm c={c} pending={pending} onAccept={() => go(`/contracts/${c.id}/accept`, {}, "ยืนยัน HarvestLock แล้ว")} onDecline={() => setDeclining(true)} />
+        <AcceptForm
+          c={c}
+          pending={pending}
+          onAccept={(name) => go(`/contracts/${c.id}/accept`, { signature_name: name, consent: true }, "ลงนามและยืนยัน HarvestLock แล้ว")}
+          onDecline={() => setDeclining(true)}
+        />
       )}
       {a.includes("RECORD_HARVEST") && <HarvestForm c={c} pending={pending} submit={(b) => go(`/contracts/${c.id}/lots`, b, "บันทึกการเก็บเกี่ยวและสร้างล็อตแล้ว")} />}
-      {a.includes("DISPATCH_LOT") && <DispatchForm c={c} pending={pending} submit={(b) => go(`/lots/${c.lots[0].id}/dispatch`, b, "บันทึกการส่งสินค้าแล้ว")} />}
-      {a.includes("RECEIVE_LOT") && <ReceiveForm c={c} pending={pending} submit={(b) => go(`/lots/${c.lots[0].id}/receive`, b, "ยืนยันรับสินค้าแล้ว — เข้าคิวตรวจคุณภาพ")} />}
-      {a.includes("RECORD_QC") && <QcForm c={c} pending={pending} submit={(b) => go(`/lots/${c.lots[0].id}/inspections`, b, "บันทึก GradeProof และคำนวณยอดชำระแล้ว")} />}
+      {a.includes("DISPATCH_LOT") && (
+        <LotPicker lots={c.lots.filter((l) => l.status === "READY_FOR_PICKUP")} label="ส่งล็อต">
+          {(lot) => <DispatchForm key={lot.id} lot={lot} pending={pending} submit={(b) => go(`/lots/${lot.id}/dispatch`, b, `บันทึกการส่งล็อต ${lot.code} แล้ว`)} />}
+        </LotPicker>
+      )}
+      {a.includes("RECEIVE_LOT") && (
+        <LotPicker lots={c.lots.filter((l) => l.status === "IN_TRANSIT")} label="รับล็อต">
+          {(lot) => <ReceiveForm key={lot.id} lot={lot} pending={pending} submit={(b) => go(`/lots/${lot.id}/receive`, b, `ยืนยันรับล็อต ${lot.code} แล้ว`)} />}
+        </LotPicker>
+      )}
+      {a.includes("RECORD_QC") && (
+        <LotPicker lots={c.lots.filter((l) => l.status === "INSPECTION_PENDING")} label="ตรวจล็อต">
+          {(lot) => <QcForm key={lot.id} c={c} lot={lot} pending={pending} submit={(b) => go(`/lots/${lot.id}/inspections`, b, `บันทึก GradeProof ล็อต ${lot.code} แล้ว`)} />}
+        </LotPicker>
+      )}
       {a.includes("RECORD_PAYMENT") && c.settlement && (
         <PaymentForm c={c} pending={pending} submit={(b, key) => go(`/settlements/${c.settlement!.id}/payments`, b, "บันทึกการชำระเงินแล้ว (จำลอง)", { "Idempotency-Key": key })} />
       )}
@@ -80,8 +100,28 @@ export function NextAction({ c }: { c: ContractDetail }) {
   );
 }
 
-function AcceptForm({ c, pending, onAccept, onDecline }: { c: ContractDetail; pending: boolean; onAccept: () => void; onDecline: () => void }) {
+/** Choose which lot an action applies to when a contract ships in several lots. */
+function LotPicker({ lots, label, children }: { lots: Lot[]; label: string; children: (lot: Lot) => React.ReactNode }) {
+  const [id, setId] = useState(lots[0]?.id);
+  const lot = lots.find((l) => l.id === id) ?? lots[0];
+  if (!lot) return null;
+  return (
+    <div className="space-y-3">
+      {lots.length > 1 && (
+        <Field label={label} className="max-w-xs">
+          <Select value={lot.id} onChange={(e) => setId(e.target.value)}>
+            {lots.map((l) => <option key={l.id} value={l.id}>{l.code} · {fmtKg(l.net_kg ?? l.harvested_kg)}</option>)}
+          </Select>
+        </Field>
+      )}
+      {children(lot)}
+    </div>
+  );
+}
+
+function AcceptForm({ c, pending, onAccept, onDecline }: { c: ContractDetail; pending: boolean; onAccept: (name: string) => void; onDecline: () => void }) {
   const [agree, setAgree] = useState(false);
+  const [name, setName] = useState("");
   return (
     <div className="space-y-3 text-sm">
       <p className="text-slate-600">
@@ -91,16 +131,21 @@ function AcceptForm({ c, pending, onAccept, onDecline }: { c: ContractDetail; pe
         <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-1 accent-green-800" />
         <span>ข้าพเจ้าได้อ่านและยอมรับเงื่อนไข HarvestLock ฉบับที่ {c.current_version} <span className="font-mono text-xs text-slate-500">({c.terms_hash.slice(0, 12)}…)</span></span>
       </label>
+      <Field label="ลงชื่อ (พิมพ์ชื่อ-นามสกุลของผู้มีอำนาจลงนาม)" className="max-w-sm">
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="ชื่อ นามสกุล" />
+      </Field>
       <div className="flex flex-wrap gap-2">
-        <Button disabled={!agree} loading={pending} onClick={onAccept}>ยืนยัน HarvestLock</Button>
+        <Button disabled={!agree || name.trim().length < 2} loading={pending} onClick={() => onAccept(name.trim())}>ลงนามและยืนยัน HarvestLock</Button>
         <Button variant="danger" onClick={onDecline}>ปฏิเสธ</Button>
       </div>
-      <p className="text-xs text-slate-500">Phase 1: การยอมรับผ่านบัญชีที่เข้าสู่ระบบ (จำลอง) — ลายเซ็นอิเล็กทรอนิกส์และ PDF อยู่ใน Phase 2</p>
+      <p className="text-xs text-slate-500">ลายเซ็นอิเล็กทรอนิกส์แบบจำลอง: บันทึกชื่อที่พิมพ์ บัญชีผู้ใช้ เวลา และ hash ของเงื่อนไข — ยังไม่ใช่บริการ e-signature ที่รับรองตามกฎหมาย</p>
     </div>
   );
 }
 
 function HarvestForm({ c, pending, submit }: { c: ContractDetail; pending: boolean; submit: (b: unknown) => void }) {
+  const harvested = c.lots.reduce((s, l) => s + Number(l.harvested_kg), 0);
+  const remaining = Math.max(0, Number(c.quantity_kg) - harvested);
   return (
     <form
       className="grid gap-3 sm:grid-cols-3 sm:items-end"
@@ -111,16 +156,18 @@ function HarvestForm({ c, pending, submit }: { c: ContractDetail; pending: boole
       }}
     >
       <Field label="วันที่เก็บเกี่ยว"><Input name="harvest_date" type="date" defaultValue={c.terms.harvest_window[0]} required /></Field>
-      <Field label="ปริมาณที่เก็บได้ (กก.)" hint={`ตามสัญญา ${fmtKg(c.quantity_kg)} ±${c.terms.tolerance_pct}%`}>
-        <Input name="harvested_kg" type="number" min="1" step="1" defaultValue={c.quantity_kg} required />
+      <Field
+        label={c.lots.length ? `ปริมาณล็อตถัดไป (กก.)` : "ปริมาณที่เก็บได้ (กก.)"}
+        hint={c.lots.length ? `เก็บแล้ว ${fmtKg(harvested)} จาก ${fmtKg(c.quantity_kg)} · แบ่งส่งได้หลายล็อต` : `ตามสัญญา ${fmtKg(c.quantity_kg)} ±${c.terms.tolerance_pct}% · แบ่งเป็นหลายล็อตได้`}
+      >
+        <Input name="harvested_kg" type="number" min="1" step="1" defaultValue={remaining} required />
       </Field>
-      <Button type="submit" loading={pending}>บันทึกและสร้างล็อต</Button>
+      <Button type="submit" loading={pending}>{c.lots.length ? "เพิ่มล็อต" : "บันทึกและสร้างล็อต"}</Button>
     </form>
   );
 }
 
-function DispatchForm({ c, pending, submit }: { c: ContractDetail; pending: boolean; submit: (b: unknown) => void }) {
-  const lot = c.lots[0];
+function DispatchForm({ lot, pending, submit }: { lot: Lot; pending: boolean; submit: (b: unknown) => void }) {
   const [gross, setGross] = useState(String(Math.round(lot.harvested_kg * 1.075)));
   const [tare, setTare] = useState(String(Math.round(lot.harvested_kg * 0.075)));
   return (
@@ -141,8 +188,7 @@ function DispatchForm({ c, pending, submit }: { c: ContractDetail; pending: bool
   );
 }
 
-function ReceiveForm({ c, pending, submit }: { c: ContractDetail; pending: boolean; submit: (b: unknown) => void }) {
-  const lot = c.lots[0];
+function ReceiveForm({ lot, pending, submit }: { lot: Lot; pending: boolean; submit: (b: unknown) => void }) {
   return (
     <form
       className="grid gap-3 sm:grid-cols-2 sm:items-end"
@@ -151,7 +197,7 @@ function ReceiveForm({ c, pending, submit }: { c: ContractDetail; pending: boole
         submit({ received_kg: Number(new FormData(e.currentTarget).get("received_kg")) });
       }}
     >
-      <Field label="น้ำหนักที่ชั่งได้ ณ จุดรับ (กก.)" hint={`ต้นทางแจ้งสุทธิ ${fmtKg(lot.net_kg)}`}>
+      <Field label={`น้ำหนักที่ชั่งได้ ณ จุดรับ — ${lot.code} (กก.)`} hint={`ต้นทางแจ้งสุทธิ ${fmtKg(lot.net_kg)}`}>
         <Input name="received_kg" type="number" min="1" defaultValue={lot.net_kg ?? lot.harvested_kg} required />
       </Field>
       <Button type="submit" loading={pending}>ยืนยันรับสินค้า</Button>
@@ -161,20 +207,20 @@ function ReceiveForm({ c, pending, submit }: { c: ContractDetail; pending: boole
 
 type Reasons = { rejection_reasons: { key: string; label: string }[] };
 
-function QcForm({ c, pending, submit }: { c: ContractDetail; pending: boolean; submit: (b: unknown) => void }) {
-  const lot = c.lots[0];
-  const received = lot.received_kg ?? 0;
+function QcForm({ c, lot, pending, submit }: { c: ContractDetail; lot: Lot; pending: boolean; submit: (b: unknown) => void }) {
+  const received = Number(lot.received_kg ?? 0);
   const grades = Object.keys(c.terms.grade_prices).sort();
   const { data: catalog } = useSWR<Reasons>("/catalog");
   const [qty, setQty] = useState<Record<string, string>>(Object.fromEntries(grades.map((g, i) => [g, i === 0 ? String(received) : "0"])));
   const [rejected, setRejected] = useState("0");
   const [reason, setReason] = useState("");
   const [evidence, setEvidence] = useState("");
+  const lotFiles = c.files.filter((f) => f.entity_type === "lot" && f.entity_id === lot.id).length;
   const total = grades.reduce((s, g) => s + Number(qty[g] || 0), 0) + Number(rejected || 0);
   const mismatch = Math.abs(total - received) > 1;
   const preview = useMemo(() => {
     const gross = grades.reduce((s, g) => s + Number(qty[g] || 0) * c.terms.grade_prices[g], 0);
-    return { gross, net: Math.max(0, gross - c.terms.deposit_thb) };
+    return { gross };
   }, [qty, grades, c.terms]);
 
   return (
@@ -213,11 +259,13 @@ function QcForm({ c, pending, submit }: { c: ContractDetail; pending: boolean; s
       )}
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="วิธีสุ่มตัวอย่าง"><Input name="sampling_method" defaultValue={c.terms.sampling_method} required /></Field>
-        <Field label="หลักฐาน" hint="Phase 1: ระบุรายการหลักฐาน — อัปโหลดไฟล์ใน Phase 2"><Input value={evidence} onChange={(e) => setEvidence(e.target.value)} placeholder="เช่น ภาพถ่าย 12 ภาพ, ใบชั่งเลขที่ 0457" /></Field>
+        <Field label="หลักฐาน" hint={lotFiles ? `แนบภาพในล็อตนี้แล้ว ${lotFiles} ไฟล์` : "แนบภาพได้ที่การ์ดล็อตด้านล่าง หรือระบุรายการหลักฐาน"}>
+          <Input value={evidence} onChange={(e) => setEvidence(e.target.value)} placeholder="เช่น ใบชั่งเลขที่ 0457" />
+        </Field>
       </div>
       <Field label="บันทึกเพิ่มเติม"><Textarea name="notes" /></Field>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-slate-50 p-3 text-sm">
-        <span>ยอดประมาณการ {fmtTHB(preview.gross)} − มัดจำ {fmtTHB(c.terms.deposit_thb)} = <b className="tabular">{fmtTHB(preview.net)}</b></span>
+        <span>มูลค่าล็อตนี้ประมาณ <b className="tabular">{fmtTHB(preview.gross)}</b> {c.lots.length > 1 ? "· ยอดชำระคำนวณเมื่อตรวจครบทุกล็อต" : `· หักมัดจำ ${fmtTHB(c.terms.deposit_thb)}`}</span>
         <Button type="submit" loading={pending} disabled={mismatch || (Number(rejected) > 0 && !reason)}>บันทึกผล GradeProof</Button>
       </div>
     </form>
@@ -239,7 +287,7 @@ function PaymentForm({ c, pending, submit }: { c: ContractDetail; pending: boole
       <Field label="จำนวนเงิน (บาท)" hint={`ค้างชำระ ${fmtTHB(s.outstanding)}`}><Input name="amount" type="number" min="1" step="0.01" defaultValue={s.outstanding} required /></Field>
       <Field label="เลขอ้างอิงการโอน"><Input name="reference" placeholder="เช่น TRX-20261218-001" required /></Field>
       <Button type="submit" loading={pending}>บันทึกการชำระเงิน</Button>
-      <p className="text-xs text-slate-500 sm:col-span-3">จำลองการชำระเงิน ไม่มีการโอนเงินจริงหรือ escrow · ป้องกันการบันทึกซ้ำด้วย Idempotency-Key</p>
+      <p className="text-xs text-slate-500 sm:col-span-3">จำลองการชำระเงิน ไม่มีการโอนเงินจริงหรือ escrow · แนบสลิปได้ที่การ์ดการชำระเงิน · ป้องกันการบันทึกซ้ำด้วย Idempotency-Key</p>
     </form>
   );
 }

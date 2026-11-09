@@ -194,6 +194,7 @@ def lot_out(lot: ProduceLot) -> dict:
     return {
         "id": lot.id,
         "code": lot.code,
+        "trace_token": lot.trace_token,
         "status": lot.status,
         "contract_id": c.id,
         "contract_code": c.code,

@@ -9,7 +9,7 @@ export type Org = {
   verified: boolean;
 };
 
-export type User = { id: string; name: string; email: string; role: Role; title: string | null; organization: Org };
+export type User = { id: string; name: string; email: string; role: Role; title: string | null; organization: Org; auth?: "google" | "demo" };
 
 export type TrustSummary = {
   score: number | null;
@@ -148,9 +148,23 @@ export type Inspection = {
   grades: { grade: string; quantity_kg: number }[];
 };
 
+export type EvidenceFile = {
+  id: string;
+  entity_type: "lot" | "inspection" | "dispute" | "settlement";
+  entity_id: string;
+  filename: string;
+  content_type: string;
+  size_bytes: number;
+  sha256: string;
+  note: string | null;
+  uploaded_by: { id: string; name: string; role: Role };
+  created_at: string;
+};
+
 export type Lot = {
   id: string;
   code: string;
+  trace_token: string | null;
   status: string;
   contract_id: string;
   contract_code: string;
@@ -241,14 +255,59 @@ export type Action =
   | "RECEIVE_LOT"
   | "RECORD_QC"
   | "RECORD_PAYMENT"
-  | "CONFIRM_PAYMENT_RECEIVED";
+  | "CONFIRM_PAYMENT_RECEIVED"
+  | "OPEN_DISPUTE"
+  | "PROPOSE_AMENDMENT"
+  | "RESPOND_AMENDMENT";
+
+export type TermsDiff = { field: string; label: string; from: unknown; to: unknown }[];
+
+export type DisputeRef = { id: string; code: string; status: string; category: string; previous_order_status: string; outcome: string | null };
+
+export type DisputeBrief = {
+  id: string;
+  code: string;
+  category: string;
+  category_label: string;
+  status: string;
+  contract_id: string;
+  contract_code: string;
+  opened_by_org: Org;
+  against_org: Org;
+  disputed_amount: number;
+  held_amount: number;
+  response_deadline: string;
+  outcome: string | null;
+  created_at: string;
+  resolved_at: string | null;
+};
+
+export type DisputeDetail = DisputeBrief & {
+  description: string;
+  previous_order_status: string;
+  contract: ContractBrief;
+  opened_by: { id: string; name: string };
+  reviewer: { id: string; name: string } | null;
+  reviewer_notes: string | null;
+  proposed_adjustment: number | null;
+  resolution: string | null;
+  settlement_adjustment: number | null;
+  outcome_label: string | null;
+  statements: { id: string; organization: Org; user_name: string; body: string; evidence_note: string | null; created_at: string; side: "FARMER" | "BUYER" }[];
+  inspections: Inspection[];
+  settlement: { net_amount: number; paid_amount: number; status: string } | null;
+  timeline: AuditEvent[];
+  files: EvidenceFile[];
+  actions: ("ADD_STATEMENT" | "START_REVIEW" | "REQUEST_REINSPECTION" | "RESOLVE" | "RECORD_REINSPECTION")[];
+};
 
 export type ContractDetail = ContractBrief & {
   terms: Terms;
   terms_hash: string;
   current_version: number;
-  versions: { version: number; terms_hash: string; created_at: string }[];
-  acceptances: { organization_id: string; user_name: string; version: number; terms_hash: string; accepted_at: string }[];
+  versions: { version: number; terms_hash: string; status: string; reason: string | null; proposed_by_org_id: string | null; created_at: string; terms: Terms }[];
+  proposed: { version: number; terms: Terms; terms_hash: string; reason: string | null; proposed_by_org_id: string | null; created_at: string; diff: TermsDiff } | null;
+  acceptances: { organization_id: string; user_name: string; version: number; terms_hash: string; accepted_at: string; signature_name: string | null; method: string }[];
   confirmed_at: string | null;
   completed_at: string | null;
   purchase_request_code: string | null;
@@ -257,10 +316,14 @@ export type ContractDetail = ContractBrief & {
   buyer_trust: TrustSummary;
   lots: Lot[];
   inspection: Inspection | null;
+  inspections: Inspection[];
+  files: EvidenceFile[];
   settlement: Settlement | null;
   timeline: AuditEvent[];
   actions: Action[];
   risks: string[];
+  active_dispute: DisputeRef | null;
+  disputes: DisputeRef[];
 };
 
 export type TrustDimension = {

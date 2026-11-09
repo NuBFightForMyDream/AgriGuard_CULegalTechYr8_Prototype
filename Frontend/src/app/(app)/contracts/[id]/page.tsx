@@ -1,16 +1,18 @@
 "use client";
 
-import { AlertTriangle, FileCheck2, Hash, ShieldCheck } from "lucide-react";
+import { AlertTriangle, FileCheck2, FileText, Hash, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import useSWR from "swr";
+import { PendingAmendment, ProposeAmendmentButton } from "@/components/amendments";
 import { NextAction } from "@/components/contract-actions";
+import { OpenDisputeButton } from "@/components/dispute-open";
 import { TrustBadge } from "@/components/trust";
-import { Badge, Card, DL, ErrorState, PageHeader, PageSkeleton, StatusBadge } from "@/components/ui";
-import { ACTOR_LABEL, ACTOR_TONE_OF, STAGES, Stepper, Swimlane, currentStage, isStopped } from "@/components/workflow";
+import { Badge, Card, DL, ErrorState, LinkButton, PageHeader, PageSkeleton, StatusBadge } from "@/components/ui";
+import { ACTOR_LABEL, ACTOR_TONE_OF, STAGES, Stepper, Swimlane, currentStage, effectiveStatus, isStopped } from "@/components/workflow";
 import { fmtDate, fmtDateTime, fmtKg, fmtRange, fmtTHB } from "@/lib/format";
-import { FLAG_LABEL, LOT_STATUS, ORDER_STATUS, REJECTION, SETTLEMENT_STATUS, SHORTFALL_POLICY, productName } from "@/lib/labels";
+import { DISPUTE_CATEGORY, DISPUTE_STATUS, SIGN_METHOD, VERSION_STATUS, FLAG_LABEL, LOT_STATUS, ORDER_STATUS, REJECTION, SETTLEMENT_STATUS, SHORTFALL_POLICY, productName } from "@/lib/labels";
 import type { ContractDetail } from "@/lib/types";
 
 export default function ContractWorkspace() {
@@ -20,11 +22,12 @@ export default function ContractWorkspace() {
   if (error) return <ErrorState error={error} />;
   if (!c) return <PageSkeleton />;
 
-  const cur = Math.min(currentStage(c.order_status), STAGES.length - 1);
+  const status = effectiveStatus(c);
+  const cur = Math.min(currentStage(status), STAGES.length - 1);
   const selected = picked ?? cur;
   const stage = STAGES[selected];
   const stageEvents = c.timeline.filter(stage.match);
-  const stageState = isStopped(c.order_status) && selected === currentStage(c.order_status) ? "หยุดที่ขั้นนี้" : selected < currentStage(c.order_status) ? "เสร็จแล้ว" : selected === currentStage(c.order_status) ? "ขั้นปัจจุบัน" : "ยังไม่ถึง";
+  const stageState = isStopped(c.order_status) && selected === currentStage(status) ? "หยุดที่ขั้นนี้" : selected < currentStage(status) ? "เสร็จแล้ว" : selected === currentStage(status) ? (c.active_dispute ? "ระงับ: มีข้อพิพาท" : "ขั้นปัจจุบัน") : "ยังไม่ถึง";
   const t = c.terms;
   const lot = c.lots[0];
   const insp = c.inspection;
@@ -36,8 +39,19 @@ export default function ContractWorkspace() {
         eyebrow={<Link href="/contracts" className="hover:text-green-800">← สัญญาทั้งหมด</Link>}
         title={<span className="flex flex-wrap items-center gap-3">{c.code}<StatusBadge map={ORDER_STATUS} value={c.order_status} /></span>}
         subtitle={`${productName(c.product_type, c.variety)} · ${fmtKg(c.quantity_kg)} · ${c.farmer.name} → ${c.buyer.name}`}
+        actions={
+          <LinkButton href={`/contracts/${c.id}/document`} variant="secondary" size="sm">
+            <FileText className="size-4" />
+            เอกสารสัญญา (PDF)
+          </LinkButton>
+        }
       />
 
+      {c.active_dispute && (
+        <Link href={`/disputes/${c.active_dispute.id}`} className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 hover:bg-red-100">
+          ข้อพิพาท {c.active_dispute.code} · {DISPUTE_CATEGORY[c.active_dispute.category]} · <StatusBadge map={DISPUTE_STATUS} value={c.active_dispute.status} /> — คำสั่งซื้อถูกระงับจนกว่าจะมีผลพิจารณา
+        </Link>
+      )}
       <Card title="เส้นทางธุรกรรม (End-to-End Ordering Workspace)" bodyClassName="p-4 sm:p-5">
         <Stepper c={c} selected={selected} onSelect={setPicked} />
         <div className="mt-4 grid gap-4 rounded-lg border border-slate-200 bg-slate-50/60 p-4 text-sm md:grid-cols-3">
@@ -62,7 +76,7 @@ export default function ContractWorkspace() {
       </Card>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <Card title="งานถัดไป" className="lg:col-span-2"><NextAction c={c} /></Card>
+        <Card title="งานถัดไป" className="lg:col-span-2" action={<div className="flex flex-wrap gap-2"><ProposeAmendmentButton c={c} /><OpenDisputeButton c={c} /></div>}><NextAction c={c} /></Card>
         <Card title="ความเสี่ยงที่ควรรู้">
           {c.risks.length ? (
             <ul className="space-y-2 text-sm">
@@ -77,6 +91,8 @@ export default function ContractWorkspace() {
           </div>
         </Card>
       </div>
+
+      <PendingAmendment c={c} />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <Card title="เงื่อนไข HarvestLock" className="lg:col-span-2" action={<Badge tone="gray">ฉบับที่ {c.current_version}</Badge>}>
@@ -107,12 +123,25 @@ export default function ContractWorkspace() {
               <li key={a.organization_id + a.version} className="flex gap-2">
                 <FileCheck2 className="mt-0.5 size-4 shrink-0 text-green-700" />
                 <div>
-                  <div>{a.user_name} ยอมรับฉบับที่ {a.version}</div>
-                  <div className="text-xs text-slate-500">{fmtDateTime(a.accepted_at)} · {a.terms_hash === c.terms_hash ? "hash ตรงกับฉบับปัจจุบัน" : "hash ไม่ตรง"}</div>
+                  <div>{a.signature_name ?? a.user_name} · ฉบับที่ {a.version}</div>
+                  <div className="text-xs text-slate-500">
+                    {SIGN_METHOD[a.method] ?? a.method} · บัญชี {a.user_name} · {fmtDateTime(a.accepted_at)}
+                  </div>
                 </div>
               </li>
             ))}
           </ul>
+          <div className="mt-4 border-t border-slate-100 pt-3 text-sm">
+            <div className="mb-1 text-xs text-slate-500">ประวัติฉบับสัญญา</div>
+            <ul className="space-y-1">
+              {c.versions.map((v) => (
+                <li key={v.version} className="flex flex-wrap items-center gap-2">
+                  ฉบับที่ {v.version} <StatusBadge map={VERSION_STATUS} value={v.status} />
+                  <span className="font-mono text-xs text-slate-500">{v.terms_hash.slice(0, 10)}…</span>
+                </li>
+              ))}
+            </ul>
+          </div>
           <p className="mt-4 text-xs text-slate-500">SHA-256 ของเงื่อนไขช่วยตรวจว่าเอกสารไม่ถูกแก้ไข แต่ hash อย่างเดียวไม่ได้ยืนยันผลทางกฎหมาย ฉบับที่ยอมรับแล้วไม่ถูกเขียนทับ</p>
         </Card>
       </div>

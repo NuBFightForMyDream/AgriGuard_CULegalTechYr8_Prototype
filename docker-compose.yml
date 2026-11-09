@@ -20,6 +20,9 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://agriguard:agriguard@db:5432/agriguard
       CORS_ORIGINS: '["http://localhost:3000"]'
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - uploads:/data/uploads
     ports:
       - "8000:8000"
     depends_on:
@@ -28,3 +31,4 @@ services:
 
 volumes:
   db-data:
+  uploads:

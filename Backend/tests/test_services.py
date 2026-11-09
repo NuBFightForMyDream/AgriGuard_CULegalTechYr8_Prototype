@@ -117,3 +117,38 @@ def test_happy_path_is_reachable():
     for a, b in zip(path, path[1:]):
         assert b in TRANSITIONS[a]
     assert "COMPLETED" not in TRANSITIONS
+
+
+# --- optimizer ------------------------------------------------------------------
+
+def test_optimizer_prefers_highest_net_price_and_respects_supply():
+    offers = [
+        allocation.OfferDemand("B", D(3000), None, D(45), D("0.49")),
+        allocation.OfferDemand("C", D(2500), None, D(48), D("0.30")),
+        allocation.OfferDemand("D", D(2000), None, D(50), D("0.26")),
+    ]
+    items, _ = allocation.optimize(D(5000), offers)
+    assert items == {"B": D(500), "C": D(2500), "D": D(2000)}
+
+
+def test_optimizer_drops_buyer_whose_minimum_lot_does_not_pay():
+    offers = [
+        allocation.OfferDemand("A", D(1000), D(1000), D(40)),
+        allocation.OfferDemand("B", D(1000), None, D(50)),
+    ]
+    # Supply 1,500: A's 1,000 kg minimum + B's 500 (=65,000) beats B 1,000 + A 0 (=50,000)
+    items, _ = allocation.optimize(D(1500), offers)
+    assert items == {"A": D(1000), "B": D(500)}
+    items, notes = allocation.optimize(D(900), offers)  # A's minimum no longer fits
+    assert items == {"A": D(0), "B": D(900)} and notes
+
+
+def test_risk_aware_caps_high_risk_and_unknown_buyers():
+    offers = [
+        allocation.OfferDemand("SAFE", D(5000), None, D(40), trust_band="LOW_RISK"),
+        allocation.OfferDemand("RISKY", D(5000), None, D(60), trust_band="HIGH_RISK"),
+        allocation.OfferDemand("NEW", D(5000), None, D(55), trust_band=None),
+    ]
+    items, notes = allocation.optimize(D(4000), offers, risk_aware=True)
+    assert items["RISKY"] == D(1000) and items["NEW"] == D(2000) and items["SAFE"] == D(1000)
+    assert len(notes) == 2

@@ -1,3 +1,4 @@
+import secrets
 import uuid
 from datetime import date, datetime, timezone
 from decimal import Decimal
@@ -205,6 +206,8 @@ class Contract(Base):
     status: Mapped[str] = mapped_column(String(24))  # HarvestLock status
     order_status: Mapped[str] = mapped_column(String(32), index=True)  # order state machine
     current_version: Mapped[int] = mapped_column(Integer, default=1)
+    # A proposed amendment awaiting the other party (never edits the accepted version in place).
+    proposed_version: Mapped[int | None] = mapped_column(Integer)
     reservation_expires_at: Mapped[datetime | None] = mapped_column(TS)
     created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
     confirmed_at: Mapped[datetime | None] = mapped_column(TS)
@@ -237,6 +240,9 @@ class ContractVersion(Base):
     version: Mapped[int] = mapped_column(Integer)
     terms: Mapped[dict] = mapped_column(JSON)
     terms_hash: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(16), default="PROPOSED", server_default="ACCEPTED")  # PROPOSED | ACCEPTED | REJECTED | SUPERSEDED
+    reason: Mapped[str | None] = mapped_column(Text)
+    proposed_by_org_id: Mapped[uuid.UUID | None] = fk("organizations.id", nullable=True)
     created_by: Mapped[uuid.UUID] = fk("users.id")
     created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
 
@@ -253,6 +259,9 @@ class ContractAcceptance(Base):
     organization_id: Mapped[uuid.UUID] = fk("organizations.id")
     user_id: Mapped[uuid.UUID] = fk("users.id")
     terms_hash: Mapped[str] = mapped_column(String(64))
+    # Phase 2 demo e-signature: typed full name + explicit consent (no third-party e-signature provider).
+    signature_name: Mapped[str | None] = mapped_column(String(120))
+    method: Mapped[str] = mapped_column(String(32), default="TYPED_NAME", server_default="AUTHENTICATED_CLICK")
     accepted_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
 
     contract: Mapped[Contract] = relationship(back_populates="acceptances")
@@ -267,6 +276,8 @@ class ProduceLot(Base):
 
     id: Mapped[uuid.UUID] = pk()
     code: Mapped[str] = mapped_column(String(48), unique=True)
+    # Opaque token behind the lot's QR code; the QR never carries personal data.
+    trace_token: Mapped[str | None] = mapped_column(String(32), unique=True, default=lambda: secrets.token_urlsafe(12))
     contract_id: Mapped[uuid.UUID] = fk("contracts.id")
     harvest_date: Mapped[date] = mapped_column(Date)
     harvested_kg: Mapped[Decimal] = mapped_column(QTY)
@@ -366,6 +377,79 @@ class TrustEvent(Base):
     contract_id: Mapped[uuid.UUID | None] = fk("contracts.id", nullable=True)
     note: Mapped[str | None] = mapped_column(Text)
     occurred_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
+
+
+class Dispute(Base):
+    __tablename__ = "disputes"
+
+    id: Mapped[uuid.UUID] = pk()
+    code: Mapped[str] = mapped_column(String(32), unique=True)
+    contract_id: Mapped[uuid.UUID] = fk("contracts.id")
+    category: Mapped[str] = mapped_column(String(32))
+    description: Mapped[str] = mapped_column(Text)
+    opened_by_user_id: Mapped[uuid.UUID] = fk("users.id")
+    opened_by_org_id: Mapped[uuid.UUID] = fk("organizations.id")
+    against_org_id: Mapped[uuid.UUID] = fk("organizations.id")
+    disputed_amount: Mapped[Decimal] = mapped_column(MONEY, default=Decimal(0))
+    held_amount: Mapped[Decimal] = mapped_column(MONEY, default=Decimal(0))
+    status: Mapped[str] = mapped_column(String(32), index=True)
+    previous_order_status: Mapped[str] = mapped_column(String(32))
+    response_deadline: Mapped[datetime] = mapped_column(TS)
+    reviewer_user_id: Mapped[uuid.UUID | None] = fk("users.id", nullable=True)
+    reviewer_notes: Mapped[str | None] = mapped_column(Text)
+    proposed_adjustment: Mapped[Decimal | None] = mapped_column(MONEY)
+    outcome: Mapped[str | None] = mapped_column(String(32))  # BUYER_RESPONSIBLE | FARMER_RESPONSIBLE | SHARED | NO_FAULT
+    resolution: Mapped[str | None] = mapped_column(Text)
+    settlement_adjustment: Mapped[Decimal | None] = mapped_column(MONEY)
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
+    resolved_at: Mapped[datetime | None] = mapped_column(TS)
+
+    contract: Mapped[Contract] = relationship()
+    opened_by: Mapped[User] = relationship(foreign_keys=[opened_by_user_id])
+    opened_by_org: Mapped[Organization] = relationship(foreign_keys=[opened_by_org_id])
+    against_org: Mapped[Organization] = relationship(foreign_keys=[against_org_id])
+    reviewer: Mapped[User | None] = relationship(foreign_keys=[reviewer_user_id])
+    statements: Mapped[list["DisputeStatement"]] = relationship(
+        back_populates="dispute", order_by="DisputeStatement.created_at"
+    )
+
+
+class DisputeStatement(Base):
+    __tablename__ = "dispute_statements"
+
+    id: Mapped[uuid.UUID] = pk()
+    dispute_id: Mapped[uuid.UUID] = fk("disputes.id")
+    organization_id: Mapped[uuid.UUID] = fk("organizations.id")
+    user_id: Mapped[uuid.UUID] = fk("users.id")
+    body: Mapped[str] = mapped_column(Text)
+    evidence_note: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
+
+    dispute: Mapped[Dispute] = relationship(back_populates="statements")
+    user: Mapped[User] = relationship()
+    organization: Mapped[Organization] = relationship()
+
+
+class EvidenceFile(Base):
+    """Uploaded evidence (photos, weighing slips, payment proof). Stored privately; served via short-lived signed URLs."""
+
+    __tablename__ = "evidence_files"
+
+    id: Mapped[uuid.UUID] = pk()
+    contract_id: Mapped[uuid.UUID] = fk("contracts.id")
+    entity_type: Mapped[str] = mapped_column(String(24))  # lot | inspection | dispute | settlement
+    entity_id: Mapped[uuid.UUID] = mapped_column(Uuid, index=True)
+    uploaded_by: Mapped[uuid.UUID] = fk("users.id")
+    organization_id: Mapped[uuid.UUID] = fk("organizations.id")
+    filename: Mapped[str] = mapped_column(String(255))
+    content_type: Mapped[str] = mapped_column(String(80))
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    sha256: Mapped[str] = mapped_column(String(64))
+    storage_key: Mapped[str] = mapped_column(String(255))
+    note: Mapped[str | None] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
+
+    uploader: Mapped[User] = relationship()
 
 
 # --- System -------------------------------------------------------------------------------

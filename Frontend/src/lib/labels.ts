@@ -52,6 +52,33 @@ export const ORDER_STATUS: Record<string, [string, Tone]> = {
   COMPLETED: ["เสร็จสิ้น", "green"],
   CANCELLED: ["ยกเลิก", "red"],
   RESERVATION_EXPIRED: ["การจองหมดอายุ", "gray"],
+  DISPUTED: ["ระงับ: มีข้อพิพาท", "red"],
+};
+
+export const DISPUTE_STATUS: Record<string, [string, Tone]> = {
+  OPEN: ["เปิดใหม่", "amber"],
+  EVIDENCE_COLLECTION: ["รวบรวมหลักฐาน", "amber"],
+  UNDER_REVIEW: ["กำลังพิจารณา", "blue"],
+  REINSPECTION_REQUESTED: ["รอตรวจซ้ำ", "violet"],
+  RESOLVED: ["มีผลพิจารณาแล้ว", "green"],
+  CLOSED: ["ปิดแล้ว", "gray"],
+};
+
+export const DISPUTE_CATEGORY: Record<string, string> = {
+  NO_PICKUP: "ผู้ซื้อไม่มารับสินค้า",
+  CANCELLED_AFTER_CONFIRMATION: "ยกเลิกหลังยืนยันสัญญา",
+  PRICE_CHANGED: "เปลี่ยนราคาจากที่ตกลง",
+  SHORT_DELIVERY: "ส่งมอบน้อยกว่าที่ตกลง",
+  GRADE_DISPUTE: "โต้แย้งผลการคัดเกรด",
+  UNSUPPORTED_REJECTION: "ปฏิเสธสินค้าโดยไม่มีหลักฐานเพียงพอ",
+  LATE_PAYMENT: "ชำระเงินล่าช้า",
+};
+
+export const DISPUTE_OUTCOME: Record<string, string> = {
+  BUYER_RESPONSIBLE: "ผู้ซื้อเป็นฝ่ายรับผิดชอบ",
+  FARMER_RESPONSIBLE: "เกษตรกรเป็นฝ่ายรับผิดชอบ",
+  SHARED: "รับผิดชอบร่วมกัน",
+  NO_FAULT: "ไม่มีฝ่ายใดผิด",
 };
 
 export const INVENTORY_STATUS: Record<string, [string, Tone]> = {
@@ -115,4 +142,18 @@ export const REJECTION: Record<string, string> = {
 
 export const SHORTFALL_POLICY: Record<string, string> = {
   PROPORTIONAL_REDUCTION: "ลดปริมาณตามสัดส่วนให้ผู้ซื้อทุกราย",
+};
+
+export const VERSION_STATUS: Record<string, [string, Tone]> = {
+  PROPOSED: ["รอยอมรับ", "amber"],
+  ACCEPTED: ["มีผล", "green"],
+  REJECTED: ["ถูกปฏิเสธ", "red"],
+  SUPERSEDED: ["ถูกแทนที่", "gray"],
+};
+
+export const SIGN_METHOD: Record<string, string> = {
+  ALLOCATION_CONFIRMATION: "ยืนยันผ่านแผนจัดสรร",
+  TYPED_NAME: "ลงชื่อ (พิมพ์ชื่อ) + ยินยอม",
+  PROPOSER: "ผู้เสนอแก้ไข",
+  AUTHENTICATED_CLICK: "ยืนยันผ่านบัญชีที่เข้าสู่ระบบ",
 };

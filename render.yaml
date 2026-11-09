@@ -1,0 +1,28 @@
+# Render Blueprint: backend API only (frontend goes to Vercel, database/auth/storage to Supabase).
+# Render → New → Blueprint → pick this repo. Fill the "sync: false" values in the dashboard.
+services:
+  - type: web
+    name: agriguard-api
+    runtime: docker
+    rootDir: Backend
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: singapore
+    healthCheckPath: /api/health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: CORS_ORIGIN_REGEX
+        sync: false
+      - key: DEMO_LOGIN
+        value: "true"
+      - key: DEMO_SEED
+        value: "true"

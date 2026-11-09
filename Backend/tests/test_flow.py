@@ -4,6 +4,9 @@ from app.seed import sid
 LISTING = str(sid("PL-2026-001"))
 
 
+SIGN = {"signature_name": "อนันต์ กิตติวงศ์", "consent": True}
+
+
 def ok(resp, code=200):
     assert resp.status_code == code, resp.text
     return resp.json()
@@ -44,7 +47,7 @@ def test_demo_scenario_end_to_end(client):
     # 12-14. Buyer B accepts its HarvestLock
     b_contract = next(c for c in created["contracts"] if c["buyer"]["name"] == "FreshFruit Export Co.")
     cid = b_contract["id"]
-    detail = ok(client.post(f"/api/contracts/{cid}/accept", headers=BUYER_B))
+    detail = ok(client.post(f"/api/contracts/{cid}/accept", json=SIGN, headers=BUYER_B))
     assert detail["order_status"] == "CONFIRMED" and len(detail["acceptances"]) == 2
     assert len({a["terms_hash"] for a in detail["acceptances"]}) == 1  # both accepted the same version
 
@@ -102,8 +105,8 @@ def test_decline_releases_supply_and_roles_enforced(client):
     created = ok(client.post(f"/api/listings/{LISTING}/allocation/confirm",
                              json={"items": [{"offer_id": c_offer["id"], "quantity_kg": 2500}]}, headers=FARMER), 201)
     cid = created["contracts"][0]["id"]
-    assert client.post(f"/api/contracts/{cid}/accept", headers=BUYER_D).status_code == 403  # not their contract
-    assert client.post(f"/api/contracts/{cid}/accept", headers=FARMER).status_code == 409  # wrong party
+    assert client.post(f"/api/contracts/{cid}/accept", json=SIGN, headers=BUYER_D).status_code == 403  # not their contract
+    assert client.post(f"/api/contracts/{cid}/accept", json=SIGN, headers=FARMER).status_code == 409  # wrong party
     ok(client.post(f"/api/contracts/{cid}/decline", json={"reason": "ไม่พร้อมรับ"}, headers=BUYER_C))
     _, listing = offers_by_buyer(client)
     assert listing["inventory"]["available_kg"] == 5000
@@ -127,3 +130,22 @@ def test_buyer_creates_request_sees_matches_and_offers(client):
 def test_dashboards_render_for_each_role(client):
     for headers, role in ((FARMER, "FARMER"), (BUYER_B, "BUYER"), (INSPECTOR, "INSPECTOR")):
         assert ok(client.get("/api/dashboard", headers=headers))["role"] == role
+
+
+def test_optimizer_strategies_and_reallocation(client):
+    plan = ok(client.post(f"/api/listings/{LISTING}/allocation/preview", json={"strategy": "MAX_NET_REVENUE"}, headers=FARMER))
+    by_buyer = {o["buyer"]["name"]: o["id"] for o in offers_by_buyer(client)[0].values()}
+    qty = {line["offer_id"]: line["quantity_kg"] for line in plan["lines"]}
+    assert plan["errors"] == [] and plan["total_kg"] == 5000
+    assert qty[by_buyer["Eastern Wholesale Market"]] == 2000 and qty[by_buyer["Siam Fruit Processing Co., Ltd."]] == 2500
+    risk = ok(client.post(f"/api/listings/{LISTING}/allocation/preview", json={"strategy": "RISK_AWARE"}, headers=FARMER))
+    rq = {line["offer_id"]: line["quantity_kg"] for line in risk["lines"]}
+    assert rq[by_buyer["Eastern Wholesale Market"]] == 1250  # HIGH_RISK capped at 25%
+
+    # Buyer C declines → supply returns and reallocation suggests a plan over remaining offers
+    created = ok(client.post(f"/api/listings/{LISTING}/allocation/confirm",
+                             json={"items": [{"offer_id": by_buyer["Siam Fruit Processing Co., Ltd."], "quantity_kg": 2500}]}, headers=FARMER), 201)
+    ok(client.post(f"/api/contracts/{created['contracts'][0]['id']}/decline", json={}, headers=BUYER_C))
+    re = ok(client.get(f"/api/listings/{LISTING}/reallocation", headers=FARMER))
+    assert re["available_kg"] == 5000 and len(re["released"]) == 1
+    assert re["recommended_plan"]["total_kg"] == 5000

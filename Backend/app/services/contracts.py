@@ -75,11 +75,11 @@ def create_contract(
     )
     terms = build_terms(listing, offer, qty)
     h = terms_hash(terms)
-    c.versions.append(ContractVersion(version=1, terms=terms, terms_hash=h, created_by=farmer.id))
-    # Allocating is the farmer's acceptance of version 1.
-    c.acceptances.append(
-        ContractAcceptance(version=1, organization_id=farmer.organization_id, user_id=farmer.id, terms_hash=h)
-    )
+    c.versions.append(ContractVersion(version=1, terms=terms, terms_hash=h, status="PROPOSED",
+                                      proposed_by_org_id=farmer.organization_id, created_by=farmer.id))
+    # Confirming the allocation plan is the farmer's acceptance of version 1.
+    c.acceptances.append(ContractAcceptance(version=1, organization_id=farmer.organization_id, user_id=farmer.id,
+                                            terms_hash=h, signature_name=farmer.name, method="ALLOCATION_CONFIRMATION"))
     db.add(c)
     db.flush()
     offer.status = "ALLOCATED"
@@ -100,20 +100,22 @@ def create_contract(
 def record_trust_events(db: Session, c: Contract) -> list[TrustEvent]:
     """Verified events from a completed transaction feed AgriTrust."""
     s = c.settlement
-    lot = c.lots[-1]
-    insp = lot.inspections[-1]
+    inspections = [lot.inspections[-1] for lot in c.lots if lot.inspections]
     terms = c.terms
     last_paid = max((aware(p.paid_at) for p in s.payments), default=aware(s.created_at))
     delivery_end = date.fromisoformat(terms["delivery_window"][1])
     paid_on_time = last_paid.date() <= s.due_date
-    pickup_on_time = aware(lot.received_at).date() <= delivery_end
-    qc_ok = bool(insp.evidence_note) and not any(f["code"] == "UNAUTHORIZED_REJECTION" for f in insp.flags)
+    pickup_on_time = all(aware(lot.received_at).date() <= delivery_end for lot in c.lots if lot.received_at)
+    from app.services.disputes import buyer_at_fault  # local import avoids a cycle
+
+    buyer_fault = buyer_at_fault(db, c)
+    qc_ok = all(not any(f["code"] in ("UNAUTHORIZED_REJECTION", "QC_EVIDENCE_MISSING") for f in i.flags) for i in inspections)
     results = [
         ("PAYMENT", paid_on_time, "ชำระเงินภายในกำหนด" if paid_on_time else "ชำระเงินหลังวันครบกำหนด"),
         ("PICKUP", pickup_on_time, "รับสินค้าภายในช่วงที่ตกลง" if pickup_on_time else "รับสินค้าหลังช่วงที่ตกลง"),
         ("CONTRACT", True, "ปฏิบัติตามสัญญาจนปิดธุรกรรม"),
         ("QC", qc_ok, "ผลตรวจมีหลักฐานและเหตุผลตามสัญญา" if qc_ok else "ผลตรวจขาดหลักฐานหรือมีการปฏิเสธนอกเงื่อนไข"),
-        ("DISPUTE", True, "ไม่มีข้อพิพาท"),
+        ("DISPUTE", not buyer_fault, "ข้อพิพาทที่ตรวจสอบแล้วว่าผู้ซื้อมีส่วนรับผิดชอบ" if buyer_fault else "ไม่มีข้อพิพาทที่ผู้ซื้อเป็นฝ่ายผิด"),
     ]
     events = [
         TrustEvent(

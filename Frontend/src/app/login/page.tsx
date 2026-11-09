@@ -10,6 +10,7 @@ import { Badge, Button, ErrorState, Skeleton } from "@/components/ui";
 import { post } from "@/lib/api";
 import { ACTOR_TONE, ROLE } from "@/lib/labels";
 import { useSession } from "@/lib/session";
+import { demoLoginEnabled, googleEnabled, signInWithGoogle } from "@/lib/supabase";
 import type { Role, User } from "@/lib/types";
 
 const ROLE_HINT: Record<Role, string> = {
@@ -20,14 +21,15 @@ const ROLE_HINT: Record<Role, string> = {
 };
 
 export default function LoginPage() {
-  const { data: users, error, isLoading, mutate } = useSWR<User[]>("/demo/users");
+  const { data: users, error, isLoading, mutate } = useSWR<User[]>(demoLoginEnabled ? "/demo/users" : null);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const { signIn } = useSession();
   const router = useRouter();
   const toast = useToast();
   const [resetting, setResetting] = useState(false);
 
   const choose = (u: User) => {
-    signIn(u);
+    signIn({ ...u, auth: "demo" });
     router.push("/dashboard");
   };
 
@@ -54,9 +56,31 @@ export default function LoginPage() {
           ลดความไม่แน่นอนก่อนเก็บเกี่ยว และมีหลักฐานตรวจสอบได้ทุกขั้นตอน
         </h1>
         <p className="mt-3 max-w-2xl text-slate-600">
-          เลือกผู้ใช้เดโมเพื่อเข้าสู่ระบบ (Phase 1 ยังไม่ใช้ Google sign-in) — สถานการณ์ตัวอย่าง: สวนกรีนวัลเลย์มีมะม่วงน้ำดอกไม้
-          5,000 กก. และผู้ซื้อ 3 รายยื่นข้อเสนอรวม 7,500 กก.
+          เข้าสู่ระบบด้วยบัญชี Google หรือเลือกผู้ใช้เดโม — สถานการณ์ตัวอย่าง: สวนกรีนวัลเลย์มีมะม่วงน้ำดอกไม้ 5,000 กก.
+          และผู้ซื้อ 3 รายยื่นข้อเสนอรวม 7,500 กก.
         </p>
+
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <Button
+            variant="secondary"
+            disabled={!googleEnabled}
+            loading={googleLoading}
+            title={googleEnabled ? undefined : "ตั้งค่า NEXT_PUBLIC_SUPABASE_URL และ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ก่อน"}
+            onClick={async () => {
+              setGoogleLoading(true);
+              try {
+                await signInWithGoogle();
+              } catch (e) {
+                toast("error", e instanceof Error ? e.message : String(e));
+                setGoogleLoading(false);
+              }
+            }}
+          >
+            <GoogleIcon />
+            เข้าสู่ระบบด้วย Google
+          </Button>
+          {!googleEnabled && <span className="text-xs text-slate-500">Google sign-in ยังไม่ได้ตั้งค่าในสภาพแวดล้อมนี้</span>}
+        </div>
 
         {error && <div className="mt-8"><ErrorState error={error} /></div>}
         <div className="mt-8 space-y-8">
@@ -95,6 +119,7 @@ export default function LoginPage() {
             })}
         </div>
 
+        {demoLoginEnabled && (
         <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-6 text-sm text-slate-500">
           <Button variant="secondary" size="sm" onClick={reset} loading={resetting}>
             <RotateCcw className="size-4" />
@@ -102,7 +127,19 @@ export default function LoginPage() {
           </Button>
           ล้างธุรกรรมทั้งหมดและกลับไปเริ่มสถานการณ์ตัวอย่างใหม่
         </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-4" aria-hidden>
+      <path fill="#4285F4" d="M22.6 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.3-4.8 3.3-8.1z" />
+      <path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.7c-1 .7-2.2 1.1-3.7 1.1-2.9 0-5.3-1.9-6.2-4.5H2.1v2.8A11 11 0 0 0 12 23z" />
+      <path fill="#FBBC05" d="M5.8 14.2a6.6 6.6 0 0 1 0-4.3V7.1H2.1a11 11 0 0 0 0 9.9l3.7-2.8z" />
+      <path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2A11 11 0 0 0 2.1 7.1l3.7 2.8c.9-2.6 3.3-4.5 6.2-4.5z" />
+    </svg>
   );
 }

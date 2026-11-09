@@ -109,13 +109,16 @@ class AllocationItemIn(BaseModel):
     quantity_kg: Decimal = Field(ge=0)
 
 
+STRATEGIES = Literal["MANUAL", "PROPORTIONAL", "MAX_NET_REVENUE", "RISK_AWARE"]
+
+
 class AllocationPreview(BaseModel):
-    strategy: Literal["MANUAL", "PROPORTIONAL"] = "MANUAL"
+    strategy: STRATEGIES = "MANUAL"
     items: list[AllocationItemIn] = []
 
 
 class AllocationConfirm(BaseModel):
-    strategy: Literal["MANUAL", "PROPORTIONAL"] = "MANUAL"
+    strategy: STRATEGIES = "MANUAL"
     items: list[AllocationItemIn]
 
 
@@ -170,3 +173,48 @@ class InspectionCreate(BaseModel):
 class PaymentCreate(BaseModel):
     amount: Decimal = Field(gt=0)
     reference: str = Field(min_length=1, max_length=120)
+
+
+class Signature(BaseModel):
+    """Phase 2 demo e-signature: typed full name plus explicit consent."""
+
+    signature_name: str = Field(min_length=2, max_length=120)
+    consent: bool
+
+    @model_validator(mode="after")
+    def check(self):
+        if not self.consent:
+            raise ValueError("ต้องยืนยันว่ายอมรับเงื่อนไข")
+        return self
+
+
+class AmendmentChanges(BaseModel):
+    quantity_kg: float | None = Field(default=None, gt=0)
+    grade_prices: dict[str, float] | None = None
+    delivery_window: list[date] | None = None
+    payment_due_days: int | None = Field(default=None, ge=0, le=90)
+    deposit_thb: float | None = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def check(self):
+        if self.delivery_window is not None and (len(self.delivery_window) != 2 or self.delivery_window[1] < self.delivery_window[0]):
+            raise ValueError("ช่วงส่งมอบไม่ถูกต้อง")
+        if self.grade_prices is not None and (not self.grade_prices or any(p <= 0 for p in self.grade_prices.values())):
+            raise ValueError("ราคาต้องมากกว่า 0")
+        return self
+
+
+class AmendmentCreate(BaseModel):
+    changes: AmendmentChanges
+    reason: str = Field(min_length=3, max_length=1000)
+
+
+class AmendmentResponse(BaseModel):
+    accept: bool
+    signature_name: str | None = Field(default=None, max_length=120)
+    consent: bool = False
+
+
+class ShortfallIn(BaseModel):
+    actual_kg: Decimal = Field(ge=0)
+    reason: str | None = Field(default=None, max_length=1000)
