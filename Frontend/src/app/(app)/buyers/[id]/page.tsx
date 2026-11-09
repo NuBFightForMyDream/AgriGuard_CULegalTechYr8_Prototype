@@ -91,7 +91,7 @@ export default function BuyerTrustPage() {
                 <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
                 <Tooltip formatter={(v) => [`${Number(v).toFixed(1)}`, "AgriTrust"]} />
-                <Line type="monotone" dataKey="score" stroke="#166534" strokeWidth={2} dot={false} connectNulls />
+                <Line type="monotone" dataKey="score" stroke="#166534" strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           ) : (
