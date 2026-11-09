@@ -1,3 +1,4 @@
+import secrets
 import uuid
 from datetime import date, datetime, timezone
 from decimal import Decimal
@@ -275,6 +276,8 @@ class ProduceLot(Base):
 
     id: Mapped[uuid.UUID] = pk()
     code: Mapped[str] = mapped_column(String(48), unique=True)
+    # Opaque token behind the lot's QR code; the QR never carries personal data.
+    trace_token: Mapped[str | None] = mapped_column(String(32), unique=True, default=lambda: secrets.token_urlsafe(12))
     contract_id: Mapped[uuid.UUID] = fk("contracts.id")
     harvest_date: Mapped[date] = mapped_column(Date)
     harvested_kg: Mapped[Decimal] = mapped_column(QTY)
@@ -425,6 +428,28 @@ class DisputeStatement(Base):
     dispute: Mapped[Dispute] = relationship(back_populates="statements")
     user: Mapped[User] = relationship()
     organization: Mapped[Organization] = relationship()
+
+
+class EvidenceFile(Base):
+    """Uploaded evidence (photos, weighing slips, payment proof). Stored privately; served via short-lived signed URLs."""
+
+    __tablename__ = "evidence_files"
+
+    id: Mapped[uuid.UUID] = pk()
+    contract_id: Mapped[uuid.UUID] = fk("contracts.id")
+    entity_type: Mapped[str] = mapped_column(String(24))  # lot | inspection | dispute | settlement
+    entity_id: Mapped[uuid.UUID] = mapped_column(Uuid, index=True)
+    uploaded_by: Mapped[uuid.UUID] = fk("users.id")
+    organization_id: Mapped[uuid.UUID] = fk("organizations.id")
+    filename: Mapped[str] = mapped_column(String(255))
+    content_type: Mapped[str] = mapped_column(String(80))
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    sha256: Mapped[str] = mapped_column(String(64))
+    storage_key: Mapped[str] = mapped_column(String(255))
+    note: Mapped[str | None] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
+
+    uploader: Mapped[User] = relationship()
 
 
 # --- System -------------------------------------------------------------------------------

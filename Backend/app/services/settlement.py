@@ -5,6 +5,7 @@ from decimal import Decimal
 from app.catalog import REJECTION_REASONS
 
 TWO_PLACES = Decimal("0.01")
+QUANTITY_FLAGS = {"QUANTITY_SHORTFALL", "QUANTITY_OVERAGE"}
 
 
 def compute(

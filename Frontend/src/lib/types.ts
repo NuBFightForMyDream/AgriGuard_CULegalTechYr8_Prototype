@@ -148,9 +148,23 @@ export type Inspection = {
   grades: { grade: string; quantity_kg: number }[];
 };
 
+export type EvidenceFile = {
+  id: string;
+  entity_type: "lot" | "inspection" | "dispute" | "settlement";
+  entity_id: string;
+  filename: string;
+  content_type: string;
+  size_bytes: number;
+  sha256: string;
+  note: string | null;
+  uploaded_by: { id: string; name: string; role: Role };
+  created_at: string;
+};
+
 export type Lot = {
   id: string;
   code: string;
+  trace_token: string | null;
   status: string;
   contract_id: string;
   contract_code: string;
@@ -283,6 +297,7 @@ export type DisputeDetail = DisputeBrief & {
   inspections: Inspection[];
   settlement: { net_amount: number; paid_amount: number; status: string } | null;
   timeline: AuditEvent[];
+  files: EvidenceFile[];
   actions: ("ADD_STATEMENT" | "START_REVIEW" | "REQUEST_REINSPECTION" | "RESOLVE" | "RECORD_REINSPECTION")[];
 };
 
@@ -301,6 +316,8 @@ export type ContractDetail = ContractBrief & {
   buyer_trust: TrustSummary;
   lots: Lot[];
   inspection: Inspection | null;
+  inspections: Inspection[];
+  files: EvidenceFile[];
   settlement: Settlement | null;
   timeline: AuditEvent[];
   actions: Action[];

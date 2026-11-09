@@ -1,3 +1,5 @@
+import secrets
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -25,6 +27,9 @@ class Settings(BaseSettings):
     supabase_secret_key: str | None = None
     storage_bucket: str = "evidence"
     upload_dir: str = "./uploads"
+    max_upload_mb: int = 10
+    # Signs local-storage download links. Set it in production so links survive restarts and multiple workers.
+    file_url_secret: str = secrets.token_hex(16)
     # How long an allocation reservation waits for the buyer to accept the HarvestLock.
     reservation_hours: int = 72
 

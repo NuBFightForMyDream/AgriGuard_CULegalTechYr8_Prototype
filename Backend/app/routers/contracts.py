@@ -49,12 +49,16 @@ def is_party(user: User, c: Contract, role: str) -> bool:
 
 def actions_for(c: Contract, user: User) -> list[str]:
     s, farmer, buyer = c.order_status, is_party(user, c, "FARMER"), is_party(user, c, "BUYER")
+    lot_states = {lot.status for lot in c.lots}
+    harvested = sum((lot.harvested_kg for lot in c.lots), Decimal(0))
+    room = harvested < c.quantity_kg  # tolerance covers weighing differences, not extra lots
     rules = [
         (s == "AWAITING_CONFIRMATION" and buyer, ["ACCEPT_HARVESTLOCK", "DECLINE_HARVESTLOCK"]),
-        (s == "CONFIRMED" and farmer, ["RECORD_HARVEST"]),
-        (s == "HARVESTED" and farmer, ["DISPATCH_LOT"]),
-        (s == "IN_TRANSIT" and buyer, ["RECEIVE_LOT"]),
-        (s == "QC_PENDING" and (user.role == "INSPECTOR" or buyer), ["RECORD_QC"]),
+        # Several lots may be harvested before the first one ships (multiple deliveries per contract).
+        (s in ("CONFIRMED", "HARVESTED") and farmer and room, ["RECORD_HARVEST"]),
+        (s in ("HARVESTED", "IN_TRANSIT") and farmer and "READY_FOR_PICKUP" in lot_states, ["DISPATCH_LOT"]),
+        (s == "IN_TRANSIT" and buyer and "IN_TRANSIT" in lot_states, ["RECEIVE_LOT"]),
+        (s == "QC_PENDING" and (user.role == "INSPECTOR" or buyer) and "INSPECTION_PENDING" in lot_states, ["RECORD_QC"]),
         (s in ("PAYMENT_PENDING", "PAYMENT_OVERDUE") and buyer, ["RECORD_PAYMENT"]),
         (s == "PAID" and farmer, ["CONFIRM_PAYMENT_RECEIVED"]),
         (s in amend.AMENDABLE and (farmer or buyer) and c.proposed_version is None, ["PROPOSE_AMENDMENT"]),
@@ -86,6 +90,12 @@ def risks_for(c: Contract, trust: dict) -> list[str]:
     if s and s.status != "PAID" and date.today() > s.due_date:
         risks.append("เลยกำหนดชำระเงินแล้ว")
     return risks
+
+
+def contract_files(db, contract_id):
+    from app.routers.files import contract_files as _files  # local import avoids a cycle
+
+    return _files(db, contract_id)
 
 
 @router.get("")
@@ -136,6 +146,8 @@ def get_contract(contract_id: uuid.UUID, db: DB, user: CurrentUser):
         "buyer_trust": trust,
         "lots": lots,
         "inspection": inspections[-1] if inspections else None,
+        "inspections": inspections,
+        "files": contract_files(db, c.id),
         "settlement": settlement_out(c.settlement) if c.settlement else None,
         "timeline": contract_timeline(db, c),
         "actions": actions_for(c, user) + (["OPEN_DISPUTE"] if can_dispute else []),
@@ -198,10 +210,14 @@ def record_harvest(contract_id: uuid.UUID, payload: HarvestCreate, db: DB, user:
         contract_id=c.id, harvest_date=payload.harvest_date, harvested_kg=payload.harvested_kg,
         status="READY_FOR_PICKUP",
     )
-    db.add(lot)
+    c.lots.append(lot)  # keep the already-loaded collection in sync
     db.flush()
-    _apply(db, c, "HARVESTED", user,
-           f"บันทึกการเก็บเกี่ยว {payload.harvested_kg:,.0f} กก. สร้างล็อต {lot.code} ({PRODUCTS[c.listing.product_type]['th']})")
+    message = f"บันทึกการเก็บเกี่ยว {payload.harvested_kg:,.0f} กก. สร้างล็อต {lot.code} ({PRODUCTS[c.listing.product_type]['th']})"
+    if c.order_status == "CONFIRMED":
+        _apply(db, c, "HARVESTED", user, message)
+    else:
+        audit(db, entity_type="lot", entity_id=lot.id, entity_code=lot.code, action="LOT_ADDED", actor=user, contract=c,
+              message=message + " (ล็อตเพิ่มเติม)")
     db.commit()
     return get_contract(contract_id, db, user)
 

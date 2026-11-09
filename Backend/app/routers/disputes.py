@@ -9,7 +9,7 @@ from sqlalchemy import or_, select
 
 from app.deps import DB, CurrentUser, get_or_404, next_code, require_role
 from app.models import AuditLog, Dispute, DisputeStatement, QcGradeItem, QcInspection, User
-from app.routers.contracts import _apply, load_contract
+from app.routers.contracts import _apply, contract_files, load_contract
 from app.schemas import InspectionCreate
 from app.services import settlement as calc
 from app.services.disputes import CATEGORIES, OPEN_STATES, OUTCOMES, active_dispute, deadline, held_amount
@@ -111,6 +111,7 @@ def dispute_detail(db, d: Dispute, user: User) -> dict:
         "settlement": None if not c.settlement else {
             "net_amount": c.settlement.net_amount, "paid_amount": c.settlement.paid_amount, "status": c.settlement.status},
         "timeline": [audit_out(a) for a in logs],
+        "files": [f for f in contract_files(db, c.id) if f["entity_type"] == "dispute" and f["entity_id"] == d.id],
         "actions": _actions(d, user),
     }
 

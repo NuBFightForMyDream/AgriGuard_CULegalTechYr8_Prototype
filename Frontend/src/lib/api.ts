@@ -67,3 +67,20 @@ export const fetcher = <T,>(path: string) => api<T>(path);
 export function post<T>(path: string, body?: unknown, headers?: Record<string, string>) {
   return api<T>(path, { method: "POST", body: JSON.stringify(body ?? {}), headers });
 }
+
+/** Multipart upload (no JSON content-type so the browser sets the boundary). */
+export async function upload<T>(path: string, form: FormData): Promise<T> {
+  const auth = await authHeaders();
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api${path}`, { method: "POST", body: form, headers: auth });
+  } catch {
+    throw new ApiError(`เชื่อมต่อ API ไม่ได้ (${API_URL})`, 0);
+  }
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new ApiError(errorMessage(body, res.status), res.status);
+  return body as T;
+}
+
+/** Signed links from local storage are API-relative; Supabase links are absolute. */
+export const absoluteUrl = (url: string) => (url.startsWith("/") ? `${API_URL}${url}` : url);
