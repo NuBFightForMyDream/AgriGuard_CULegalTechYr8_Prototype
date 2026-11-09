@@ -185,6 +185,7 @@ def inspection_out(i: QcInspection) -> dict:
         "evidence_note": i.evidence_note,
         "notes": i.notes,
         "flags": i.flags,
+        "ai_assisted": i.ai_run_id is not None,
         "grades": [{"grade": g.grade, "quantity_kg": g.quantity_kg} for g in i.grade_items],
     }
 

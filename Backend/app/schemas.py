@@ -160,6 +160,7 @@ class InspectionCreate(BaseModel):
     sampling_method: str = Field(min_length=1, max_length=255)
     evidence_note: str | None = Field(default=None, max_length=2000)
     notes: str | None = Field(default=None, max_length=2000)
+    ai_run_id: uuid.UUID | None = None  # the AI photo suggestion the inspector started from, if any
 
     @model_validator(mode="after")
     def check(self):

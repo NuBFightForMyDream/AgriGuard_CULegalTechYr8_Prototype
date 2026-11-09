@@ -43,6 +43,16 @@ Every step of the demo scenario (overall_flow §20) runs through the API and is 
 
 **Verification:** 48 backend tests (unit, end-to-end, auth, migrations, disputes, amendments, lots/files, admin) plus headless-browser runs of the demo, dispute, amendment, multi-lot/QR and admin flows.
 
+## AI features (roadmap Phase 3, started)
+
+| Feature | What it does | Guardrails |
+| --- | --- | --- |
+| Legal AI (contract review + Q&A) | Rule engine checks required/risky clauses; the configured model (Gemini `gemini-3.8-flash` via `GEMINI_API_KEY`, or Claude `claude-opus-5-5` via `ANTHROPIC_API_KEY`) summarises in plain Thai, lists risks and answers questions | Grounded only in the contract's clauses and approved policy documents (`Backend/app/knowledge/`); every point cites a real source id, invented ids are dropped; "not found" instead of guessing; personal data redacted; labelled AI-generated; high-risk → human review; every call logged in `ai_runs` |
+| QC photo assist | The model's vision input estimates grade shares and defects from lot photos | Suggestion only; inspector edits and submits; inspection records `ai_run_id`; "cannot assess" allowed |
+| Harvest forecast | p10/p50/p90 from yield-per-rai ranges and farm area; warns when estimate or commitments exceed it | Labelled as a baseline, not a trained model, until real harvest data exists |
+
+Pages: contract workspace (ผู้ช่วยอ่านสัญญา), `/assistant`, QC form, produce detail. API: `/api/legal/*`, `/api/lots/{id}/ai-grade`, `/api/listings/{id}/forecast`, `/api/ai/status`. Without an AI key the rule engine, retrieval and forecast still work. The Gemini free tier allows Google to use submitted content to improve its products: fine for demo data, not for real customers.
+
 ## Not built yet
 
-Email/SMS/LINE notifications, maps, a payment gateway or escrow, a certified e-signature provider, Learning-to-Rank matching, vision-assisted QC, harvest forecasting, legal RAG (roadmap Phase 3–4).
+Email/SMS/LINE notifications, maps, a payment gateway or escrow, a certified e-signature provider, Learning-to-Rank matching and a trained forecasting model (both need validated transaction and harvest data), Isolation Forest anomaly signals (roadmap Phase 3–4).

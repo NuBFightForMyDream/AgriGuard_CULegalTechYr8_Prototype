@@ -3,6 +3,7 @@
 import { SplitSquareHorizontal } from "lucide-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
+import { ForecastCard } from "@/components/forecast-card";
 import { InventoryBar } from "@/components/inventory";
 import { FarmerOffersTable } from "@/components/offers-table";
 import { OrdersTable } from "@/components/orders";
@@ -66,6 +67,7 @@ export default function ListingDetail() {
           />
         </Card>
       </div>
+      <div className="mt-6"><ForecastCard listingId={l.id} /></div>
       <Card title="ข้อเสนอซื้อ" className="mt-6">
         <FarmerOffersTable offers={l.offers ?? []} />
       </Card>

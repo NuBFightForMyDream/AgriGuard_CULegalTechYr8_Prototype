@@ -27,6 +27,9 @@ class LocalStorage:
     def path(self, key: str) -> Path:
         return self.root / key
 
+    def get(self, key: str) -> bytes:
+        return (self.root / key).read_bytes()
+
     def signed_url(self, file_id: str, key: str) -> str:
         exp = int(time.time()) + LINK_SECONDS
         return f"/api/files/{file_id}/raw?exp={exp}&sig={sign(file_id, exp)}"
@@ -46,6 +49,11 @@ class SupabaseStorage:
         r = httpx.post(f"{self.base}/object/{self.bucket}/{key}", content=data, timeout=30,
                        headers={**self.headers, "content-type": content_type, "x-upsert": "false"})
         r.raise_for_status()
+
+    def get(self, key: str) -> bytes:
+        r = httpx.get(f"{self.base}/object/authenticated/{self.bucket}/{key}", headers=self.headers, timeout=30)
+        r.raise_for_status()
+        return r.content
 
     def signed_url(self, file_id: str, key: str) -> str:
         r = httpx.post(f"{self.base}/object/sign/{self.bucket}/{key}", json={"expiresIn": LINK_SECONDS},

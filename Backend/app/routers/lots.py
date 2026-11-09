@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 from sqlalchemy import func, select
 
 from app.deps import DB, CurrentUser, get_or_404
-from app.models import Contract, EvidenceFile, ProduceLot, QcGradeItem, QcInspection, Settlement
+from app.models import AiRun, Contract, EvidenceFile, ProduceLot, QcGradeItem, QcInspection, Settlement
 from app.routers.contracts import _apply, _require, get_contract, load_contract, visible_contracts
 from app.schemas import DispatchIn, InspectionCreate, ReceiveIn
 from app.services import settlement as calc
@@ -14,6 +14,15 @@ from app.services.orders import audit
 from app.views import inspection_out, lot_out
 
 router = APIRouter(tags=["lots"])
+
+
+def _ai_run(db, run_id, lot):
+    if run_id is None:
+        return None
+    run = db.get(AiRun, run_id)
+    if run is None or run.task != "QC_PHOTO_ASSIST" or run.entity_id != lot.id:
+        raise HTTPException(422, "อ้างอิงคำแนะนำ AI ไม่ถูกต้อง")
+    return run.id
 
 
 def _lot(db, user, lot_id: uuid.UUID) -> tuple[ProduceLot, Contract]:
@@ -94,6 +103,7 @@ def inspect(lot_id: uuid.UUID, payload: InspectionCreate, db: DB, user: CurrentU
         lot_id=lot.id, contract_id=c.id, inspector_user_id=user.id, received_kg=received, accepted_kg=accepted,
         rejected_kg=payload.rejected_kg, rejection_reason=payload.rejection_reason,
         sampling_method=payload.sampling_method, evidence_note=evidence, notes=payload.notes, flags=flags,
+        ai_run_id=_ai_run(db, payload.ai_run_id, lot),
         grade_items=[QcGradeItem(grade=g, quantity_kg=q) for g, q in grade_qty.items()],
     )
     db.add(insp)

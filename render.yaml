@@ -20,6 +20,10 @@ services:
         sync: false
       - key: FILE_URL_SECRET
         generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
       - key: CORS_ORIGINS
         sync: false
       - key: CORS_ORIGIN_REGEX

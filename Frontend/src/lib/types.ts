@@ -373,3 +373,69 @@ export type Appeal = {
   buyer: Org;
   event: { id: string; dimension: string; success: boolean; verified: boolean; transaction_ref: string; note: string | null; occurred_at: string };
 };
+
+export type Citation = { id: string; title: string; kind: "contract" | "policy"; quote: string };
+
+export type RuleFinding = { code: string; severity: "low" | "medium" | "high"; clause: string; message: string; source: "RULE_ENGINE" };
+
+export type LegalReview = {
+  contract_id: string;
+  version: number;
+  rule_findings: RuleFinding[];
+  human_review_required: boolean;
+  disclaimer: string;
+  ai_error: string | null;
+  ai: null | {
+    summary: string;
+    plain_language: string;
+    key_terms: { label: string; value: string; citations: Citation[] }[];
+    risks: { issue: string; severity: "low" | "medium" | "high"; who_is_affected: "FARMER" | "BUYER" | "BOTH"; suggestion: string; citations: Citation[] }[];
+    questions_to_ask: string[];
+    model: string;
+    generated_at: string;
+    cached: boolean;
+    label: string;
+  };
+};
+
+export type LegalAnswer = {
+  answer: string | null;
+  found: boolean;
+  citations: Citation[];
+  ai_error: string | null;
+  disclaimer: string;
+  model?: string;
+};
+
+export type PhotoSuggestion = {
+  can_assess: boolean;
+  image_quality: "good" | "fair" | "poor";
+  grade_shares: { grade: string; percent: number }[];
+  reject_percent: number;
+  defects: { type: string; description: string; severity: "minor" | "moderate" | "severe" }[];
+  confidence: "low" | "medium" | "high";
+  notes: string;
+  run_id: string;
+  model: string;
+  images_used: number;
+  suggested_kg: { grades?: Record<string, number>; rejected_kg?: number };
+  disclaimer: string;
+};
+
+export type Forecast = {
+  model_version: string;
+  method: "BASELINE";
+  insufficient_data: boolean;
+  reason?: string;
+  estimate_kg: number;
+  contracted_kg: number;
+  area_rai?: number;
+  yield_per_rai?: { p10: number; p50: number; p90: number };
+  p10_kg?: number;
+  p50_kg?: number;
+  p90_kg?: number;
+  safe_to_commit_kg?: number;
+  warnings?: string[];
+};
+
+export type AiStatus = { available: boolean; provider: "anthropic" | "gemini" | null; model: string | null };
