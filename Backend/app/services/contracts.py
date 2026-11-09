@@ -107,13 +107,16 @@ def record_trust_events(db: Session, c: Contract) -> list[TrustEvent]:
     delivery_end = date.fromisoformat(terms["delivery_window"][1])
     paid_on_time = last_paid.date() <= s.due_date
     pickup_on_time = aware(lot.received_at).date() <= delivery_end
+    from app.services.disputes import buyer_at_fault  # local import avoids a cycle
+
+    buyer_fault = buyer_at_fault(db, c)
     qc_ok = bool(insp.evidence_note) and not any(f["code"] == "UNAUTHORIZED_REJECTION" for f in insp.flags)
     results = [
         ("PAYMENT", paid_on_time, "ชำระเงินภายในกำหนด" if paid_on_time else "ชำระเงินหลังวันครบกำหนด"),
         ("PICKUP", pickup_on_time, "รับสินค้าภายในช่วงที่ตกลง" if pickup_on_time else "รับสินค้าหลังช่วงที่ตกลง"),
         ("CONTRACT", True, "ปฏิบัติตามสัญญาจนปิดธุรกรรม"),
         ("QC", qc_ok, "ผลตรวจมีหลักฐานและเหตุผลตามสัญญา" if qc_ok else "ผลตรวจขาดหลักฐานหรือมีการปฏิเสธนอกเงื่อนไข"),
-        ("DISPUTE", True, "ไม่มีข้อพิพาท"),
+        ("DISPUTE", not buyer_fault, "ข้อพิพาทที่ตรวจสอบแล้วว่าผู้ซื้อมีส่วนรับผิดชอบ" if buyer_fault else "ไม่มีข้อพิพาทที่ผู้ซื้อเป็นฝ่ายผิด"),
     ]
     events = [
         TrustEvent(

@@ -368,6 +368,57 @@ class TrustEvent(Base):
     occurred_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
 
 
+class Dispute(Base):
+    __tablename__ = "disputes"
+
+    id: Mapped[uuid.UUID] = pk()
+    code: Mapped[str] = mapped_column(String(32), unique=True)
+    contract_id: Mapped[uuid.UUID] = fk("contracts.id")
+    category: Mapped[str] = mapped_column(String(32))
+    description: Mapped[str] = mapped_column(Text)
+    opened_by_user_id: Mapped[uuid.UUID] = fk("users.id")
+    opened_by_org_id: Mapped[uuid.UUID] = fk("organizations.id")
+    against_org_id: Mapped[uuid.UUID] = fk("organizations.id")
+    disputed_amount: Mapped[Decimal] = mapped_column(MONEY, default=Decimal(0))
+    held_amount: Mapped[Decimal] = mapped_column(MONEY, default=Decimal(0))
+    status: Mapped[str] = mapped_column(String(32), index=True)
+    previous_order_status: Mapped[str] = mapped_column(String(32))
+    response_deadline: Mapped[datetime] = mapped_column(TS)
+    reviewer_user_id: Mapped[uuid.UUID | None] = fk("users.id", nullable=True)
+    reviewer_notes: Mapped[str | None] = mapped_column(Text)
+    proposed_adjustment: Mapped[Decimal | None] = mapped_column(MONEY)
+    outcome: Mapped[str | None] = mapped_column(String(32))  # BUYER_RESPONSIBLE | FARMER_RESPONSIBLE | SHARED | NO_FAULT
+    resolution: Mapped[str | None] = mapped_column(Text)
+    settlement_adjustment: Mapped[Decimal | None] = mapped_column(MONEY)
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
+    resolved_at: Mapped[datetime | None] = mapped_column(TS)
+
+    contract: Mapped[Contract] = relationship()
+    opened_by: Mapped[User] = relationship(foreign_keys=[opened_by_user_id])
+    opened_by_org: Mapped[Organization] = relationship(foreign_keys=[opened_by_org_id])
+    against_org: Mapped[Organization] = relationship(foreign_keys=[against_org_id])
+    reviewer: Mapped[User | None] = relationship(foreign_keys=[reviewer_user_id])
+    statements: Mapped[list["DisputeStatement"]] = relationship(
+        back_populates="dispute", order_by="DisputeStatement.created_at"
+    )
+
+
+class DisputeStatement(Base):
+    __tablename__ = "dispute_statements"
+
+    id: Mapped[uuid.UUID] = pk()
+    dispute_id: Mapped[uuid.UUID] = fk("disputes.id")
+    organization_id: Mapped[uuid.UUID] = fk("organizations.id")
+    user_id: Mapped[uuid.UUID] = fk("users.id")
+    body: Mapped[str] = mapped_column(Text)
+    evidence_note: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
+
+    dispute: Mapped[Dispute] = relationship(back_populates="statements")
+    user: Mapped[User] = relationship()
+    organization: Mapped[Organization] = relationship()
+
+
 # --- System -------------------------------------------------------------------------------
 
 

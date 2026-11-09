@@ -4,16 +4,19 @@ from app.models import AuditLog, Contract, User
 
 TRANSITIONS: dict[str, set[str]] = {
     "AWAITING_CONFIRMATION": {"CONFIRMED", "CANCELLED", "RESERVATION_EXPIRED"},
-    "CONFIRMED": {"HARVESTED", "CANCELLED"},
-    "HARVESTED": {"IN_TRANSIT"},
-    "IN_TRANSIT": {"DELIVERED"},
+    "CONFIRMED": {"HARVESTED", "CANCELLED", "DISPUTED"},
+    "HARVESTED": {"IN_TRANSIT", "DISPUTED"},
+    "IN_TRANSIT": {"DELIVERED", "DISPUTED"},
     "DELIVERED": {"QC_PENDING"},
-    "QC_PENDING": {"QC_ACCEPTED", "QC_DISPUTED"},
+    "QC_PENDING": {"QC_ACCEPTED", "QC_DISPUTED", "DISPUTED"},
     "QC_ACCEPTED": {"PAYMENT_PENDING"},
-    "PAYMENT_PENDING": {"PAID", "PAYMENT_OVERDUE"},
-    "PAYMENT_OVERDUE": {"PAID"},
-    "PAID": {"COMPLETED"},
+    "PAYMENT_PENDING": {"PAID", "PAYMENT_OVERDUE", "DISPUTED"},
+    "PAYMENT_OVERDUE": {"PAID", "DISPUTED"},
+    "PAID": {"COMPLETED", "DISPUTED"},
 }
+# A dispute pauses the order; resolution returns it to where it was (enforced in services/disputes.py).
+DISPUTABLE = {s for s, targets in TRANSITIONS.items() if "DISPUTED" in targets}
+TRANSITIONS["DISPUTED"] = DISPUTABLE | {"PAID"}
 RESERVED = {"AWAITING_CONFIRMATION"}
 INACTIVE = {"CANCELLED", "RESERVATION_EXPIRED"}
 
