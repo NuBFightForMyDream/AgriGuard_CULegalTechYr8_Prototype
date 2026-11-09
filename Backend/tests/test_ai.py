@@ -233,3 +233,72 @@ def test_ask_end_to_end_with_gemini(client, monkeypatch):
     assert r["found"] is True and r["model"] == "gemini-3.8-flash"
     status = ok(client.get("/api/ai/status", headers=BUYER_B))
     assert status["provider"] == "gemini" and status["model"] == settings.gemini_model
+
+
+def test_failover_from_gemini_quota_to_claude(monkeypatch):
+    monkeypatch.setattr(settings, "gemini_api_key", "g-key")
+    monkeypatch.setattr(settings, "anthropic_api_key", "a-key")
+    monkeypatch.setattr(settings, "ai_provider", "gemini")
+    used = []
+
+    def gemini_quota(*a):
+        used.append("gemini")
+        raise ai.AIUnavailable("quota")
+
+    def claude_ok(*a):
+        used.append("anthropic")
+        return {"ok": True}, "claude-opus-5-5", 1, 1
+
+    monkeypatch.setattr(ai, "_call_gemini", gemini_quota)
+    monkeypatch.setattr(ai, "_call_anthropic", claude_ok)
+    assert ai.providers_in_order() == ["gemini", "anthropic"]
+    data, model, *_ = ai._call("s", [{"type": "text", "text": "x"}], {"type": "object"})
+    assert used == ["gemini", "anthropic"] and model == "claude-opus-5-5"
+
+
+def test_refusal_is_not_retried_on_other_provider(monkeypatch):
+    monkeypatch.setattr(settings, "gemini_api_key", "g-key")
+    monkeypatch.setattr(settings, "anthropic_api_key", "a-key")
+    monkeypatch.setattr(settings, "ai_provider", "gemini")
+
+    def refused(*a):
+        raise ai.AIRefused("no")
+
+    monkeypatch.setattr(ai, "_call_gemini", refused)
+    monkeypatch.setattr(ai, "_call_anthropic", lambda *a: pytest.fail("must not retry a refusal"))
+    with pytest.raises(ai.AIRefused):
+        ai._call("s", [{"type": "text", "text": "x"}], {"type": "object"})
+
+
+# --- navigation chatbot ---------------------------------------------------------------------
+
+def test_nav_rules_mode_routes_by_role(client):
+    r = ok(client.post("/api/assistant/chat", headers=FARMER, json={"message": "อยากลงขายมะม่วง"}))
+    assert r["mode"] == "rules" and r["actions"][0]["route"] == "/produce/new"
+    r = ok(client.post("/api/assistant/chat", headers=BUYER_B, json={"message": "อยากซื้อทุเรียน"}))
+    assert r["actions"][0]["route"] == "/requests/new"
+    assert all(a["route"] != "/produce/new" for a in r["actions"])  # buyer never sees farmer-only pages
+
+
+def test_nav_lists_pending_tasks(client):
+    contract(client, accept=False)  # buyer B now has a HarvestLock to sign
+    r = ok(client.post("/api/assistant/chat", headers=BUYER_B, json={"message": "มีงานอะไรค้างบ้าง"}))
+    assert r["actions"][0]["task"] is True and r["actions"][0]["route"].startswith("/contracts/")
+    r = ok(client.post("/api/assistant/chat", headers=FARMER, json={"message": "มีงานอะไรต้องทำ"}))
+    assert any(a["route"].startswith("/allocation/") for a in r["actions"])
+
+
+def test_nav_ai_mode_drops_invented_destinations(client, monkeypatch):
+    monkeypatch.setattr(settings, "gemini_api_key", "g-key")
+    seen = {}
+
+    def fake_call(system, content, schema):
+        seen["text"] = content[0]["text"]
+        return {"reply": "ไปลงประกาศได้เลยครับ", "destination_ids": ["produce_new", "admin_users", "https://evil.example", "produce_new"],
+                "suggestions": ["ดูข้อเสนอ"]}, "gemini-3.8-flash", 1, 1
+
+    monkeypatch.setattr(ai, "_call", fake_call)
+    r = ok(client.post("/api/assistant/chat", headers=FARMER, json={
+        "message": "จะขายมะม่วงต้องทำยังไง", "history": [{"role": "user", "text": "สวัสดี"}], "current_path": "/dashboard"}))
+    assert r["mode"] == "ai" and [a["route"] for a in r["actions"]] == ["/produce/new"]  # admin page and URL dropped, deduped
+    assert "admin_users" not in seen["text"] and "USER ROLE: FARMER" in seen["text"]

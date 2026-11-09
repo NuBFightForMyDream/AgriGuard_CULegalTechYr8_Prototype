@@ -33,6 +33,7 @@ import { ApiError, fetcher } from "@/lib/api";
 import { ROLE } from "@/lib/labels";
 import { useSession } from "@/lib/session";
 import type { Role, User } from "@/lib/types";
+import { NavChat } from "./nav-chat";
 import { NotificationBell } from "./notifications";
 import { cx } from "./ui";
 
@@ -204,7 +205,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         </header>
-        <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">{children}</main>
+        <main className="mx-auto max-w-7xl px-4 py-6 pb-24 sm:px-6 lg:py-8 lg:pb-24">{children}</main>
+        <NavChat />
       </div>
     </SWRConfig>
   );

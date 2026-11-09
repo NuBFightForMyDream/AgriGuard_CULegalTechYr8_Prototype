@@ -8,11 +8,22 @@ from app.models import ProduceListing, ProduceLot
 from app.routers.contracts import load_contract
 from app.services import forecast as fc
 from app.services.ai import client as ai
-from app.services.ai import legal, vision
+from app.services.ai import legal, navigator, vision
 from app.services.inventory import listing_inventory
 from app.views import TrustCache
 
 router = APIRouter(tags=["ai"])
+
+
+class ChatTurn(BaseModel):
+    role: str = Field(pattern="^(user|assistant)$")
+    text: str = Field(max_length=2000)
+
+
+class ChatIn(BaseModel):
+    message: str = Field(min_length=1, max_length=500)
+    history: list[ChatTurn] = Field(default=[], max_length=20)
+    current_path: str | None = Field(default=None, max_length=200)
 
 
 class Question(BaseModel):
@@ -26,6 +37,7 @@ def status(user: CurrentUser):
         "available": ai.available(),
         "provider": ai.provider(),
         "model": ai.model_name(),
+        "failover": ai.providers_in_order()[1:],
         "features": {
             "contract_review": "rule engine always; AI summary when available",
             "legal_qa": "answers only from contract clauses and approved policy documents",
@@ -73,3 +85,11 @@ def listing_forecast(listing_id: uuid.UUID, db: DB, user: CurrentUser):
     inv = listing_inventory(listing)
     return fc.forecast(listing.product_type, listing.farm.area_rai, listing.estimated_qty_kg,
                        inv["contracted_kg"] + inv["reserved_kg"])
+
+
+@router.post("/assistant/chat")
+def nav_chat(payload: ChatIn, db: DB, user: CurrentUser):
+    """Navigation chatbot: reply + up to 3 links, drawn only from this user's allowed pages and pending tasks."""
+    out = navigator.chat(db, user, payload.message, [t.model_dump() for t in payload.history], payload.current_path)
+    db.commit()
+    return out
