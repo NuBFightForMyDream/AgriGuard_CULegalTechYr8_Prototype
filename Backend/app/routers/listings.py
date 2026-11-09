@@ -7,13 +7,14 @@ from sqlalchemy import select
 
 from app.catalog import PRODUCTS
 from app.deps import DB, CurrentUser, get_or_404, next_code, require_role
-from app.models import AllocationItem, AllocationPlan, Farm, Offer, ProduceListing
+from app.models import AllocationItem, AllocationPlan, Farm, Offer, ProduceListing, PurchaseRequest
 from app.schemas import AllocationConfirm, AllocationPreview, ListingCreate
-from app.services import allocation
+from app.services import allocation, matching
+from app.services.matching import distance_km
 from app.services.contracts import create_contract
 from app.services.inventory import expire_reservations, listing_inventory
 from app.services.orders import audit
-from app.views import TrustCache, contract_brief, listing_out, offer_out, top_price
+from app.views import TrustCache, contract_brief, listing_out, offer_out, request_out, top_price
 
 router = APIRouter(prefix="/listings", tags=["listings"])
 
@@ -70,20 +71,30 @@ def get_listing(listing_id: uuid.UUID, db: DB, user: CurrentUser):
     return out
 
 
-def _demands(listing: ProduceListing) -> list[allocation.OfferDemand]:
-    return [
-        allocation.OfferDemand(str(o.id), o.quantity_kg, o.min_quantity_kg, Decimal(str(top_price(o))))
-        for o in listing.offers
-        if o.status == "PENDING"
-    ]
+def _demands(db, listing: ProduceListing) -> list[allocation.OfferDemand]:
+    trusts = TrustCache(db)
+    out = []
+    for o in listing.offers:
+        if o.status != "PENDING":
+            continue
+        destination = o.purchase_request.destination_province if o.purchase_request else (o.buyer_org.province or "")
+        out.append(allocation.OfferDemand(
+            offer_id=str(o.id), quantity_kg=o.quantity_kg, min_quantity_kg=o.min_quantity_kg,
+            price=Decimal(str(top_price(o))),
+            logistics_cost=allocation.logistics_cost(distance_km(listing.farm.province, destination)),
+            trust_band=trusts.summary(o.buyer_org_id)["band"], label=o.buyer_org.name,
+        ))
+    return out
 
 
-def _plan(listing: ProduceListing, strategy: str, items_in):
-    demands = _demands(listing)
+def _plan(db, listing: ProduceListing, strategy: str, items_in):
+    demands = _demands(db, listing)
     available = listing_inventory(listing)["available_kg"]
     warnings: list[str] = []
     if strategy == "PROPORTIONAL":
         items, warnings = allocation.proportional(available, demands)
+    elif strategy in ("MAX_NET_REVENUE", "RISK_AWARE"):
+        items, warnings = allocation.optimize(available, demands, risk_aware=strategy == "RISK_AWARE")
     else:
         items = {str(i.offer_id): i.quantity_kg for i in items_in}
     errors = allocation.validate(available, demands, items)
@@ -95,7 +106,7 @@ def _plan(listing: ProduceListing, strategy: str, items_in):
 def preview_allocation(listing_id: uuid.UUID, payload: AllocationPreview, db: DB, user: CurrentUser):
     require_role(user, "FARMER")
     expire_reservations(db)
-    return _plan(_own_listing(db, user, listing_id), payload.strategy, payload.items)
+    return _plan(db, _own_listing(db, user, listing_id), payload.strategy, payload.items)
 
 
 @router.post("/{listing_id}/allocation/confirm", status_code=201)
@@ -105,7 +116,7 @@ def confirm_allocation(listing_id: uuid.UUID, payload: AllocationConfirm, db: DB
     # Lock the listing row so concurrent confirmations cannot overbook (no-op on SQLite).
     db.execute(select(ProduceListing).where(ProduceListing.id == listing_id).with_for_update())
     listing = _own_listing(db, user, listing_id)
-    plan = _plan(listing, "MANUAL", payload.items)
+    plan = _plan(db, listing, "MANUAL", payload.items)
     if plan["errors"]:
         raise HTTPException(422, plan["errors"])
     chosen = [(i.offer_id, i.quantity_kg) for i in payload.items if i.quantity_kg > 0]
@@ -128,3 +139,32 @@ def confirm_allocation(listing_id: uuid.UUID, payload: AllocationConfirm, db: DB
           message=f"ยืนยันแผนจัดสรร {plan['total_kg']:,.0f} กก. ให้ผู้ซื้อ {len(contracts)} ราย")
     db.commit()
     return {"plan_id": record.id, "contracts": [contract_brief(c) for c in contracts]}
+
+
+@router.get("/{listing_id}/reallocation")
+def reallocation(listing_id: uuid.UUID, db: DB, user: CurrentUser):
+    """Dynamic reallocation (overall_flow §16 scenario A): supply released by cancelled or expired
+    reservations, the best plan over pending offers, and open purchase requests that could take the rest."""
+    require_role(user, "FARMER")
+    expire_reservations(db)
+    listing = _own_listing(db, user, listing_id)
+    inv = listing_inventory(listing)
+    released = [c for c in listing.contracts if c.order_status in ("CANCELLED", "RESERVATION_EXPIRED")]
+    plan = _plan(db, listing, "MAX_NET_REVENUE", [])
+    offered_by = {o.buyer_org_id for o in listing.offers if o.status == "PENDING"}
+    from app.routers.purchase_requests import _demand, _supply  # local import avoids a cycle
+    supply = _supply(db, listing, {})
+    requests = []
+    for r in db.scalars(select(PurchaseRequest).where(PurchaseRequest.status == "OPEN")):
+        if r.buyer_org_id in offered_by:
+            continue
+        ev = matching.evaluate(supply, _demand(r))
+        if ev["eligible"]:
+            requests.append({"request": request_out(r), "buyer_trust": TrustCache(db).summary(r.buyer_org_id), "score": ev["score"], "reasons": ev["reasons"]})
+    requests.sort(key=lambda x: x["score"], reverse=True)
+    return {
+        "available_kg": inv["available_kg"],
+        "released": [contract_brief(c) for c in released],
+        "recommended_plan": plan,
+        "matching_requests": requests[:5],
+    }

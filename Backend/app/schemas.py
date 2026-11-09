@@ -109,13 +109,16 @@ class AllocationItemIn(BaseModel):
     quantity_kg: Decimal = Field(ge=0)
 
 
+STRATEGIES = Literal["MANUAL", "PROPORTIONAL", "MAX_NET_REVENUE", "RISK_AWARE"]
+
+
 class AllocationPreview(BaseModel):
-    strategy: Literal["MANUAL", "PROPORTIONAL"] = "MANUAL"
+    strategy: STRATEGIES = "MANUAL"
     items: list[AllocationItemIn] = []
 
 
 class AllocationConfirm(BaseModel):
-    strategy: Literal["MANUAL", "PROPORTIONAL"] = "MANUAL"
+    strategy: STRATEGIES = "MANUAL"
     items: list[AllocationItemIn]
 
 

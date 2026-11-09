@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, Info, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, RotateCcw, ShieldCheck, Sparkles } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
@@ -12,19 +12,33 @@ import { Button, Card, Empty, ErrorState, Input, Modal, PageHeader, PageSkeleton
 import { post } from "@/lib/api";
 import { fmtKg, fmtNum, fmtTHB } from "@/lib/format";
 import { productName } from "@/lib/labels";
-import type { ContractBrief, Listing } from "@/lib/types";
+import type { ContractBrief, Listing, PurchaseRequest, TrustSummary } from "@/lib/types";
 import { useAction } from "@/lib/useAction";
 
-type Strategy = "MANUAL" | "PROPORTIONAL";
+type Strategy = "MANUAL" | "PROPORTIONAL" | "MAX_NET_REVENUE" | "RISK_AWARE";
 type Preview = {
   available_kg: number;
   errors: string[];
   warnings: string[];
-  lines: { offer_id: string; quantity_kg: number; share_pct: number; expected_revenue: number }[];
+  lines: { offer_id: string; quantity_kg: number; share_pct: number; expected_revenue: number; logistics_cost_per_kg: number; net_revenue: number }[];
   total_kg: number;
   remaining_kg: number;
   expected_revenue: number;
+  expected_net_revenue: number;
 };
+type Reallocation = {
+  available_kg: number;
+  released: ContractBrief[];
+  recommended_plan: Preview;
+  matching_requests: { request: PurchaseRequest; buyer_trust: TrustSummary; score: number }[];
+};
+
+const STRATEGIES: { value: Strategy; label: string; hint: string }[] = [
+  { value: "MANUAL", label: "กำหนดเอง", hint: "เลื่อนหรือพิมพ์ปริมาณเอง" },
+  { value: "PROPORTIONAL", label: "ตามสัดส่วนความต้องการ", hint: "แบ่งตามสัดส่วนที่ผู้ซื้อขอ ปัดลงทีละ 10 กก." },
+  { value: "MAX_NET_REVENUE", label: "รายได้สุทธิสูงสุด", hint: "หาแผนที่ได้ราคาหักค่าขนส่งสูงสุด ภายใต้ปริมาณขั้นต่ำของผู้ซื้อ" },
+  { value: "RISK_AWARE", label: "คำนึงความเสี่ยง", hint: "เหมือนรายได้สูงสุด แต่จำกัดสัดส่วนของผู้ซื้อที่ AgriTrust ต่ำหรือยังไม่มีประวัติ" },
+];
 
 const PALETTE = ["#166534", "#0284c7", "#7c3aed", "#d97706", "#db2777", "#0f766e"];
 const STEP = 10;
@@ -39,6 +53,7 @@ export default function AllocationWorkspace() {
   const [warnings, setWarnings] = useState<string[]>([]);
   const [confirming, setConfirming] = useState(false);
   const { run, pending } = useAction();
+  const { data: realloc } = useSWR<Reallocation>(`/listings/${id}/reallocation`);
 
   const offers = useMemo(() => (listing?.offers ?? []).filter((o) => o.status === "PENDING"), [listing]);
   const available = listing?.inventory.available_kg ?? 0;
@@ -56,11 +71,12 @@ export default function AllocationWorkspace() {
     return () => clearTimeout(t);
   }, [itemsKey, id, listing]);
 
-  async function applyProportional() {
-    const p = await post<Preview>(`/listings/${id}/allocation/preview`, { strategy: "PROPORTIONAL" });
+  async function applyStrategy(s: Strategy) {
+    setStrategy(s);
+    if (s === "MANUAL") return setWarnings([]);
+    const p = await post<Preview>(`/listings/${id}/allocation/preview`, { strategy: s });
     setQty(Object.fromEntries(p.lines.map((l) => [l.offer_id, Number(l.quantity_kg)])));
     setWarnings(p.warnings);
-    setStrategy("PROPORTIONAL");
   }
 
   function setOne(offerId: string, value: number) {
@@ -99,12 +115,50 @@ export default function AllocationWorkspace() {
         <Stat label="ผลผลิตที่ยังไม่ผูกพัน" value={fmtKg(available)} hint={`จากประมาณการ ${fmtKg(listing.inventory.estimated_kg)}`} />
         <Stat label="ความต้องการรวม" value={fmtKg(offers.reduce((s, o) => s + o.quantity_kg, 0))} hint={`${offers.length} ข้อเสนอ`} />
         <Stat label="จัดสรรแล้ว" value={fmtKg(total)} hint={`คงเหลือ ${fmtKg(Math.max(0, available - total))}`} tone={total > available ? "warn" : "default"} />
-        <Stat label="รายได้คาดการณ์" value={fmtTHB(preview?.expected_revenue ?? 0)} hint="คิดที่ราคาเกรดสูงสุดของแต่ละข้อเสนอ" />
+        <Stat label="รายได้คาดการณ์" value={fmtTHB(preview?.expected_revenue ?? 0)} hint={`หลังหักค่าขนส่งประมาณ ${fmtTHB(preview?.expected_net_revenue ?? 0)} · ราคาเกรดสูงสุด`} />
       </div>
 
       <Card className="mt-6" bodyClassName="p-4">
         <InventoryBar inv={listing.inventory} />
       </Card>
+
+      {realloc && realloc.released.length > 0 && realloc.available_kg > 0 && (
+        <Card
+          className="mt-6 border-amber-200"
+          title={<span className="inline-flex items-center gap-2"><RotateCcw className="size-4 text-amber-600" />จัดสรรใหม่: มีผลผลิตถูกคืน {fmtKg(realloc.available_kg)}</span>}
+          action={offers.length > 0 && <Button size="sm" onClick={() => applyStrategy("MAX_NET_REVENUE")}>ใช้แผนแนะนำ</Button>}
+        >
+          <div className="grid gap-4 text-sm md:grid-cols-2">
+            <div>
+              <div className="mb-1 text-slate-500">สัญญาที่ยกเลิก/หมดอายุ</div>
+              <ul className="space-y-1">
+                {realloc.released.map((c) => (
+                  <li key={c.id}>{c.code} · {c.buyer.name} · {fmtKg(c.quantity_kg)} <span className="text-slate-500">({c.order_status === "CANCELLED" ? "ยกเลิก" : "การจองหมดอายุ"})</span></li>
+                ))}
+              </ul>
+              {offers.length > 0 && (
+                <p className="mt-2 text-slate-600">แผนแนะนำจากข้อเสนอที่รออยู่: {fmtKg(realloc.recommended_plan.total_kg)} · รายได้สุทธิ {fmtTHB(realloc.recommended_plan.expected_net_revenue)}</p>
+              )}
+            </div>
+            <div>
+              <div className="mb-1 text-slate-500">คำขอซื้อที่เปิดอยู่และเข้ากับผลผลิตนี้</div>
+              {realloc.matching_requests.length ? (
+                <ul className="space-y-1.5">
+                  {realloc.matching_requests.map((m) => (
+                    <li key={m.request.id} className="flex flex-wrap items-center gap-2">
+                      <span>{m.request.buyer.name} · {fmtKg(m.request.quantity_kg)}</span>
+                      <TrustBadge trust={m.buyer_trust} orgId={m.request.buyer.id} />
+                      <span className="text-xs text-slate-500">คะแนนจับคู่ {m.score.toFixed(0)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-slate-500">ยังไม่มีคำขอซื้ออื่นที่เข้ากัน</p>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
 
       {offers.length === 0 ? (
         <Card className="mt-6"><Empty title="ไม่มีข้อเสนอที่รอจัดสรร" /></Card>
@@ -115,15 +169,17 @@ export default function AllocationWorkspace() {
             className="xl:col-span-2"
             action={
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant={strategy === "MANUAL" ? "primary" : "secondary"} onClick={() => setStrategy("MANUAL")}>กำหนดเอง</Button>
-                <Button size="sm" variant={strategy === "PROPORTIONAL" ? "primary" : "secondary"} onClick={applyProportional}>ตามสัดส่วนความต้องการ</Button>
-                <Button size="sm" variant="secondary" disabled title="Phase 2: optimizer (OR-Tools)">
-                  <Sparkles className="size-4" />
-                  เพิ่มรายได้สูงสุด (Phase 2)
-                </Button>
+                {STRATEGIES.map((s) => (
+                  <Button key={s.value} size="sm" title={s.hint} variant={strategy === s.value ? "primary" : "secondary"} onClick={() => applyStrategy(s.value)}>
+                    {s.value === "MAX_NET_REVENUE" && <Sparkles className="size-4" />}
+                    {s.value === "RISK_AWARE" && <ShieldCheck className="size-4" />}
+                    {s.label}
+                  </Button>
+                ))}
               </div>
             }
           >
+            <p className="mb-4 text-sm text-slate-500">{STRATEGIES.find((s) => s.value === strategy)?.hint} · ค่าขนส่งเป็นค่าประมาณจากระยะทาง (0.002 บาท/กก./กม.)</p>
             <div className="space-y-4">
               {offers.map((o, i) => {
                 const value = qty[o.id] ?? 0;
@@ -140,6 +196,7 @@ export default function AllocationWorkspace() {
                         </div>
                         <div className="mt-1 text-sm text-slate-500">
                           ต้องการ {fmtKg(o.quantity_kg)} · <OfferPrices prices={o.grade_prices} /> · ชำระใน {o.payment_terms_days} วัน · มัดจำ {fmtTHB(o.deposit_thb)}
+                          {line && <> · ค่าขนส่ง ~{fmtTHB(line.logistics_cost_per_kg)}/กก.</>}
                         </div>
                       </div>
                       <div className="text-right text-sm">

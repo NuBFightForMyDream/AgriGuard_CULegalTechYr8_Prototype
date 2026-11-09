@@ -127,3 +127,22 @@ def test_buyer_creates_request_sees_matches_and_offers(client):
 def test_dashboards_render_for_each_role(client):
     for headers, role in ((FARMER, "FARMER"), (BUYER_B, "BUYER"), (INSPECTOR, "INSPECTOR")):
         assert ok(client.get("/api/dashboard", headers=headers))["role"] == role
+
+
+def test_optimizer_strategies_and_reallocation(client):
+    plan = ok(client.post(f"/api/listings/{LISTING}/allocation/preview", json={"strategy": "MAX_NET_REVENUE"}, headers=FARMER))
+    by_buyer = {o["buyer"]["name"]: o["id"] for o in offers_by_buyer(client)[0].values()}
+    qty = {line["offer_id"]: line["quantity_kg"] for line in plan["lines"]}
+    assert plan["errors"] == [] and plan["total_kg"] == 5000
+    assert qty[by_buyer["Eastern Wholesale Market"]] == 2000 and qty[by_buyer["Siam Fruit Processing Co., Ltd."]] == 2500
+    risk = ok(client.post(f"/api/listings/{LISTING}/allocation/preview", json={"strategy": "RISK_AWARE"}, headers=FARMER))
+    rq = {line["offer_id"]: line["quantity_kg"] for line in risk["lines"]}
+    assert rq[by_buyer["Eastern Wholesale Market"]] == 1250  # HIGH_RISK capped at 25%
+
+    # Buyer C declines → supply returns and reallocation suggests a plan over remaining offers
+    created = ok(client.post(f"/api/listings/{LISTING}/allocation/confirm",
+                             json={"items": [{"offer_id": by_buyer["Siam Fruit Processing Co., Ltd."], "quantity_kg": 2500}]}, headers=FARMER), 201)
+    ok(client.post(f"/api/contracts/{created['contracts'][0]['id']}/decline", json={}, headers=BUYER_C))
+    re = ok(client.get(f"/api/listings/{LISTING}/reallocation", headers=FARMER))
+    assert re["available_kg"] == 5000 and len(re["released"]) == 1
+    assert re["recommended_plan"]["total_kg"] == 5000
