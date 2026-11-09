@@ -179,7 +179,7 @@ export default function AllocationWorkspace() {
               {chart.length ? (
                 <ResponsiveContainer width="100%" height={200}>
                   <PieChart>
-                    <Pie data={chart} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={1}>
+                    <Pie data={chart} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={1} isAnimationActive={false}>
                       {chart.map((d) => <Cell key={d.name} fill={d.color} />)}
                     </Pie>
                     <Tooltip formatter={(v) => fmtKg(Number(v))} />

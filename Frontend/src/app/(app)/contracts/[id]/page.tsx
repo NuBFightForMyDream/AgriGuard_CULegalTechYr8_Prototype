@@ -7,7 +7,7 @@ import { useState } from "react";
 import useSWR from "swr";
 import { NextAction } from "@/components/contract-actions";
 import { TrustBadge } from "@/components/trust";
-import { Badge, Card, DL, ErrorState, PageHeader, PageSkeleton, StatusBadge, Table, Td } from "@/components/ui";
+import { Badge, Card, DL, ErrorState, PageHeader, PageSkeleton, StatusBadge } from "@/components/ui";
 import { ACTOR_LABEL, ACTOR_TONE_OF, STAGES, Stepper, Swimlane, currentStage, isStopped } from "@/components/workflow";
 import { fmtDate, fmtDateTime, fmtKg, fmtRange, fmtTHB } from "@/lib/format";
 import { FLAG_LABEL, LOT_STATUS, ORDER_STATUS, REJECTION, SETTLEMENT_STATUS, SHORTFALL_POLICY, productName } from "@/lib/labels";
@@ -132,10 +132,15 @@ export default function ContractWorkspace() {
           )}
           {insp && (
             <Card title="ผล GradeProof">
-              <Table head={["เกรด", "ปริมาณ"]}>
-                {insp.grades.map((g) => <tr key={g.grade}><Td>{g.grade}</Td><Td className="tabular">{fmtKg(g.quantity_kg)}</Td></tr>)}
-                <tr><Td>ปฏิเสธ{insp.rejection_reason ? ` (${REJECTION[insp.rejection_reason]})` : ""}</Td><Td className="tabular">{fmtKg(insp.rejected_kg)}</Td></tr>
-              </Table>
+              <ul className="divide-y divide-slate-100 text-sm">
+                {insp.grades.map((g) => (
+                  <li key={g.grade} className="flex justify-between py-1.5"><span>เกรด {g.grade}</span><span className="tabular">{fmtKg(g.quantity_kg)}</span></li>
+                ))}
+                <li className="flex justify-between gap-2 py-1.5">
+                  <span>ปฏิเสธ{insp.rejection_reason ? ` (${REJECTION[insp.rejection_reason]})` : ""}</span>
+                  <span className="tabular">{fmtKg(insp.rejected_kg)}</span>
+                </li>
+              </ul>
               <div className="mt-3 text-xs text-slate-500">{insp.inspector.name} · {fmtDateTime(insp.inspected_at)} · {insp.sampling_method}</div>
               <div className="mt-1 text-xs text-slate-500">หลักฐาน: {insp.evidence_note ?? "—"}</div>
               {insp.flags.length > 0 && (

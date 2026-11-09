@@ -79,7 +79,7 @@ export function LinkButton({ href, variant = "primary", size = "md", className, 
 
 export function Card({ title, action, children, className, bodyClassName }: { title?: React.ReactNode; action?: React.ReactNode; children: React.ReactNode; className?: string; bodyClassName?: string }) {
   return (
-    <section className={cx("rounded-xl border border-slate-200 bg-white", className)}>
+    <section className={cx("min-w-0 rounded-xl border border-slate-200 bg-white", className)}>
       {(title || action) && (
         <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-5 py-3.5">
           <h2 className="text-[15px] font-semibold text-slate-900">{title}</h2>
