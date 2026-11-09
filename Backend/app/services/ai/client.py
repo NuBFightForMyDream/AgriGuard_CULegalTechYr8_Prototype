@@ -67,9 +67,52 @@ def _get_gemini() -> genai.Client:
     return _gemini
 
 
+def _key(p: str) -> str | None:
+    return settings.anthropic_api_key if p == "anthropic" else settings.gemini_api_key
+
+
+def providers_in_order() -> list[str]:
+    """Primary provider first, then the other one if its key is set (failover, e.g. Gemini free quota -> Claude)."""
+    first = provider()
+    if first is None:
+        return []
+    return [first] + [p for p in ("anthropic", "gemini") if p != first and _key(p)]
+
+
 def _call(system: str, content: list[dict], schema: dict) -> tuple[dict, str, int | None, int | None]:
-    """One structured request. Separated so tests can replace it without network access."""
-    return _call_gemini(system, content, schema) if provider() == "gemini" else _call_anthropic(system, content, schema)
+    """One structured request, with failover to the other provider. Tests replace this to avoid the network."""
+    last: AIUnavailable | None = None
+    for p in providers_in_order():
+        try:
+            return _guarded(p, system, content, schema)
+        except AIUnavailable as e:  # refusals are not retried elsewhere
+            last = e
+    raise last or AIUnavailable("ยังไม่ได้ตั้งค่า AI (GEMINI_API_KEY หรือ ANTHROPIC_API_KEY)")
+
+
+def _guarded(p: str, system: str, content: list[dict], schema: dict) -> tuple[dict, str, int | None, int | None]:
+    """Run one provider and turn its SDK errors into AIUnavailable with a clear Thai message."""
+    try:
+        return (_call_gemini if p == "gemini" else _call_anthropic)(system, content, schema)
+    except (AIRefused, AIUnavailable):
+        raise
+    except anthropic.RateLimitError as e:
+        raise AIUnavailable("Claude มีผู้ใช้งานมาก กรุณาลองใหม่ภายหลัง") from e
+    except anthropic.AuthenticationError as e:
+        raise AIUnavailable("ANTHROPIC_API_KEY ไม่ถูกต้อง") from e
+    except anthropic.APIStatusError as e:
+        raise AIUnavailable(f"Claude ตอบกลับผิดพลาด ({e.status_code})") from e
+    except anthropic.APIConnectionError as e:
+        raise AIUnavailable("เชื่อมต่อ Claude ไม่ได้") from e
+    except genai_errors.APIError as e:
+        code = getattr(e, "code", None)
+        if code == 429:
+            raise AIUnavailable("ใช้ AI เกินโควตาฟรีของ Gemini ชั่วคราว กรุณารอสักครู่แล้วลองใหม่") from e
+        if code in (400, 401, 403) and "key" in str(e).lower():
+            raise AIUnavailable("GEMINI_API_KEY ไม่ถูกต้อง") from e
+        raise AIUnavailable(f"Gemini ตอบกลับผิดพลาด ({code})") from e
+    except (json.JSONDecodeError, StopIteration) as e:
+        raise AIUnavailable("อ่านคำตอบของ AI ไม่ได้") from e
 
 
 def gemini_parts(content: list[dict]) -> list:
@@ -144,27 +187,7 @@ def run(db: Session, *, task: str, prompt_version: str, system: str, content: li
         hash_parts: tuple = ()) -> AiRun:
     if not available():
         raise AIUnavailable("ยังไม่ได้ตั้งค่า AI (GEMINI_API_KEY หรือ ANTHROPIC_API_KEY)")
-    try:
-        data, model, tin, tout = _call(system, content, schema)
-    except (AIRefused, AIUnavailable):
-        raise
-    except anthropic.RateLimitError as e:
-        raise AIUnavailable("AI มีผู้ใช้งานมาก กรุณาลองใหม่ภายหลัง") from e
-    except anthropic.AuthenticationError as e:
-        raise AIUnavailable("ANTHROPIC_API_KEY ไม่ถูกต้อง") from e
-    except anthropic.APIStatusError as e:
-        raise AIUnavailable(f"AI ตอบกลับผิดพลาด ({e.status_code})") from e
-    except anthropic.APIConnectionError as e:
-        raise AIUnavailable("เชื่อมต่อ AI ไม่ได้") from e
-    except genai_errors.APIError as e:
-        code = getattr(e, "code", None)
-        if code == 429:
-            raise AIUnavailable("ใช้ AI เกินโควตาฟรีของ Gemini ชั่วคราว กรุณารอสักครู่แล้วลองใหม่") from e
-        if code in (400, 401, 403) and "key" in str(e).lower():
-            raise AIUnavailable("GEMINI_API_KEY ไม่ถูกต้อง") from e
-        raise AIUnavailable(f"AI ตอบกลับผิดพลาด ({code})") from e
-    except (json.JSONDecodeError, StopIteration) as e:
-        raise AIUnavailable("อ่านคำตอบของ AI ไม่ได้") from e
+    data, model, tin, tout = _call(system, content, schema)
     record = AiRun(task=task, model=model, prompt_version=prompt_version, input_hash=input_hash(*hash_parts),
                    entity_type=entity_type, entity_id=entity_id, user_id=user_id, output=data,
                    input_tokens=tin, output_tokens=tout)
