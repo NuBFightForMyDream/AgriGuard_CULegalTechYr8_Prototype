@@ -92,3 +92,12 @@ def test_contract_brief_carries_sourcing(client):
     # The chat thread with that buyer now reports the contract as its deal.
     b = next(c for c in client.get("/api/chats", headers=FARMER).json() if c["counterpart"]["name"] == "FreshFruit Export Co.")
     assert b["deal"]["kind"] == "contract" and b["deal"]["status"] == "AWAITING_CONFIRMATION"
+
+
+def test_chat_deal_prefers_ongoing_and_counts_active(client):
+    chats = client.get("/api/chats", headers=FARMER).json()
+    b = next(c for c in chats if c["counterpart"]["name"] == "FreshFruit Export Co.")
+    assert b["deal"]["kind"] == "offer" and b["deal"]["active"] == 1
+    none = client.post("/api/chats", json={"organization_id": str(sid("buyer_e"))}, headers=FARMER).json()["id"]
+    detail = client.get(f"/api/chats/{none}", headers=FARMER).json()
+    assert detail["deal"] is None

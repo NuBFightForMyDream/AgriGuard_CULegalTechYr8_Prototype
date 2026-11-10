@@ -11,7 +11,7 @@ import { TrustBadge } from "@/components/trust";
 import { Avatar, cx, Skeleton } from "@/components/ui";
 import { ApiError, post } from "@/lib/api";
 import { fmtDate, fmtKg } from "@/lib/format";
-import { BUSINESS_TYPE, productName } from "@/lib/labels";
+import { BUSINESS_TYPE, ORDER_STATUS, productName } from "@/lib/labels";
 import type { ChatMessage, ChatThread } from "@/lib/types";
 
 const TZ = "Asia/Bangkok";
@@ -83,13 +83,16 @@ export default function ChatThreadPage() {
         <div className="min-w-0 flex-1">
           <div className="truncate font-semibold text-slate-900">{o?.name ?? "…"}</div>
           {o && (
-            <div className="flex items-center gap-1 truncate text-xs text-slate-500">
-              {o.business_type ? BUSINESS_TYPE[o.business_type] : o.kind === "FARM" ? "สวน" : "ผู้ซื้อ"}
-              {o.province && <><MapPin className="ml-1 size-3" />{o.province}</>}
+            <div className="flex items-center gap-1.5 truncate text-xs text-slate-500">
+              <DealChip deal={data!.deal} />
+              <span className="hidden truncate sm:inline">
+                {o.business_type ? BUSINESS_TYPE[o.business_type] : o.kind === "FARM" ? "สวน" : "ผู้ซื้อ"}
+              </span>
+              {o.province && <span className="hidden items-center gap-0.5 sm:inline-flex"><MapPin className="size-3" />{o.province}</span>}
             </div>
           )}
         </div>
-        {data?.counterpart_trust && <TrustBadge trust={data.counterpart_trust} orgId={o!.id} />}
+        {data?.counterpart_trust && <span className="hidden sm:block"><TrustBadge trust={data.counterpart_trust} orgId={o!.id} /></span>}
       </header>
 
       {/* Deals between the pair (status chips from the sketch) */}
@@ -101,6 +104,7 @@ export default function ChatThreadPage() {
               <span className="font-medium text-slate-800">{c.code}</span>
               <span className="text-slate-500">{productName(c.product_type)} {fmtKg(c.quantity_kg)}</span>
               <DealChip deal={{ kind: "contract", id: c.id, code: c.code, status: c.order_status }} />
+              <span className="text-slate-400">{ORDER_STATUS[c.order_status]?.[0]}</span>
             </Link>
           ))}
           {data.offers.map((x) => (

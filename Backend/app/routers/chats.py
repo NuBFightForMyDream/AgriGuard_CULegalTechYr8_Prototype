@@ -19,6 +19,7 @@ from app.models import (
     User,
 )
 from app.services.inventory import expire_reservations
+from app.services.orders import INACTIVE
 from app.views import TrustCache, contract_brief, org_brief
 
 router = APIRouter(prefix="/chats", tags=["chats"])
@@ -82,16 +83,25 @@ def _pair_offers(db, c: Conversation) -> list[Offer]:
 
 
 def _deal(db, c: Conversation) -> dict | None:
-    """The pair's most relevant deal for the status chip: the latest contract, else the latest offer."""
+    """The pair's deal for the status chip: an ongoing contract first, then a pending offer, then the latest finished one."""
     contracts = _pair_contracts(db, c)
-    if contracts:
-        k = contracts[0]
-        return {"kind": "contract", "id": k.id, "code": k.code, "status": k.order_status}
     offers = _pair_offers(db, c)
-    if offers:
+    ongoing = [k for k in contracts if k.order_status not in INACTIVE and k.order_status != "COMPLETED"]
+    pending = [o for o in offers if o.status == "PENDING"]
+    active = len(ongoing) + len(pending)
+    if ongoing:
+        k = ongoing[0]
+    elif pending:
+        o = pending[0]
+        return {"kind": "offer", "id": o.id, "code": o.code, "status": o.status, "active": active}
+    elif contracts:
+        k = contracts[0]
+    elif offers:
         o = offers[0]
-        return {"kind": "offer", "id": o.id, "code": o.code, "status": o.status}
-    return None
+        return {"kind": "offer", "id": o.id, "code": o.code, "status": o.status, "active": active}
+    else:
+        return None
+    return {"kind": "contract", "id": k.id, "code": k.code, "status": k.order_status, "active": active}
 
 
 def _counterpart(c: Conversation, user: User) -> Organization:
@@ -179,6 +189,7 @@ def get_chat(chat_id: uuid.UUID, db: DB, user: CurrentUser):
         "id": c.id,
         "counterpart": org_brief(other),
         "counterpart_trust": trusts.summary(other.id) if other.kind == "BUYER" else None,
+        "deal": _deal(db, c),
         "messages": [_message_out(m, user) for m in reversed(msgs)],
         "contracts": [contract_brief(k) for k in _pair_contracts(db, c)],
         "offers": [{"id": o.id, "code": o.code, "status": o.status, "quantity_kg": o.quantity_kg,

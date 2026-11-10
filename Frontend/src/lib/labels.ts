@@ -180,3 +180,39 @@ export const SUBNAV = {
   adminPeople: [{ href: "/admin/users", label: "ผู้ใช้และสิทธิ์" }, { href: "/admin/verification", label: "ยืนยันธุรกิจ" }],
   adminTrust: [{ href: "/admin/risk", label: "ความเสี่ยง" }, { href: "/admin/appeals", label: "อุทธรณ์" }, { href: "/buyers", label: "คะแนนผู้ซื้อ" }],
 };
+
+/** Plain-language deal stage for chat (สถานะคู่สนทนา): collapses contract and offer states into a few words. */
+export type DealStage = "none" | "dealing" | "not_shipped" | "shipping" | "delivered" | "paying" | "done" | "problem" | "failed";
+export const DEAL_STAGE: Record<DealStage, [string, Tone]> = {
+  none: ["ยังไม่มีดีล", "gray"],
+  dealing: ["กำลังดีล", "amber"],
+  not_shipped: ["ยังไม่ส่ง", "blue"],
+  shipping: ["กำลังส่ง", "violet"],
+  delivered: ["ส่งแล้ว", "lime"],
+  paying: ["ส่งแล้ว · รอจ่ายเงิน", "amber"],
+  done: ["ดีลสำเร็จ", "green"],
+  problem: ["มีปัญหา", "red"],
+  failed: ["ดีลไม่สำเร็จ", "gray"],
+};
+const CONTRACT_STAGE: Record<string, DealStage> = {
+  AWAITING_CONFIRMATION: "dealing",
+  CONFIRMED: "not_shipped",
+  HARVESTED: "not_shipped",
+  IN_TRANSIT: "shipping",
+  DELIVERED: "delivered",
+  QC_PENDING: "delivered",
+  QC_ACCEPTED: "delivered",
+  PAYMENT_PENDING: "paying",
+  PAID: "paying",
+  COMPLETED: "done",
+  PAYMENT_OVERDUE: "problem",
+  QC_DISPUTED: "problem",
+  DISPUTED: "problem",
+  CANCELLED: "failed",
+  RESERVATION_EXPIRED: "failed",
+};
+export function dealStage(deal: { kind: "contract" | "offer"; status: string } | null | undefined): DealStage {
+  if (!deal) return "none";
+  if (deal.kind === "offer") return deal.status === "PENDING" ? "dealing" : deal.status === "ALLOCATED" ? "dealing" : "failed";
+  return CONTRACT_STAGE[deal.status] ?? "dealing";
+}

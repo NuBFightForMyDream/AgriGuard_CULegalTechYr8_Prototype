@@ -8,17 +8,40 @@ import useSWR from "swr";
 import { post } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import { fmtChatTime } from "@/lib/format";
-import { BUSINESS_TYPE, OFFER_STATUS, ORDER_STATUS } from "@/lib/labels";
+import { BUSINESS_TYPE, DEAL_STAGE, dealStage, OFFER_STATUS, ORDER_STATUS } from "@/lib/labels";
 import type { ChatDeal, ChatSummary, Org } from "@/lib/types";
-import { PROBLEM } from "./deal-card";
 import { useToast } from "./toast";
-import { Avatar, Badge, Button, cx, Empty, Input, Modal, Skeleton } from "./ui";
+import { Avatar, Badge, Button, Chips, cx, Empty, Input, Modal, Skeleton } from "./ui";
 
+/** Partner status in plain words (กำลังดีล / ยังไม่ส่ง / ส่งแล้ว …); the exact contract/offer state is in the tooltip. */
 export function DealChip({ deal }: { deal: ChatDeal | null }) {
-  if (!deal) return <Badge tone="gray">ยังไม่มีดีล</Badge>;
-  const [label, tone] = (deal.kind === "contract" ? ORDER_STATUS : OFFER_STATUS)[deal.status] ?? [deal.status, "gray"];
-  return <Badge tone={tone} className={PROBLEM.has(deal.status) ? "ring-2 ring-red-300" : undefined}>{deal.kind === "offer" ? `ข้อเสนอ: ${label}` : label}</Badge>;
+  const stage = dealStage(deal);
+  const [label, tone] = DEAL_STAGE[stage];
+  const exact = deal ? `${deal.code} · ${((deal.kind === "contract" ? ORDER_STATUS : OFFER_STATUS)[deal.status] ?? [deal.status])[0]}` : undefined;
+  return (
+    <span className="inline-flex items-center gap-1.5" title={exact}>
+      <Badge tone={tone} className={stage === "problem" ? "ring-2 ring-red-300" : undefined}>
+        <span className={cx("size-1.5 rounded-full", DOT[tone])} />
+        {label}
+      </Badge>
+      {!!deal?.active && deal.active > 1 && <span className="text-[11px] text-slate-400">+{deal.active - 1} ดีล</span>}
+    </span>
+  );
 }
+
+const DOT: Record<string, string> = {
+  gray: "bg-slate-400", green: "bg-green-600", lime: "bg-lime-500", amber: "bg-amber-500", red: "bg-red-500", blue: "bg-sky-500", violet: "bg-violet-500",
+};
+
+type Filter = "all" | "unread" | "dealing" | "not_shipped" | "shipped" | "problem";
+const FILTERS: { value: Filter; label: string; match: (c: ChatSummary) => boolean }[] = [
+  { value: "all", label: "ทั้งหมด", match: () => true },
+  { value: "unread", label: "ยังไม่อ่าน", match: (c) => c.unread > 0 },
+  { value: "dealing", label: "กำลังดีล", match: (c) => dealStage(c.deal) === "dealing" },
+  { value: "not_shipped", label: "ยังไม่ส่ง", match: (c) => dealStage(c.deal) === "not_shipped" },
+  { value: "shipped", label: "ส่งแล้ว", match: (c) => ["shipping", "delivered", "paying", "done"].includes(dealStage(c.deal)) },
+  { value: "problem", label: "มีปัญหา", match: (c) => dealStage(c.deal) === "problem" },
+];
 
 export function ChatList() {
   const { user } = useSession();
@@ -26,9 +49,11 @@ export function ChatList() {
   const { data, error } = useSWR<ChatSummary[]>(trader ? "/chats" : null, { refreshInterval: 8000 });
   const pathname = usePathname();
   const [q, setQ] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
   const [picker, setPicker] = useState(false);
   const needle = q.trim().toLowerCase();
-  const rows = (data ?? []).filter((c) => !needle || c.counterpart.name.toLowerCase().includes(needle) || c.last_message?.body.toLowerCase().includes(needle));
+  const match = FILTERS.find((f) => f.value === filter)!.match;
+  const rows = (data ?? []).filter((c) => match(c) && (!needle || c.counterpart.name.toLowerCase().includes(needle) || c.last_message?.body.toLowerCase().includes(needle)));
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-none bg-white lg:rounded-2xl lg:border lg:border-slate-200/80 lg:shadow-sm">
@@ -41,6 +66,13 @@ export function ChatList() {
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาแชท" className="rounded-full pl-9" aria-label="ค้นหาแชท" />
         </div>
+        {trader && data && data.length > 0 && (
+          <Chips
+            value={filter}
+            onChange={setFilter}
+            items={FILTERS.map((f) => ({ value: f.value, label: f.label, count: f.value === "all" ? undefined : data.filter(f.match).length }))}
+          />
+        )}
       </div>
       <ul className="flex-1 divide-y divide-slate-100 overflow-y-auto">
         <li>
@@ -56,7 +88,7 @@ export function ChatList() {
         {error && <li className="p-4 text-sm text-red-600">โหลดแชทไม่สำเร็จ: {error.message}</li>}
         {trader && !data && !error && [0, 1, 2].map((i) => <li key={i} className="flex gap-3 p-4"><Skeleton className="size-12 rounded-full" /><Skeleton className="h-12 flex-1" /></li>)}
         {data && rows.length === 0 && (
-          <li><Empty title={needle ? "ไม่พบแชท" : "ยังไม่มีแชท"}>{!needle && "กด \"แชทใหม่\" หรือกดปุ่มแชทจากหน้าค้นหาเพื่อเริ่มคุยกับคู่ค้า"}</Empty></li>
+          <li><Empty title={needle || filter !== "all" ? "ไม่พบแชท" : "ยังไม่มีแชท"}>{!needle && filter === "all" && "กด \"แชทใหม่\" หรือกดปุ่มแชทจากหน้าค้นหาเพื่อเริ่มคุยกับคู่ค้า"}</Empty></li>
         )}
         {rows.map((c) => {
           const active = pathname === `/chat/${c.id}`;

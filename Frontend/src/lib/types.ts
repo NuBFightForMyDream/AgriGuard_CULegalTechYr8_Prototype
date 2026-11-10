@@ -454,7 +454,7 @@ export type AiStatus = { available: boolean; provider: "anthropic" | "gemini" | 
 
 export type ChatMessage = { id: string; body: string; created_at: string; mine: boolean; sender: { id: string; name: string; role: Role } };
 
-export type ChatDeal = { kind: "contract" | "offer"; id: string; code: string; status: string };
+export type ChatDeal = { kind: "contract" | "offer"; id: string; code: string; status: string; active?: number };
 
 export type ChatSummary = {
   id: string;
@@ -468,6 +468,7 @@ export type ChatSummary = {
 
 export type ChatThread = {
   id: string;
+  deal: ChatDeal | null;
   counterpart: Org;
   counterpart_trust: TrustSummary | null;
   messages: ChatMessage[];
