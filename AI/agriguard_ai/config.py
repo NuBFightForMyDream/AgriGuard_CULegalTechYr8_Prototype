@@ -12,7 +12,7 @@ class AISettings(BaseSettings):
     gemini_model: str = "gemini-3.8-flash"
     # Claude API (Anthropic).
     anthropic_api_key: str | None = None
-    ai_model: str = "claude-opus-5-5"
+    ai_model: str = "claude-sonnet-5-5"
     ai_effort: str = "medium"
 
 
