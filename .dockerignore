@@ -1,0 +1,13 @@
+# Docker builds use the repository root as context (Backend/Dockerfile needs AI/).
+.git
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/*.db
+**/.env
+**/uploads
+Frontend
+Database
+Specifications (Prompt)
+Backend/tests
+AI/tests

@@ -1,19 +1,15 @@
 """Navigation chatbot: understands what the user wants to do and links to the right page.
 
-Destinations come only from a fixed, role-filtered catalog plus the user's own pending tasks (read from the
-database), so the bot can never send anyone to a page that does not exist or that their role cannot use.
+Destinations come only from a fixed, role-filtered catalog plus the user's own pending tasks (the Backend reads
+them from the database and passes them in as Dest objects with ids "task:..."), so the bot can never send anyone to a page that does not exist or that their role cannot use.
 Works without an AI key (keyword matching); with a key, the model picks destinations by id and writes the reply,
 and every id is validated before it reaches the user.
 """
 
 from dataclasses import dataclass
 
-from sqlalchemy import or_, select
-from sqlalchemy.orm import Session
-
-from app.models import Contract, Dispute, Farm, Offer, ProduceListing, User
-from app.services.ai import client as ai
-from app.services.ai.knowledge import _grams
+from agriguard_ai.providers import redact
+from agriguard_ai.retrieval import grams
 
 PROMPT_VERSION = "nav-v1"
 
@@ -64,63 +60,34 @@ ACTION_TH = {
 TASK_WORDS = ("งาน", "ค้าง", "ต้องทำ", "รอ", "ด่วน", "อะไรบ้าง", "todo", "pending")
 
 
-def catalog_for(user: User) -> list[Dest]:
+def catalog_for(role: str, organization_id: str) -> list[Dest]:
     out = []
     for roles, d in CATALOG:
-        if user.role in roles.split():
-            out.append(Dest(d.id, d.route.replace("{org}", str(user.organization_id)), d.label, d.description, d.keywords))
+        if role in roles.split():
+            out.append(Dest(d.id, d.route.replace("{org}", str(organization_id)), d.label, d.description, d.keywords))
     return out
 
 
-def tasks_for(db: Session, user: User) -> list[Dest]:
-    """The user's own pending work, as destinations (role-scoped, from the database)."""
-    from app.routers.contracts import actions_for, visible_contracts  # local import avoids a cycle
-
-    tasks: list[Dest] = []
-    if user.role != "ADMIN":
-        for c in db.scalars(visible_contracts(user).order_by(Contract.created_at)):
-            acts = [a for a in actions_for(c, user) if a in ACTION_TH]
-            if acts:
-                tasks.append(Dest(f"task:{c.code}", f"/contracts/{c.id}", f"{ACTION_TH[acts[0]]} · {c.code}",
-                                  f"สัญญา {c.code} {c.buyer_org.name if user.role != 'BUYER' else c.farmer_org.name} รอคุณ{ACTION_TH[acts[0]]}"))
-    if user.role == "FARMER":
-        listings = db.scalars(select(ProduceListing).join(Farm).where(Farm.organization_id == user.organization_id)).all()
-        for listing in listings:
-            pending = [o for o in listing.offers if o.status == "PENDING"]
-            if pending:
-                tasks.append(Dest(f"task:{listing.code}", f"/allocation/{listing.id}", f"จัดสรร {listing.code} ({len(pending)} ข้อเสนอ)",
-                                  f"มีข้อเสนอ {len(pending)} รายการรอจัดสรรผลผลิต {listing.code}"))
-    q = select(Dispute).where(Dispute.status.in_(("EVIDENCE_COLLECTION", "UNDER_REVIEW", "REINSPECTION_REQUESTED")))
-    if user.role in ("FARMER", "BUYER"):
-        q = q.where(or_(Dispute.opened_by_org_id == user.organization_id, Dispute.against_org_id == user.organization_id),
-                    Dispute.status == "EVIDENCE_COLLECTION")
-    elif user.role == "INSPECTOR":
-        q = q.where(Dispute.status == "REINSPECTION_REQUESTED")
-    for d in db.scalars(q):
-        tasks.append(Dest(f"task:{d.code}", f"/disputes/{d.id}", f"ข้อพิพาท {d.code}", f"ข้อพิพาท {d.code} รอการดำเนินการของคุณ"))
-    return tasks[:8]
-
-
 def _score(query: str, d: Dest) -> float:
-    q, t = _grams(query), _grams(f"{d.label} {d.description} {d.keywords}")
+    q, t = grams(query), grams(f"{d.label} {d.description} {d.keywords}")
     shared = sum(min(q[g], t[g]) for g in q.keys() & t.keys())
     return shared / (sum(q.values()) or 1)
 
 
-def _action(d: Dest) -> dict:
+def action(d: Dest) -> dict:
     return {"id": d.id, "route": d.route, "label": d.label, "description": d.description, "task": d.id.startswith("task:")}
 
 
 def rule_reply(message: str, dests: list[Dest], tasks: list[Dest]) -> dict:
     wants_tasks = any(w in message.lower() for w in TASK_WORDS)
     if wants_tasks and tasks:
-        return {"reply": f"ตอนนี้มีงานรอคุณ {len(tasks)} เรื่อง เลือกได้เลยครับ", "actions": [_action(t) for t in tasks[:4]]}
+        return {"reply": f"ตอนนี้มีงานรอคุณ {len(tasks)} เรื่อง เลือกได้เลยครับ", "actions": [action(t) for t in tasks[:4]]}
     ranked = sorted(dests, key=lambda d: _score(message, d), reverse=True)
     best = [d for d in ranked[:3] if _score(message, d) > 0.12]
     if not best:
         return {"reply": "ยังไม่แน่ใจว่าต้องการไปหน้าไหน ลองบอกสิ่งที่อยากทำ เช่น \"ลงขายผลผลิต\" \"ดูสัญญา\" หรือ \"มีงานอะไรค้าง\" ครับ",
-                "actions": [_action(d) for d in dests[:3]]}
-    return {"reply": f"ไปที่ \"{best[0].label}\" ได้เลยครับ — {best[0].description}", "actions": [_action(d) for d in best]}
+                "actions": [action(d) for d in dests[:3]]}
+    return {"reply": f"ไปที่ \"{best[0].label}\" ได้เลยครับ — {best[0].description}", "actions": [action(d) for d in best]}
 
 
 SCHEMA = {
@@ -148,23 +115,16 @@ Rules:
 - suggestions: up to 3 short follow-up things the user might type next, in Thai."""
 
 
-def chat(db: Session, user: User, message: str, history: list[dict], current_path: str | None) -> dict:
-    message = ai.redact(message.strip())
-    dests, tasks = catalog_for(user), tasks_for(db, user)
-    if not ai.available():
-        return {**rule_reply(message, dests, tasks), "mode": "rules", "suggestions": []}
-    by_id = {d.id: d for d in tasks + dests}
-    listing = "\n".join(f"- {d.id}: {d.label} — {d.description}" for d in tasks + dests)
-    convo = "\n".join(f"{'ผู้ใช้' if h['role'] == 'user' else 'ผู้ช่วย'}: {ai.redact(h['text'])[:500]}" for h in history[-6:])
-    try:
-        run = ai.run(db, task="NAV_CHAT", prompt_version=PROMPT_VERSION, system=SYSTEM, schema=SCHEMA, user_id=user.id,
-                     hash_parts=(PROMPT_VERSION, user.id, message, convo, sorted(by_id)),
-                     content=[{"type": "text", "text": (
-                         f"USER ROLE: {user.role}\nCURRENT PAGE: {current_path or '-'}\n\nDESTINATIONS:\n{listing}\n\n"
-                         f"CONVERSATION SO FAR:\n{convo or '(none)'}\n\nUSER: {message}")}])
-    except (ai.AIUnavailable, ai.AIRefused) as e:
-        return {**rule_reply(message, dests, tasks), "mode": "rules", "suggestions": [], "ai_error": str(e)}
-    out = run.output
-    actions = [_action(by_id[i]) for i in dict.fromkeys(out.get("destination_ids", [])) if i in by_id][:3]
-    return {"reply": out.get("reply", ""), "actions": actions, "suggestions": out.get("suggestions", [])[:3],
-            "mode": "ai", "model": run.model}
+def nav_content(role: str, current_path: str | None, dests: list[Dest], history: list[dict], message: str) -> list[dict]:
+    listing = "\n".join(f"- {d.id}: {d.label} — {d.description}" for d in dests)
+    convo = "\n".join(f"{'ผู้ใช้' if h['role'] == 'user' else 'ผู้ช่วย'}: {redact(h['text'])[:500]}" for h in history[-6:])
+    return [{"type": "text", "text": (
+        f"USER ROLE: {role}\nCURRENT PAGE: {current_path or '-'}\n\nDESTINATIONS:\n{listing}\n\n"
+        f"CONVERSATION SO FAR:\n{convo or '(none)'}\n\nUSER: {redact(message)}")}]
+
+
+def nav_result(output: dict, dests: list[Dest]) -> dict:
+    """Keep only destination ids that exist for this user (deduplicated, max 3)."""
+    by_id = {d.id: d for d in dests}
+    actions = [action(by_id[i]) for i in dict.fromkeys(output.get("destination_ids", [])) if i in by_id][:3]
+    return {"reply": output.get("reply", ""), "actions": actions, "suggestions": output.get("suggestions", [])[:3]}

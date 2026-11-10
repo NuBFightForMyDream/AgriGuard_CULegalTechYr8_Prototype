@@ -4,8 +4,13 @@ services:
   - type: web
     name: agriguard-api
     runtime: docker
-    rootDir: Backend
-    dockerfilePath: ./Dockerfile
+    # Built from the repo root because the Backend installs the AI package from ./AI
+    dockerContext: .
+    dockerfilePath: ./Backend/Dockerfile
+    buildFilter:
+      paths:
+        - Backend/**
+        - AI/**
     plan: free
     region: singapore
     healthCheckPath: /api/health

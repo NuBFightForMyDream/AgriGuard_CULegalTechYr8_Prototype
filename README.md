@@ -6,6 +6,7 @@ B2B agricultural procurement and transaction-assurance platform: buyer demand â†
 | --- | --- | --- |
 | `Frontend/` | Web app (Thai UI) | Next.js 15, React 19, TypeScript, Tailwind CSS 4, SWR, Recharts |
 | `Backend/` | REST API and business logic | FastAPI, SQLAlchemy 2, uv |
+| `AI/` | AI package used by the Backend: Legal AI, navigation chatbot, QC photo assist, forecast ([AI/README.md](AI/README.md)) | Gemini / Claude, no database access |
 | `Database/` | Postgres init scripts | PostgreSQL 17 (Docker) |
 
 **Status: Phase 1 and Phase 2 are done** ([development-phases.md](<Specifications (Prompt)/Products/development-phases.md>)): the full ordering workflow, Google sign-in, revenue/risk-aware allocation, amendments and shortfall, disputes, evidence uploads, multi-lot QR traceability, admin console, AgriTrust appeals and notifications. **To put it online, follow [DEPLOY.md](DEPLOY.md)** (Supabase + Render + Vercel).
@@ -44,7 +45,8 @@ The contract page shows the 10-stage journey, next action per role, risks, terms
 ## Test
 
 ```bash
-cd Backend && uv run python -m pytest     # 48 unit, end-to-end, auth and migration tests (SQLite)
+cd Backend && uv run python -m pytest     # API, end-to-end, auth, migration and AI integration tests (SQLite)
+cd AI && uv run python -m pytest          # AI package tests (no network, no database)
 cd Frontend && npm run lint && npm run build
 ```
 
