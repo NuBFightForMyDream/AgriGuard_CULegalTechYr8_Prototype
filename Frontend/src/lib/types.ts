@@ -134,6 +134,7 @@ export type ContractBrief = {
   created_at: string;
   settlement_net: number | null;
   settlement_status: string | null;
+  sourcing: { request_code: string; mode: SourcingMode; max_suppliers: number | null; request_kg: number } | null;
 };
 
 export type Flag = { code: string; message: string };
@@ -450,3 +451,46 @@ export type Forecast = {
 };
 
 export type AiStatus = { available: boolean; provider: "anthropic" | "gemini" | null; model: string | null };
+
+export type ChatMessage = { id: string; body: string; created_at: string; mine: boolean; sender: { id: string; name: string; role: Role } };
+
+export type ChatDeal = { kind: "contract" | "offer"; id: string; code: string; status: string };
+
+export type ChatSummary = {
+  id: string;
+  counterpart: Org;
+  counterpart_trust: TrustSummary | null;
+  last_message: ChatMessage | null;
+  unread: number;
+  deal: ChatDeal | null;
+  updated_at: string;
+};
+
+export type ChatThread = {
+  id: string;
+  counterpart: Org;
+  counterpart_trust: TrustSummary | null;
+  messages: ChatMessage[];
+  contracts: ContractBrief[];
+  offers: { id: string; code: string; status: string; quantity_kg: number; listing_id: string; listing_code: string; created_at: string }[];
+};
+
+export type CommunityGroup = { id: string; slug: string; name: string; description: string; province: string | null; product_type: string | null; posts: number; latest_at: string | null };
+
+export type CommunityAuthor = { id: string; name: string; role: Role; organization: string };
+
+export type CommunityPost = {
+  id: string;
+  title: string;
+  body: string;
+  created_at: string;
+  group: { id: string; slug: string; name: string };
+  author: CommunityAuthor;
+  likes: number;
+  liked: boolean;
+  comments: number;
+  can_delete: boolean;
+  comment_list?: { id: string; body: string; created_at: string; author: CommunityAuthor; can_delete: boolean }[];
+};
+
+export type DealSuggestion = { request: PurchaseRequest; listing: Listing; score: number; reasons: string[]; already_offered: boolean };

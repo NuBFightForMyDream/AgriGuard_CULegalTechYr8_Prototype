@@ -51,3 +51,32 @@ export function fmtRange(a: string, b: string): string {
 export function todayISO(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: TZ });
 }
+
+/** "เมื่อสักครู่", "5 นาทีที่แล้ว", "3 ชม.ที่แล้ว", "2 วันที่แล้ว", then a date. */
+export function fmtAgo(value: string | null | undefined): string {
+  if (!value) return "—";
+  const sec = Math.max(0, (Date.now() - toDate(value).getTime()) / 1000);
+  if (sec < 60) return "เมื่อสักครู่";
+  if (sec < 3600) return `${Math.floor(sec / 60)} นาทีที่แล้ว`;
+  if (sec < 86400) return `${Math.floor(sec / 3600)} ชม.ที่แล้ว`;
+  if (sec < 7 * 86400) return `${Math.floor(sec / 86400)} วันที่แล้ว`;
+  return fmtDate(value);
+}
+
+/** Clock time today, else a short date — for chat lists. */
+export function fmtChatTime(value: string | null | undefined): string {
+  if (!value) return "";
+  const d = toDate(value);
+  const sameDay = d.toLocaleDateString("en-CA", { timeZone: TZ }) === todayISO();
+  return sameDay
+    ? d.toLocaleTimeString("th-TH", { timeZone: TZ, hour: "2-digit", minute: "2-digit" })
+    : d.toLocaleDateString("th-TH", { timeZone: TZ, day: "numeric", month: "short" });
+}
+
+/** Short money for tight tiles: ฿120,000 · ฿1.25 ล้าน */
+export function fmtTHBShort(n: number | null | undefined): string {
+  if (n === null || n === undefined) return "—";
+  const v = Number(n);
+  if (Math.abs(v) >= 1_000_000) return `฿${(v / 1_000_000).toLocaleString("th-TH", { maximumFractionDigits: 2 })} ล้าน`;
+  return `฿${v.toLocaleString("th-TH", { maximumFractionDigits: 0 })}`;
+}

@@ -4,7 +4,7 @@
    green-800 #166534 primary · green-500 #22C55E secondary · lime-400 #A3E635 accent
    slate-500 #64748B secondary text · slate-200 #E2E8F0 border · amber-500 warning · red-500 danger */
 @theme {
-  --color-canvas: #f8faf9;
+  --color-canvas: #f3f6f1;
   --color-ink: #111827;
   --font-sans: var(--font-thai), ui-sans-serif, system-ui, sans-serif;
 }

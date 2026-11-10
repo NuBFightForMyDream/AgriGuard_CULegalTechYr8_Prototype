@@ -1,27 +1,46 @@
 "use client";
 
-import { AlertCircle, ClipboardCheck, FileSignature, Package, ShoppingBasket, Sprout, Truck, Wallet } from "lucide-react";
+import {
+  Activity,
+  AlertCircle,
+  BadgeCheck,
+  ChevronRight,
+  ClipboardCheck,
+  FileSignature,
+  MessagesSquare,
+  Package,
+  Plus,
+  Search,
+  ShieldCheck,
+  ShoppingBasket,
+  Sparkles,
+  SplitSquareHorizontal,
+  Sprout,
+  Truck,
+  Wallet,
+} from "lucide-react";
 import Link from "next/link";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import useSWR from "swr";
 import { ActivityList } from "@/components/activity";
 import { OrdersTable } from "@/components/orders";
+import { DealCard } from "@/components/deal-card";
 import { TrustBadge } from "@/components/trust";
-import { Card, Empty, ErrorState, LinkButton, PageHeader, PageSkeleton, Stat, StatusBadge, Table, Td } from "@/components/ui";
-import { fmtDate, fmtKg, fmtNum, fmtRange, fmtTHB } from "@/lib/format";
-import { LOT_STATUS, productName } from "@/lib/labels";
+import { Avatar, Card, cx, Empty, ErrorState, LinkButton, PageSkeleton, Stat, StatusBadge, Table, Td } from "@/components/ui";
+import { fmtDate, fmtKg, fmtNum, fmtRange, fmtTHB, fmtTHBShort } from "@/lib/format";
+import { LOT_STATUS, ROLE, productName } from "@/lib/labels";
 import { useSession } from "@/lib/session";
-import type { AuditEvent, ContractBrief, Lot, Offer, TrustSummary } from "@/lib/types";
+import type { AuditEvent, ContractBrief, Lot, Offer, TrustSummary, User } from "@/lib/types";
 
 type Base = { role: string; recent_activity: AuditEvent[]; pipeline: { stage: string; count: number }[]; orders: ContractBrief[] };
 type FarmerDash = Base & {
-  kpis: Record<"estimated_kg" | "available_kg" | "reserved_kg" | "contracted_kg" | "pending_offers" | "active_orders" | "expected_revenue" | "payments_pending", number>;
+  kpis: Record<"estimated_kg" | "available_kg" | "reserved_kg" | "contracted_kg" | "pending_offers" | "active_orders" | "expected_revenue" | "payments_pending" | "completed_contracts", number> & { reliability: number | null };
   allocation_chart: { code: string; product_type: string; variety: string | null; available: number; reserved: number; contracted: number }[];
   upcoming_harvests: { id: string; code: string; product_type: string; variety: string | null; harvest_start: string; harvest_end: string; estimated_kg: number }[];
   recent_offers: Offer[];
 };
 type BuyerDash = Base & {
-  kpis: Record<"open_requests" | "matched_farms" | "pending_offers" | "confirmed_orders" | "awaiting_my_confirmation" | "incoming_deliveries" | "pending_inspections" | "payment_obligations", number>;
+  kpis: Record<"open_requests" | "matched_farms" | "pending_offers" | "confirmed_orders" | "awaiting_my_confirmation" | "incoming_deliveries" | "pending_inspections" | "payment_obligations" | "order_value", number>;
   trust: TrustSummary;
   incoming: Lot[];
 };
@@ -35,11 +54,118 @@ export default function DashboardPage() {
   const { data, error } = useSWR<Base>("/dashboard");
   if (error) return <ErrorState error={error} />;
   if (!data || !user) return <PageSkeleton />;
-  const greeting = `สวัสดี ${user.name}`;
-  if (data.role === "FARMER") return <Farmer d={data as FarmerDash} greeting={greeting} />;
-  if (data.role === "BUYER") return <Buyer d={data as BuyerDash} greeting={greeting} orgId={user.organization.id} />;
-  if (data.role === "INSPECTOR") return <Inspector d={data as InspectorDash} greeting={greeting} />;
-  return <Admin d={data as AdminDash} />;
+  if (data.role === "FARMER") return <Farmer d={data as FarmerDash} user={user} />;
+  if (data.role === "BUYER") return <Buyer d={data as BuyerDash} user={user} />;
+  if (data.role === "INSPECTOR") return <Inspector d={data as InspectorDash} user={user} />;
+  return <Admin d={data as AdminDash} user={user} />;
+}
+
+type Tile = { label: string; value: React.ReactNode; hint?: React.ReactNode; href?: string };
+
+/** Greeting card from the sketch: avatar, "สวัสดี คุณ…", and three tiles. */
+function Hero({ user, tiles }: { user: User; tiles: Tile[] }) {
+  const first = user.name.split(" ")[0];
+  return (
+    <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-green-900 via-green-800 to-emerald-600 p-5 text-white shadow-lg shadow-green-900/20 sm:p-6">
+      <div className="pointer-events-none absolute -right-10 -top-16 size-56 rounded-full bg-lime-300/15" />
+      <div className="pointer-events-none absolute -bottom-20 left-1/3 size-48 rounded-full bg-white/5" />
+      <div className="relative flex items-center gap-4">
+        <Avatar name={user.name} size="xl" className="ring-4 ring-white/25" />
+        <div className="min-w-0">
+          <div className="text-sm text-green-100">สวัสดี</div>
+          <h1 className="truncate text-2xl font-semibold tracking-tight">คุณ{first}</h1>
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-green-100">
+            <span className="truncate">{ROLE[user.role]} · {user.organization.name}</span>
+            {user.organization.verified && <span className="inline-flex items-center gap-0.5 rounded-full bg-white/15 px-1.5 py-0.5"><BadgeCheck className="size-3" />ยืนยันแล้ว</span>}
+          </div>
+        </div>
+      </div>
+      <div className={cx("relative mt-5 grid gap-2 sm:gap-3", tiles.length === 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4")}>
+        {tiles.map((t) => {
+          const body = (
+            <>
+              <div className="truncate text-[11px] text-green-100 sm:text-xs">{t.label}</div>
+              <div className="tabular mt-1 truncate text-base font-semibold sm:text-2xl">{t.value}</div>
+              {t.hint && <div className="mt-0.5 truncate text-[10px] text-green-100/90 sm:text-xs">{t.hint}</div>}
+            </>
+          );
+          return t.href ? (
+            <Link key={t.label} href={t.href} className="min-w-0 rounded-2xl bg-white/10 p-3 ring-1 ring-inset ring-white/15 backdrop-blur transition hover:bg-white/15">{body}</Link>
+          ) : (
+            <div key={t.label} className="min-w-0 rounded-2xl bg-white/10 p-3 ring-1 ring-inset ring-white/15 backdrop-blur">{body}</div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/** The two big buttons under the greeting (sketch: create + Status). */
+function BigActions({ primary }: { primary: { href: string; label: string; hint: string } }) {
+  return (
+    <div className="mt-4 grid grid-cols-2 gap-3">
+      <Link href={primary.href} className="group flex items-center gap-3 rounded-2xl bg-lime-300 p-4 text-green-950 shadow-sm transition hover:bg-lime-200">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-green-900 text-lime-300"><Plus className="size-5" /></span>
+        <span className="min-w-0 leading-tight">
+          <span className="block font-semibold">{primary.label}</span>
+          <span className="block truncate text-xs text-green-900/70">{primary.hint}</span>
+        </span>
+      </Link>
+      <Link href="/status" className="group flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:border-green-700">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-800"><Activity className="size-5" /></span>
+        <span className="min-w-0 leading-tight">
+          <span className="block font-semibold text-slate-900">Status</span>
+          <span className="block truncate text-xs text-slate-500">สถานะการซื้อขายทั้งหมด</span>
+        </span>
+      </Link>
+    </div>
+  );
+}
+
+function Shortcuts({ items }: { items: { href: string; label: string; icon: React.ElementType; badge?: number }[] }) {
+  return (
+    <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-8">
+      {items.map((i) => (
+        <Link key={i.href} href={i.href} className="relative flex flex-col items-center gap-1.5 rounded-2xl p-2 text-center text-[11px] font-medium leading-tight text-slate-700 hover:bg-white">
+          <span className="flex size-11 items-center justify-center rounded-2xl bg-white text-green-800 shadow-sm ring-1 ring-slate-200/80"><i.icon className="size-5" /></span>
+          {i.label}
+          {!!i.badge && <span className="absolute right-2 top-1 min-w-[18px] rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-[18px] text-white">{i.badge}</span>}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function Todo({ items }: { items: { show: boolean; href: string; text: string; tone?: "amber" | "red" }[] }) {
+  const shown = items.filter((i) => i.show);
+  if (!shown.length) return null;
+  return (
+    <div className="mt-4 space-y-2">
+      {shown.map((i) => (
+        <Link key={i.href + i.text} href={i.href} className={cx("flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm", i.tone === "red" ? "border-red-200 bg-red-50 text-red-800" : "border-amber-200 bg-amber-50 text-amber-900")}>
+          <AlertCircle className="size-4 shrink-0" />
+          <span className="flex-1">{i.text}</span>
+          <ChevronRight className="size-4" />
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function Deals({ orders, role }: { orders: ContractBrief[]; role: User["role"] }) {
+  return (
+    <section className="mt-6">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-slate-900">ดีลที่กำลังดำเนินการ</h2>
+        <Link href="/status" className="text-sm font-medium text-green-800 hover:underline">ดูทั้งหมด</Link>
+      </div>
+      {orders.length ? (
+        <div className="grid gap-3 md:grid-cols-2">{orders.slice(0, 4).map((c) => <DealCard key={c.id} c={c} role={role} />)}</div>
+      ) : (
+        <Card><Empty title="ยังไม่มีดีลที่กำลังดำเนินการ">ดีลจะขึ้นที่นี่หลังมีการจัดสรรผลผลิตให้ผู้ซื้อ</Empty></Card>
+      )}
+    </section>
+  );
 }
 
 function Pipeline({ data }: { data: Base["pipeline"] }) {
@@ -56,13 +182,41 @@ function Pipeline({ data }: { data: Base["pipeline"] }) {
   );
 }
 
-function Farmer({ d, greeting }: { d: FarmerDash; greeting: string }) {
+function Farmer({ d, user }: { d: FarmerDash; user: User }) {
   const k = d.kpis;
-  const chart = d.allocation_chart.map((r) => ({ ...r, name: `${r.code} ${productName(r.product_type)}` }));
+  const chart = d.allocation_chart.map((r) => ({ ...r, available: Number(r.available), reserved: Number(r.reserved), contracted: Number(r.contracted), name: `${r.code} ${productName(r.product_type)}` }));
+  const awaiting = d.orders.filter((o) => o.order_status === "AWAITING_CONFIRMATION").length;
   return (
     <>
-      <PageHeader title={greeting} subtitle="ภาพรวมผลผลิต ข้อเสนอ และคำสั่งซื้อของสวน" actions={<LinkButton href="/produce/new">+ ลงประกาศผลผลิต</LinkButton>} />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <Hero
+        user={user}
+        tiles={[
+          { label: "รายได้", value: fmtTHBShort(k.expected_revenue), hint: `รอรับ ${fmtTHBShort(k.payments_pending)}`, href: "/payments" },
+          { label: "สัญญา", value: `${k.active_orders} ฉบับ`, hint: awaiting ? `รอผู้ซื้อยืนยัน ${awaiting}` : `ข้อเสนอใหม่ ${k.pending_offers}`, href: "/status" },
+          { label: "ความน่าเชื่อถือ", value: k.reliability === null ? "ใหม่" : `${k.reliability.toFixed(0)}%`, hint: `ส่งมอบสำเร็จ ${k.completed_contracts} สัญญา` },
+        ]}
+      />
+      <BigActions primary={{ href: "/produce/new", label: "ลงขายผลผลิต", hint: "ประกาศผลผลิตล่วงหน้า" }} />
+      <Shortcuts
+        items={[
+          { href: "/produce", label: "ผลผลิตของฉัน", icon: Sprout },
+          { href: "/offers", label: "ข้อเสนอซื้อ", icon: ShoppingBasket, badge: k.pending_offers },
+          { href: "/allocation", label: "จัดสรร", icon: SplitSquareHorizontal },
+          { href: "/marketplace", label: "หาผู้ซื้อ", icon: Search },
+          { href: "/payments", label: "รับเงิน", icon: Wallet },
+          { href: "/buyers", label: "AgriTrust", icon: ShieldCheck },
+          { href: "/assistant", label: "ผู้ช่วย AI", icon: Sparkles },
+          { href: "/community", label: "ชุมชน", icon: MessagesSquare },
+        ]}
+      />
+      <Todo
+        items={[
+          { show: k.pending_offers > 0, href: "/offers", text: `มีข้อเสนอซื้อรอพิจารณา ${k.pending_offers} รายการ — จัดสรรผลผลิตให้ผู้ซื้อได้เลย` },
+          { show: d.orders.some((o) => o.order_status === "PAYMENT_OVERDUE"), href: "/payments", text: "มีคำสั่งซื้อที่ผู้ซื้อชำระเงินเลยกำหนด", tone: "red" },
+        ]}
+      />
+      <Deals orders={d.orders} role="FARMER" />
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="ผลผลิตประมาณการ" value={fmtKg(k.estimated_kg)} icon={<Sprout className="size-4" />} hint={`ยังไม่ผูกพัน ${fmtKg(k.available_kg)}`} />
         <Stat label="จองแล้ว / ทำสัญญา" value={fmtKg(k.reserved_kg + k.contracted_kg)} icon={<FileSignature className="size-4" />} hint={`จอง ${fmtKg(k.reserved_kg)} · สัญญา ${fmtKg(k.contracted_kg)}`} />
         <Stat label="ข้อเสนอรอพิจารณา" value={fmtNum(k.pending_offers)} icon={<ShoppingBasket className="size-4" />} hint={`คำสั่งซื้อที่ดำเนินการ ${k.active_orders}`} tone={k.pending_offers ? "warn" : "default"} />
@@ -130,25 +284,45 @@ function Farmer({ d, greeting }: { d: FarmerDash; greeting: string }) {
           <ActivityList events={d.recent_activity} />
         </Card>
       </div>
-      <Card title="คำสั่งซื้อที่กำลังดำเนินการ" className="mt-6">
-        <OrdersTable orders={d.orders} role="FARMER" />
-      </Card>
     </>
   );
 }
 
-function Buyer({ d, greeting, orgId }: { d: BuyerDash; greeting: string; orgId: string }) {
+function Buyer({ d, user }: { d: BuyerDash; user: User }) {
   const k = d.kpis;
+  const orgId = user.organization.id;
   return (
     <>
-      <PageHeader title={greeting} subtitle="ภาพรวมการจัดซื้อ การส่งมอบ และภาระการชำระเงิน" actions={<LinkButton href="/requests/new">+ สร้างคำขอซื้อ</LinkButton>} />
-      {k.awaiting_my_confirmation > 0 && (
-        <Link href="/contracts" className="mb-4 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 hover:bg-amber-100">
-          <AlertCircle className="size-4" />
-          มี HarvestLock {k.awaiting_my_confirmation} ฉบับรอคุณยืนยัน — การจองจะหมดอายุถ้าไม่ยืนยันทันเวลา
-        </Link>
-      )}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <Hero
+        user={user}
+        tiles={[
+          { label: "ยอดสั่งซื้อ", value: fmtTHBShort(k.order_value), hint: `ต้องชำระ ${fmtTHBShort(k.payment_obligations)}`, href: "/payments" },
+          { label: "สัญญา", value: `${k.confirmed_orders} ฉบับ`, hint: k.awaiting_my_confirmation ? `รอคุณยืนยัน ${k.awaiting_my_confirmation}` : `ข้อเสนอรอตอบ ${k.pending_offers}`, href: "/status" },
+          { label: "AgriTrust", value: d.trust.insufficient_data ? "ใหม่" : `${d.trust.score?.toFixed(0)}%`, hint: `${d.trust.transactions} ธุรกรรม`, href: `/buyers/${orgId}` },
+        ]}
+      />
+      <BigActions primary={{ href: "/requests/new", label: "สร้างคำขอซื้อ", hint: "ระบบจับคู่สวนให้" }} />
+      <Shortcuts
+        items={[
+          { href: "/requests", label: "คำขอซื้อ", icon: ShoppingBasket },
+          { href: "/farms", label: "ค้นหาสวน", icon: Search },
+          { href: "/offers", label: "ข้อเสนอ", icon: FileSignature, badge: k.pending_offers },
+          { href: "/deliveries", label: "ของที่กำลังมา", icon: Truck, badge: k.incoming_deliveries },
+          { href: "/quality", label: "ตรวจคุณภาพ", icon: ClipboardCheck, badge: k.pending_inspections },
+          { href: "/payments", label: "ชำระเงิน", icon: Wallet },
+          { href: "/assistant", label: "ผู้ช่วย AI", icon: Sparkles },
+          { href: "/community", label: "ชุมชน", icon: MessagesSquare },
+        ]}
+      />
+      <Todo
+        items={[
+          { show: k.awaiting_my_confirmation > 0, href: "/status", text: `มี HarvestLock ${k.awaiting_my_confirmation} ฉบับรอคุณยืนยัน — การจองจะหมดอายุถ้าไม่ยืนยันทันเวลา` },
+          { show: k.pending_inspections > 0, href: "/quality", text: `มีล็อตรอตรวจคุณภาพ ${k.pending_inspections} รายการ` },
+          { show: d.orders.some((o) => o.order_status === "PAYMENT_OVERDUE"), href: "/payments", text: "มีรายการชำระเงินเลยกำหนด — ส่งผลต่อ AgriTrust", tone: "red" },
+        ]}
+      />
+      <Deals orders={d.orders} role="BUYER" />
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="คำขอซื้อที่เปิดอยู่" value={k.open_requests} icon={<ShoppingBasket className="size-4" />} hint={`สวนที่จับคู่ได้ ${k.matched_farms} แห่ง`} />
         <Stat label="คำสั่งซื้อที่ยืนยันแล้ว" value={k.confirmed_orders} icon={<FileSignature className="size-4" />} hint={`ข้อเสนอรอพิจารณา ${k.pending_offers}`} />
         <Stat label="สินค้าที่กำลังมา / รอตรวจ" value={`${k.incoming_deliveries} / ${k.pending_inspections}`} icon={<Truck className="size-4" />} />
@@ -165,9 +339,7 @@ function Buyer({ d, greeting, orgId }: { d: BuyerDash; greeting: string; orgId: 
         </Card>
       </div>
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <Card title="คำสั่งซื้อ" className="lg:col-span-2">
-          <OrdersTable orders={d.orders} role="BUYER" />
-        </Card>
+        <Card title="ความเคลื่อนไหวล่าสุด" className="lg:col-span-2"><ActivityList events={d.recent_activity} /></Card>
         <Card title="สินค้าที่กำลังมา">
           {d.incoming.length ? (
             <ul className="space-y-3 text-sm">
@@ -186,19 +358,20 @@ function Buyer({ d, greeting, orgId }: { d: BuyerDash; greeting: string; orgId: 
           )}
         </Card>
       </div>
-      <Card title="ความเคลื่อนไหวล่าสุด" className="mt-6"><ActivityList events={d.recent_activity} /></Card>
     </>
   );
 }
 
-function Inspector({ d, greeting }: { d: InspectorDash; greeting: string }) {
+function Inspector({ d, user }: { d: InspectorDash; user: User }) {
   return (
     <>
-      <PageHeader title={greeting} subtitle="ล็อตที่ส่งถึงผู้ซื้อแล้วและรอบันทึกผล GradeProof" />
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Stat label="รอตรวจคุณภาพ" value={d.kpis.queue} icon={<ClipboardCheck className="size-4" />} tone={d.kpis.queue ? "warn" : "default"} />
-        <Stat label="กำลังขนส่ง (จะเข้าคิว)" value={d.kpis.in_transit} icon={<Truck className="size-4" />} />
-      </div>
+      <Hero
+        user={user}
+        tiles={[
+          { label: "รอตรวจคุณภาพ", value: d.kpis.queue, hint: "ล็อตที่ส่งถึงผู้ซื้อแล้ว" },
+          { label: "กำลังขนส่ง", value: d.kpis.in_transit, hint: "จะเข้าคิวเมื่อส่งถึง", href: "/deliveries" },
+        ]}
+      />
       <Card title="คิวตรวจคุณภาพ" className="mt-6">
         {d.queue.length ? (
           <Table head={["ล็อต", "สัญญา", "ผลผลิต", "สวน → ผู้ซื้อ", "น้ำหนักรับ", ""]}>
@@ -222,17 +395,19 @@ function Inspector({ d, greeting }: { d: InspectorDash; greeting: string }) {
   );
 }
 
-function Admin({ d }: { d: AdminDash }) {
+function Admin({ d, user }: { d: AdminDash; user: User }) {
   const k = d.kpis;
   return (
     <>
-      <PageHeader title="ภาพรวมแพลตฟอร์ม" subtitle="ตัวชี้วัดหลักของธุรกรรม ข้อพิพาท และการชำระเงิน" />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="ธุรกรรม (สัญญา)" value={k.transactions} />
-        <Stat label="มูลค่าสัญญา" value={fmtTHB(k.contract_value)} />
-        <Stat label="เกษตรกร / ผู้ซื้อ" value={`${k.farmers} / ${k.buyers}`} />
-        <Stat label="อัตราปิดธุรกรรมสำเร็จ" value={k.completion_rate === null ? "—" : `${k.completion_rate}%`} hint={`ข้อพิพาทเปิดอยู่ ${k.open_disputes} · อัตราข้อพิพาท ${k.dispute_rate ?? 0}%`} />
-      </div>
+      <Hero
+        user={user}
+        tiles={[
+          { label: "ธุรกรรม (สัญญา)", value: k.transactions, href: "/contracts" },
+          { label: "มูลค่าสัญญา", value: fmtTHBShort(k.contract_value) },
+          { label: "เกษตรกร / ผู้ซื้อ", value: `${k.farmers} / ${k.buyers}`, href: "/admin/users" },
+          { label: "ปิดสำเร็จ", value: k.completion_rate === null ? "—" : `${k.completion_rate}%`, hint: `ข้อพิพาทเปิด ${k.open_disputes}`, href: "/disputes" },
+        ]}
+      />
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <Card title="Pipeline ทั้งแพลตฟอร์ม" className="lg:col-span-2"><Pipeline data={d.pipeline} /></Card>
         <Card title="กิจกรรมล่าสุด"><ActivityList events={d.recent_activity} /></Card>

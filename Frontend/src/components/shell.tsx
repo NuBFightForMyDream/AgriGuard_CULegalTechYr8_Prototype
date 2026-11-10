@@ -1,47 +1,65 @@
 "use client";
 
 import {
+  Activity,
   BadgeCheck,
   BookCheck,
   Building2,
-  ClipboardList,
-  Siren,
-  Users,
   ClipboardCheck,
+  ClipboardList,
   FileSignature,
   History,
-  LayoutDashboard,
+  Home,
+  LayoutGrid,
   LogOut,
-  Menu,
+  MessageCircle,
+  MessagesSquare,
   Scale,
-  Sparkles,
   Search,
   ShieldCheck,
   ShoppingBasket,
-  Sprout,
+  Siren,
+  Sparkles,
   SplitSquareHorizontal,
+  Sprout,
   Store,
   Truck,
+  Users,
   Wallet,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { SWRConfig } from "swr";
+import useSWR, { SWRConfig } from "swr";
 import { ApiError, fetcher } from "@/lib/api";
 import { ROLE } from "@/lib/labels";
 import { useSession } from "@/lib/session";
 import type { Role, User } from "@/lib/types";
 import { NavChat } from "./nav-chat";
 import { NotificationBell } from "./notifications";
-import { cx } from "./ui";
+import { Avatar, cx } from "./ui";
 
-type NavItem = { href: string; label: string; icon: React.ElementType };
+type NavItem = { href: string; label: string; icon: React.ElementType; short?: string };
 
-function navFor(user: User): NavItem[] {
-  const common = {
-    dashboard: { href: "/dashboard", label: "แดชบอร์ด", icon: LayoutDashboard },
+/** The five tabs from the app sketch: home, search, chat, status, community. */
+function tabsFor(user: User): NavItem[] {
+  const home = { href: "/dashboard", label: "หน้าแรก", short: "หน้าแรก", icon: Home };
+  const chat = { href: "/chat", label: "แชท", short: "แชท", icon: MessageCircle };
+  const status = { href: "/status", label: "สถานะการซื้อขาย", short: "สถานะ", icon: Activity };
+  const community = { href: "/community", label: "ชุมชน", short: "ชุมชน", icon: MessagesSquare };
+  const byRole: Record<Role, NavItem[]> = {
+    FARMER: [home, { href: "/marketplace", label: "ค้นหาผู้ซื้อ", short: "ค้นหา", icon: Search }, chat, status, community],
+    BUYER: [home, { href: "/farms", label: "ค้นหาสวน", short: "ค้นหา", icon: Search }, chat, status, community],
+    INSPECTOR: [{ ...home, label: "คิวตรวจคุณภาพ" }, { href: "/quality", label: "ผลการตรวจ", short: "ผลตรวจ", icon: ClipboardCheck }, { href: "/disputes", label: "ตรวจซ้ำ", short: "ตรวจซ้ำ", icon: Scale }, community],
+    ADMIN: [{ ...home, label: "ภาพรวม" }, { href: "/contracts", label: "ธุรกรรมทั้งหมด", short: "ธุรกรรม", icon: FileSignature }, { href: "/disputes", label: "ข้อพิพาท", short: "ข้อพิพาท", icon: Scale }, community],
+  };
+  return byRole[user.role];
+}
+
+/** Everything else, grouped under "เครื่องมือ" (desktop sidebar and the phone menu sheet). */
+function toolsFor(user: User): NavItem[] {
+  const c = {
     contracts: { href: "/contracts", label: "สัญญา HarvestLock", icon: FileSignature },
     deliveries: { href: "/deliveries", label: "เก็บเกี่ยว & ขนส่ง", icon: Truck },
     quality: { href: "/quality", label: "GradeProof", icon: ClipboardCheck },
@@ -52,111 +70,83 @@ function navFor(user: User): NavItem[] {
   };
   const byRole: Record<Role, NavItem[]> = {
     FARMER: [
-      common.dashboard,
       { href: "/produce", label: "ผลผลิตของฉัน", icon: Sprout },
-      { href: "/marketplace", label: "ตลาดคำขอซื้อ", icon: Store },
       { href: "/offers", label: "ข้อเสนอซื้อ", icon: ShoppingBasket },
       { href: "/allocation", label: "Smart Allocation", icon: SplitSquareHorizontal },
-      common.contracts,
-      common.deliveries,
-      { ...common.quality, label: "ผล GradeProof" },
-      common.payments,
-      common.disputes,
+      c.contracts,
+      c.deliveries,
+      { ...c.quality, label: "ผล GradeProof" },
+      c.payments,
+      c.disputes,
       { href: "/buyers", label: "AgriTrust ผู้ซื้อ", icon: ShieldCheck },
-      common.assistant,
-      common.history,
+      c.assistant,
+      c.history,
     ],
     BUYER: [
-      common.dashboard,
       { href: "/requests", label: "คำขอซื้อ", icon: ShoppingBasket },
-      { href: "/farms", label: "ค้นหาสวน", icon: Search },
       { href: "/offers", label: "ข้อเสนอของฉัน", icon: Store },
-      { ...common.contracts, label: "คำสั่งซื้อ & HarvestLock" },
-      { ...common.deliveries, label: "สินค้าที่กำลังมา" },
-      { ...common.quality, label: "ตรวจคุณภาพ" },
-      common.payments,
-      common.disputes,
+      { ...c.contracts, label: "คำสั่งซื้อ & HarvestLock" },
+      { ...c.deliveries, label: "สินค้าที่กำลังมา" },
+      { ...c.quality, label: "ตรวจคุณภาพ" },
+      c.payments,
+      c.disputes,
       { href: `/buyers/${user.organization.id}`, label: "AgriTrust ของฉัน", icon: ShieldCheck },
-      common.assistant,
-      common.history,
+      c.assistant,
+      c.history,
     ],
-    INSPECTOR: [
-      { ...common.dashboard, label: "คิวตรวจคุณภาพ" },
-      { ...common.quality, label: "ผลการตรวจ" },
-      { ...common.disputes, label: "ตรวจซ้ำ (ข้อพิพาท)" },
-      common.deliveries,
-      common.history,
-    ],
+    INSPECTOR: [c.deliveries, c.history],
     ADMIN: [
-      { ...common.dashboard, label: "ภาพรวมแพลตฟอร์ม" },
       { href: "/admin/users", label: "ผู้ใช้และสิทธิ์", icon: Users },
       { href: "/admin/verification", label: "ยืนยันธุรกิจ", icon: Building2 },
-      { ...common.contracts, label: "ธุรกรรมทั้งหมด" },
-      { ...common.disputes, label: "ข้อพิพาท" },
       { href: "/admin/quality", label: "มาตรฐานคุณภาพ", icon: ClipboardList },
       { href: "/admin/risk", label: "Trust & Risk", icon: Siren },
       { href: "/admin/appeals", label: "อุทธรณ์ AgriTrust", icon: BookCheck },
       { href: "/buyers", label: "AgriTrust ผู้ซื้อ", icon: ShieldCheck },
-      common.assistant,
-      { ...common.history, label: "Audit Logs" },
+      c.assistant,
+      { ...c.history, label: "Audit Logs" },
     ],
   };
   return byRole[user.role];
 }
 
-export function Logo({ className }: { className?: string }) {
+export function Logo({ className, light }: { className?: string; light?: boolean }) {
   return (
     <div className={cx("flex items-center gap-2", className)}>
-      <div className="flex size-8 items-center justify-center rounded-lg bg-green-800 text-lime-300">
+      <div className="flex size-8 items-center justify-center rounded-xl bg-green-800 text-lime-300 shadow-sm">
         <BadgeCheck className="size-5" />
       </div>
       <div className="leading-tight">
-        <div className="font-semibold text-slate-900">AgriGuard</div>
-        <div className="text-[11px] text-slate-500">Secure Every Harvest</div>
+        <div className={cx("font-semibold", light ? "text-white" : "text-slate-900")}>AgriGuard</div>
+        <div className={cx("text-[11px]", light ? "text-green-100" : "text-slate-500")}>Secure Every Harvest</div>
       </div>
     </div>
+  );
+}
+
+function useUnreadChats(user: User) {
+  const trader = user.role === "FARMER" || user.role === "BUYER";
+  const { data } = useSWR<{ unread: number }>(trader ? "/chats/unread" : null, { refreshInterval: 10000 });
+  return data?.unread ?? 0;
+}
+
+function Dot({ n, className }: { n: number; className?: string }) {
+  if (!n) return null;
+  return (
+    <span className={cx("flex min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-[18px] text-white", className)}>
+      {n > 9 ? "9+" : n}
+    </span>
   );
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, ready, signOut } = useSession();
   const router = useRouter();
-  const pathname = usePathname();
-  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (ready && !user) router.replace("/login");
   }, [ready, user, router]);
-  useEffect(() => setOpen(false), [pathname]);
 
   if (!ready || !user) return null;
-  const nav = navFor(user);
-  const isActive = (href: string) => pathname === href || (href !== "/dashboard" && pathname.startsWith(href + "/"));
-
-  const sidebar = (
-    <nav className="flex h-full flex-col">
-      <Logo className="px-5 py-5" />
-      <div className="flex-1 space-y-0.5 overflow-y-auto px-3">
-        {nav.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cx(
-              "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium",
-              isActive(item.href) ? "bg-green-50 text-green-900" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-            )}
-          >
-            <item.icon className={cx("size-4", isActive(item.href) ? "text-green-700" : "text-slate-400")} />
-            {item.label}
-          </Link>
-        ))}
-      </div>
-      <div className="border-t border-slate-200 p-4 text-xs text-slate-500">
-        ต้นแบบ — การชำระเงินและลายเซ็นอิเล็กทรอนิกส์เป็นการจำลอง
-      </div>
-    </nav>
-  );
-
   return (
     <SWRConfig
       value={{
@@ -167,47 +157,164 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         },
       }}
     >
-      <div className="min-h-screen lg:pl-64 print:pl-0">
-        <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-slate-200 bg-white lg:block print:hidden">{sidebar}</aside>
-        {open && (
-          <div className="fixed inset-0 z-40 lg:hidden">
-            <div className="absolute inset-0 bg-slate-900/40" onClick={() => setOpen(false)} />
-            <aside className="absolute inset-y-0 left-0 w-72 bg-white shadow-xl">
-              <button className="absolute right-3 top-5 rounded p-1 text-slate-500" onClick={() => setOpen(false)} aria-label="ปิดเมนู">
-                <X className="size-5" />
-              </button>
-              {sidebar}
-            </aside>
+      <Frame user={user}>{children}</Frame>
+    </SWRConfig>
+  );
+}
+
+function Frame({ user, children }: { user: User; children: React.ReactNode }) {
+  const { signOut } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [menu, setMenu] = useState(false);
+  const unread = useUnreadChats(user);
+  useEffect(() => setMenu(false), [pathname]);
+
+  const tabs = tabsFor(user);
+  const tools = toolsFor(user);
+  const isActive = (href: string) => pathname === href || (href !== "/dashboard" && pathname.startsWith(href + "/"));
+  const leave = () => {
+    signOut();
+    router.replace("/login");
+  };
+  // Full-height screens (a chat thread) hide the phone header/tab bar padding.
+  const immersive = /^\/chat\/.+/.test(pathname);
+
+  const navLink = (item: NavItem, badge = 0) => (
+    <Link
+      key={item.href}
+      href={item.href}
+      className={cx(
+        "flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition",
+        isActive(item.href) ? "bg-green-800 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+      )}
+    >
+      <item.icon className={cx("size-4", isActive(item.href) ? "text-lime-300" : "text-slate-400")} />
+      <span className="flex-1">{item.label}</span>
+      <Dot n={badge} />
+    </Link>
+  );
+
+  const profile = (
+    <div className="flex items-center gap-3">
+      <Avatar name={user.name} />
+      <div className="min-w-0 flex-1 leading-tight">
+        <div className="truncate text-sm font-semibold text-slate-900">{user.name}</div>
+        <div className="truncate text-xs text-slate-500">{ROLE[user.role]} · {user.organization.name}</div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-dvh lg:pl-72 print:pl-0">
+      {/* Desktop sidebar */}
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 flex-col border-r border-slate-200/80 bg-white lg:flex print:hidden">
+        <Logo className="px-5 py-5" />
+        <div className="flex-1 space-y-6 overflow-y-auto px-3 pb-4">
+          <div className="space-y-1">
+            <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">เมนูหลัก</div>
+            {tabs.map((t) => navLink(t, t.href === "/chat" ? unread : 0))}
           </div>
-        )}
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-6 print:hidden">
-          <button className="rounded p-1.5 text-slate-600 hover:bg-slate-100 lg:hidden" onClick={() => setOpen(true)} aria-label="เปิดเมนู">
-            <Menu className="size-5" />
+          <div className="space-y-1">
+            <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">เครื่องมือ</div>
+            {tools.map((t) => navLink(t))}
+          </div>
+        </div>
+        <div className="space-y-3 border-t border-slate-200/80 p-4">
+          {profile}
+          <button onClick={leave} className="flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-50">
+            <LogOut className="size-4" />
+            สลับผู้ใช้ / ออกจากระบบ
           </button>
-          <Logo className="lg:hidden" />
-          <div className="ml-auto flex items-center gap-3">
-            <NotificationBell />
-            <div className="hidden text-right text-sm leading-tight sm:block">
-              <div className="font-medium text-slate-900">{user.name}</div>
-              <div className="text-xs text-slate-500">
-                {ROLE[user.role]} · {user.organization.name}
-              </div>
+        </div>
+      </aside>
+
+      {/* Top bar: phone shows the logo, desktop shows only actions */}
+      <header className={cx("sticky top-0 z-20 h-14 items-center gap-3 border-b border-slate-200/70 bg-white/85 px-4 backdrop-blur sm:px-6 print:hidden", immersive ? "hidden lg:flex" : "flex")}>
+        <Logo className="lg:hidden" />
+        <div className="ml-auto flex items-center gap-2">
+          <NotificationBell />
+          <button onClick={() => setMenu(true)} className="rounded-full lg:hidden" aria-label="เปิดเมนู">
+            <Avatar name={user.name} size="sm" />
+          </button>
+          <div className="hidden items-center gap-2 lg:flex">
+            <span className="text-right text-sm leading-tight">
+              <span className="block font-medium text-slate-900">{user.name}</span>
+              <span className="block text-xs text-slate-500">{ROLE[user.role]}</span>
+            </span>
+            <Avatar name={user.name} size="sm" />
+          </div>
+        </div>
+      </header>
+
+      <main className={cx("mx-auto max-w-7xl print:p-0", immersive ? "lg:px-6 lg:py-6" : "px-4 py-5 pb-28 sm:px-6 lg:py-8 lg:pb-12")}>{children}</main>
+
+      {/* Phone bottom tab bar (from the sketch) */}
+      <nav
+        className={cx(
+          "fixed inset-x-0 bottom-0 z-30 border-t border-slate-200/80 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden print:hidden",
+          immersive && "hidden",
+        )}
+        aria-label="เมนูหลัก"
+      >
+        <div className="mx-auto grid max-w-md grid-cols-5 px-1">
+          {tabs.map((t) => {
+            const active = isActive(t.href);
+            if (t.href === "/chat") {
+              return (
+                <Link key={t.href} href={t.href} className="relative -mt-5 flex flex-col items-center gap-0.5" aria-current={active ? "page" : undefined}>
+                  <span className={cx("flex size-14 items-center justify-center rounded-full text-white shadow-lg shadow-green-900/25 ring-4 ring-white", active ? "bg-green-900" : "bg-green-800")}>
+                    <t.icon className="size-6" />
+                  </span>
+                  <span className={cx("text-[11px] font-medium", active ? "text-green-900" : "text-slate-500")}>{t.short}</span>
+                  <Dot n={unread} className="absolute right-3 top-0" />
+                </Link>
+              );
+            }
+            return (
+              <Link key={t.href} href={t.href} className="flex flex-col items-center gap-0.5 py-2" aria-current={active ? "page" : undefined}>
+                <span className={cx("flex h-7 w-12 items-center justify-center rounded-full transition", active && "bg-green-100")}>
+                  <t.icon className={cx("size-5", active ? "text-green-800" : "text-slate-400")} />
+                </span>
+                <span className={cx("text-[11px] font-medium", active ? "text-green-900" : "text-slate-500")}>{t.short}</span>
+              </Link>
+            );
+          })}
+          {tabs.length < 5 && (
+            <button onClick={() => setMenu(true)} className="flex flex-col items-center gap-0.5 py-2">
+              <span className="flex h-7 w-12 items-center justify-center"><LayoutGrid className="size-5 text-slate-400" /></span>
+              <span className="text-[11px] font-medium text-slate-500">เมนู</span>
+            </button>
+          )}
+        </div>
+      </nav>
+
+      {/* Phone menu sheet: profile + every tool */}
+      {menu && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-slate-900/40" onClick={() => setMenu(false)} />
+          <div className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-3xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl">
+            <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-slate-200" />
+            <div className="flex items-start justify-between gap-3">
+              {profile}
+              <button onClick={() => setMenu(false)} className="rounded-full p-1.5 text-slate-500 hover:bg-slate-100" aria-label="ปิดเมนู"><X className="size-5" /></button>
             </div>
-            <button
-              onClick={() => {
-                signOut();
-                router.replace("/login");
-              }}
-              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-50"
-            >
+            <div className="mt-5 grid grid-cols-3 gap-2">
+              {tools.map((t) => (
+                <Link key={t.href} href={t.href} className={cx("flex flex-col items-center gap-1.5 rounded-2xl p-3 text-center text-xs font-medium", isActive(t.href) ? "bg-green-50 text-green-900" : "bg-slate-50 text-slate-700")}>
+                  <t.icon className="size-5 text-green-800" />
+                  {t.label}
+                </Link>
+              ))}
+            </div>
+            <button onClick={leave} className="mt-5 flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm text-slate-600 ring-1 ring-inset ring-slate-200">
               <LogOut className="size-4" />
-              <span className="hidden sm:inline">สลับผู้ใช้</span>
+              สลับผู้ใช้ / ออกจากระบบ
             </button>
           </div>
-        </header>
-        <main className="mx-auto max-w-7xl px-4 py-6 pb-24 sm:px-6 lg:py-8 lg:pb-24">{children}</main>
-        <NavChat />
-      </div>
-    </SWRConfig>
+        </div>
+      )}
+      <NavChat />
+    </div>
   );
 }
