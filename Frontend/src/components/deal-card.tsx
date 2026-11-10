@@ -8,46 +8,13 @@ import { post } from "@/lib/api";
 import { fmtKg, fmtRange, fmtTHB } from "@/lib/format";
 import { ORDER_STATUS, productName } from "@/lib/labels";
 import type { ContractBrief, Role } from "@/lib/types";
+import { FlowButton } from "./deal-flow";
 import { useToast } from "./toast";
 import { Avatar, Badge, Button, cx } from "./ui";
 
-export const STEPS = ["ยืนยัน", "เก็บเกี่ยว", "ขนส่ง", "ตรวจ QC", "ชำระเงิน", "เสร็จสิ้น"];
-const STEP_OF: Record<string, number> = {
-  AWAITING_CONFIRMATION: 0,
-  CONFIRMED: 1,
-  HARVESTED: 2,
-  IN_TRANSIT: 2,
-  DELIVERED: 3,
-  QC_PENDING: 3,
-  QC_ACCEPTED: 4,
-  QC_DISPUTED: 3,
-  PAYMENT_PENDING: 4,
-  PAYMENT_OVERDUE: 4,
-  PAID: 5,
-  COMPLETED: 6,
-};
 /** States that need attention: shown with a red frame ("เบี้ยวนัด" in the sketch). */
 export const PROBLEM = new Set(["DISPUTED", "PAYMENT_OVERDUE", "QC_DISPUTED", "CANCELLED"]);
 export const CLOSED = new Set(["COMPLETED", "CANCELLED", "RESERVATION_EXPIRED"]);
-
-export function Stepper({ status }: { status: string }) {
-  const at = STEP_OF[status];
-  if (at === undefined) return null;
-  return (
-    <ol className="flex items-center gap-1" aria-label={`ขั้นตอน ${Math.min(at + 1, STEPS.length)} จาก ${STEPS.length}`}>
-      {STEPS.map((s, i) => {
-        const done = i < at;
-        const current = i === at;
-        return (
-          <li key={s} className="flex flex-1 flex-col items-center gap-1">
-            <span className={cx("flex h-1.5 w-full rounded-full", done ? "bg-green-600" : current ? (PROBLEM.has(status) ? "bg-red-400" : "bg-amber-400") : "bg-slate-200")} />
-            <span className={cx("hidden text-[10px] sm:block", done ? "text-green-800" : current ? "font-semibold text-slate-800" : "text-slate-400")}>{s}</span>
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
 
 export function SourcingChip({ s }: { s: ContractBrief["sourcing"] }) {
   if (!s) return <Badge tone="gray">ซื้อตรงจากประกาศ</Badge>;
@@ -115,7 +82,7 @@ export function DealCard({ c, role }: { c: ContractBrief; role: Role }) {
           <div className="mt-2"><SourcingChip s={c.sourcing} /></div>
         </div>
       </div>
-      {!CLOSED.has(c.order_status) && c.order_status !== "DISPUTED" && <div className="mt-3"><Stepper status={c.order_status} /></div>}
+      <div className="mt-3"><FlowButton c={c} /></div>
       {c.order_status === "DISPUTED" && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">สัญญาถูกระงับระหว่างพิจารณาข้อพิพาท</p>}
       <div className="mt-3 flex gap-2">
         <Link href={`/contracts/${c.id}`} className="flex-1 rounded-xl bg-green-800 px-3 py-2 text-center text-sm font-medium text-white hover:bg-green-900">ดูรายละเอียด</Link>
