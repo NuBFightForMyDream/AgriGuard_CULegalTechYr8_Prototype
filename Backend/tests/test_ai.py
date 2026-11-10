@@ -191,3 +191,25 @@ def test_nav_ai_mode_drops_invented_destinations(client, fake_ai):
         "message": "จะขายมะม่วงต้องทำยังไง", "history": [{"role": "user", "text": "สวัสดี"}], "current_path": "/dashboard"}))
     assert r["mode"] == "ai" and [a["route"] for a in r["actions"]] == ["/produce/new"]
     assert "admin_users" not in calls[0]["content"][0]["text"] and "USER ROLE: FARMER" in calls[0]["content"][0]["text"]
+
+
+def test_agrichatlaw_answers_legal_questions_with_citations(client, fake_ai):
+    from agriguard_ai import legal
+
+    calls, answers = fake_ai
+    q = "สัญญา HarvestLock ผูกพันเมื่อไหร่"
+    src = legal.ask_sources(q, None)[0].id
+    answers["ask"] = {"answer": "ผูกพันเมื่อผู้ซื้อยืนยันสัญญา", "found": True, "source_ids": [src, "made-up#9"]}
+    r = ok(client.post("/api/assistant/chat", headers=FARMER, json={"message": q}))
+    assert r["kind"] == "legal" and r["reply"] == "ผูกพันเมื่อผู้ซื้อยืนยันสัญญา" and r["mode"] == "ai"
+    assert [c["id"] for c in r["citations"]] == [src] and r["disclaimer"]  # invented id dropped
+    assert len(r["actions"]) <= 2
+    # Navigation requests still navigate.
+    answers["nav"] = {"reply": "ไปลงประกาศได้เลยครับ", "destination_ids": ["produce_new"], "suggestions": []}
+    r = ok(client.post("/api/assistant/chat", headers=FARMER, json={"message": "อยากลงขายมะม่วง"}))
+    assert r["kind"] == "nav" and r["actions"][0]["route"] == "/produce/new"
+
+
+def test_agrichatlaw_legal_without_key_lists_documents(client):
+    r = ok(client.post("/api/assistant/chat", headers=BUYER_B, json={"message": "ลายเซ็นอิเล็กทรอนิกส์ใช้ได้ตามกฎหมายไหม"}))
+    assert r["kind"] == "legal" and r["mode"] == "rules" and r["citations"] and r["reply"]

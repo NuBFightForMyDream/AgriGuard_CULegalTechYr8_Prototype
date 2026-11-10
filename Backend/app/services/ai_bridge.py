@@ -119,6 +119,18 @@ def nav_chat(db: Session, user: User, message: str, history: list[dict], current
     return {**navigator.nav_result(record.output, all_dests), "mode": "ai", "model": record.model}
 
 
+def assistant(db: Session, user: User, message: str, history: list[dict], current_path: str | None) -> dict:
+    """AgriChatLaw: one chat for both jobs. Legal questions get a cited answer (plus related pages); everything else navigates."""
+    if not navigator.wants_legal(message):
+        return {**nav_chat(db, user, message, history, current_path), "kind": "nav"}
+    a = ask(db, message, user)
+    dests, tasks = navigator.catalog_for(user.role, str(user.organization_id)), tasks_for(db, user)
+    links = navigator.rule_reply(redact(message), dests, tasks)["actions"][:2]
+    return {"kind": "legal", "reply": a["answer"] or a["ai_error"], "found": a["found"], "citations": a["citations"],
+            "disclaimer": a["disclaimer"], "actions": links, "suggestions": [], "mode": "ai" if a["answer"] else "rules",
+            "model": a.get("model")}
+
+
 # --- QC photo assist ---------------------------------------------------------------------------
 
 def photo_assist(db: Session, lot: ProduceLot, user: User) -> dict:

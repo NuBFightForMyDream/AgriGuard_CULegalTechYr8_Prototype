@@ -92,7 +92,7 @@ function Community() {
           )}
           <div className="space-y-3">{posts.data?.map((p) => <PostCard key={p.id} p={p} />)}</div>
           <p className="mt-6 text-center text-xs text-slate-400">
-            ความเห็นในชุมชนเป็นของผู้โพสต์ ไม่ใช่คำแนะนำทางกฎหมายจาก AgriGuard · ดู <Link href="/assistant" className="underline">ผู้ช่วยกฎหมาย AI</Link>
+            ความเห็นในชุมชนเป็นของผู้โพสต์ ไม่ใช่คำแนะนำทางกฎหมายจาก AgriGuard · ดู <Link href="/chat/agrichatlaw" className="underline">ถาม AgriChatLaw</Link>
           </p>
         </div>
       </div>

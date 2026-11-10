@@ -91,3 +91,14 @@ def test_forecast_baseline():
     f = fc.forecast("mango", D(3), D(5000), D(4000))
     assert f["method"] == "BASELINE" and f["p50_kg"] == 3000 and len(f["warnings"]) == 2
     assert fc.forecast("mango", None, D(5000), D(0))["insufficient_data"] is True
+
+
+def test_agrichatlaw_routes_legal_questions_and_navigation():
+    from agriguard_ai.navigator import wants_legal
+
+    for q in ("สัญญา HarvestLock ผูกพันเมื่อไหร่", "เปิดข้อพิพาทแล้วคะแนน AgriTrust ลดไหม", "ผู้ซื้อยกเลิกหลังเซ็นสัญญาได้ไหม",
+              "ลายเซ็นอิเล็กทรอนิกส์ใช้ได้ตามกฎหมายไหม", "ระบบเก็บข้อมูลส่วนตัวอะไรบ้าง"):
+        assert wants_legal(q), q
+    for q in ("มีงานอะไรค้างบ้าง", "อยากซื้อทุเรียน 5 ตัน", "อยากดูสัญญา", "ผู้ซื้อรายนี้เชื่อถือได้ไหม", "ดูคะแนน AgriTrust ของเรา",
+              "จะแบ่งผลผลิตให้ผู้ซื้อหลายรายยังไง"):
+        assert not wants_legal(q), q

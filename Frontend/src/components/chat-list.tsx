@@ -1,11 +1,12 @@
 "use client";
 
-import { Bot, MessageCirclePlus, Pin, Search } from "lucide-react";
+import { MessageCirclePlus, Pin, Scale, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import useSWR from "swr";
 import { post } from "@/lib/api";
+import { useSession } from "@/lib/session";
 import { fmtChatTime } from "@/lib/format";
 import { BUSINESS_TYPE, OFFER_STATUS, ORDER_STATUS } from "@/lib/labels";
 import type { ChatDeal, ChatSummary, Org } from "@/lib/types";
@@ -20,7 +21,9 @@ export function DealChip({ deal }: { deal: ChatDeal | null }) {
 }
 
 export function ChatList() {
-  const { data, error } = useSWR<ChatSummary[]>("/chats", { refreshInterval: 8000 });
+  const { user } = useSession();
+  const trader = user?.role === "FARMER" || user?.role === "BUYER";
+  const { data, error } = useSWR<ChatSummary[]>(trader ? "/chats" : null, { refreshInterval: 8000 });
   const pathname = usePathname();
   const [q, setQ] = useState("");
   const [picker, setPicker] = useState(false);
@@ -32,7 +35,7 @@ export function ChatList() {
       <div className="space-y-3 border-b border-slate-100 p-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold text-slate-900">แชท</h1>
-          <Button size="sm" variant="secondary" onClick={() => setPicker(true)}><MessageCirclePlus className="size-4" />แชทใหม่</Button>
+          {trader && <Button size="sm" variant="secondary" onClick={() => setPicker(true)}><MessageCirclePlus className="size-4" />แชทใหม่</Button>}
         </div>
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -41,17 +44,17 @@ export function ChatList() {
       </div>
       <ul className="flex-1 divide-y divide-slate-100 overflow-y-auto">
         <li>
-          <Link href="/chat/agribot" className={cx("flex items-center gap-3 px-4 py-3 hover:bg-green-50/60", pathname === "/chat/agribot" && "bg-green-50")}>
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-green-800 to-emerald-600 text-white"><Bot className="size-6" /></span>
+          <Link href="/chat/agrichatlaw" className={cx("flex items-center gap-3 px-4 py-3 hover:bg-green-50/60", pathname === "/chat/agrichatlaw" && "bg-green-50")}>
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-green-800 to-emerald-600 text-white"><Scale className="size-6" /></span>
             <span className="min-w-0 flex-1">
-              <span className="flex items-center gap-1.5 font-semibold text-slate-900">AgriBot <Pin className="size-3 text-green-700" /></span>
-              <span className="block truncate text-sm text-slate-500">ผู้ช่วยนำทาง · บอกสิ่งที่อยากทำ เดี๋ยวพาไป</span>
+              <span className="flex items-center gap-1.5 font-semibold text-slate-900">AgriChatLaw <Pin className="size-3 text-green-700" /></span>
+              <span className="block truncate text-sm text-slate-500">ถามสัญญา & กฎหมาย · หรือให้พาไปหน้าที่ต้องการ</span>
             </span>
             <Badge tone="lime">ปักหมุด</Badge>
           </Link>
         </li>
         {error && <li className="p-4 text-sm text-red-600">โหลดแชทไม่สำเร็จ: {error.message}</li>}
-        {!data && !error && [0, 1, 2].map((i) => <li key={i} className="flex gap-3 p-4"><Skeleton className="size-12 rounded-full" /><Skeleton className="h-12 flex-1" /></li>)}
+        {trader && !data && !error && [0, 1, 2].map((i) => <li key={i} className="flex gap-3 p-4"><Skeleton className="size-12 rounded-full" /><Skeleton className="h-12 flex-1" /></li>)}
         {data && rows.length === 0 && (
           <li><Empty title={needle ? "ไม่พบแชท" : "ยังไม่มีแชท"}>{!needle && "กด \"แชทใหม่\" หรือกดปุ่มแชทจากหน้าค้นหาเพื่อเริ่มคุยกับคู่ค้า"}</Empty></li>
         )}
