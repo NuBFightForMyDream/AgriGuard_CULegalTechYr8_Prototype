@@ -3,6 +3,7 @@
 import {
   Activity,
   BadgeCheck,
+  Bot,
   ClipboardCheck,
   ClipboardList,
   FileSignature,
@@ -17,7 +18,6 @@ import {
   ShieldCheck,
   ShoppingBasket,
   Siren,
-  Sparkles,
   Sprout,
   Truck,
   Users,
@@ -59,7 +59,7 @@ function toolsFor(user: User): NavItem[] {
     payments: { href: "/payments", label: "การชำระเงิน", icon: Wallet },
     disputes: { href: "/disputes", label: "ข้อพิพาท", icon: Scale },
     history: { href: "/history", label: "ประวัติธุรกรรม", icon: History },
-    law: { href: "/chat/agrichatlaw", label: "AgriChatLaw", icon: Sparkles },
+    law: { href: "/chat/agribot", label: "AgriBot", icon: Bot },
   };
   const byRole: Record<Role, NavItem[]> = {
     FARMER: [

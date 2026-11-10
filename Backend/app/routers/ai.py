@@ -90,7 +90,7 @@ def listing_forecast(listing_id: uuid.UUID, db: DB, user: CurrentUser):
 
 @router.post("/assistant/chat")
 def nav_chat(payload: ChatIn, db: DB, user: CurrentUser):
-    """AgriChatLaw: legal questions get a cited answer; other messages get a reply + up to 3 links from this user's allowed pages and tasks."""
+    """AgriBot: legal questions get a cited answer; other messages get a reply + up to 3 links from this user's allowed pages and tasks."""
     out = ai.assistant(db, user, payload.message, [t.model_dump() for t in payload.history], payload.current_path)
     db.commit()
     return out

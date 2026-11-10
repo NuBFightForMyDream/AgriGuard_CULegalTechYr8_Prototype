@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Loader2, Scale, Send, X } from "lucide-react";
+import { ArrowRight, Bot, Loader2, Scale, Send, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -33,8 +33,8 @@ const STARTERS: Record<Role, string[]> = {
 };
 const KEY = "agriguard.navchat";
 
-/** AgriChatLaw: one chat for legal questions (cited answers) and "take me there" requests (page buttons). */
-export function AgriChatLawPanel({ onClose, onNavigate, className, back }: { onClose?: () => void; onNavigate?: () => void; className?: string; back?: React.ReactNode }) {
+/** AgriBot: one chat for legal questions (cited answers) and "take me there" requests (page buttons). */
+export function AgriBotPanel({ onClose, onNavigate, className, back }: { onClose?: () => void; onNavigate?: () => void; className?: string; back?: React.ReactNode }) {
   const { user } = useSession();
   const pathname = usePathname();
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -91,9 +91,9 @@ export function AgriChatLawPanel({ onClose, onNavigate, className, back }: { onC
       <div className="flex items-center justify-between gap-2 bg-gradient-to-r from-green-800 to-green-700 px-4 py-3 text-white">
         <div className="flex min-w-0 items-center gap-2.5">
           {back}
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/15"><Scale className="size-5" /></span>
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/15"><Bot className="size-5" /></span>
           <div className="min-w-0 leading-tight">
-            <div className="text-sm font-semibold">AgriChatLaw</div>
+            <div className="text-sm font-semibold">AgriBot</div>
             <div className="truncate text-[11px] text-green-100">ถามเรื่องสัญญาและกฎหมาย หรือบอกสิ่งที่อยากทำ เดี๋ยวพาไป</div>
           </div>
         </div>
@@ -109,7 +109,7 @@ export function AgriChatLawPanel({ onClose, onNavigate, className, back }: { onC
       <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50/60 p-4 text-sm">
         {msgs.length === 0 && (
           <div className="max-w-[92%] rounded-2xl rounded-bl-sm bg-white px-3 py-2 text-slate-700 shadow-sm">
-            สวัสดีครับคุณ{user.name.split(" ")[0]} ผม AgriChatLaw ถามเรื่องสัญญา สิทธิ ข้อพิพาท ได้ พร้อมแหล่งอ้างอิง หรือบอกสิ่งที่อยากทำ เดี๋ยวพาไปหน้านั้น
+            สวัสดีครับคุณ{user.name.split(" ")[0]} ผม AgriBot ถามเรื่องสัญญา สิทธิ ข้อพิพาท ได้ พร้อมแหล่งอ้างอิง หรือบอกสิ่งที่อยากทำ เดี๋ยวพาไปหน้านั้น
           </div>
         )}
         {msgs.map((m, i) =>
@@ -165,7 +165,7 @@ export function AgriChatLawPanel({ onClose, onNavigate, className, back }: { onC
           onChange={(e) => setText(e.target.value)}
           placeholder="ถามกฎหมาย หรือบอกว่าอยากทำอะไร"
           maxLength={500}
-          aria-label="ข้อความถึง AgriChatLaw"
+          aria-label="ข้อความถึง AgriBot"
           className="flex-1 rounded-full border border-slate-300 px-4 py-2 text-sm outline-none focus:border-green-700 focus:ring-2 focus:ring-green-700/20"
         />
         <button type="submit" disabled={!text.trim() || busy} className="rounded-full bg-green-800 p-2.5 text-white disabled:opacity-40" aria-label="ส่งข้อความ">
@@ -176,7 +176,7 @@ export function AgriChatLawPanel({ onClose, onNavigate, className, back }: { onC
   );
 }
 
-/** Floating AgriChatLaw button for desktop; on phones it is pinned at the top of the Chat tab. */
+/** Floating AgriBot button for desktop; on phones it is pinned at the top of the Chat tab. */
 export function NavChat() {
   const { user } = useSession();
   const pathname = usePathname();
@@ -185,7 +185,7 @@ export function NavChat() {
   return (
     <div className="hidden print:hidden lg:block">
       {open && (
-        <AgriChatLawPanel
+        <AgriBotPanel
           onClose={() => setOpen(false)}
           className="fixed bottom-24 right-6 z-40 max-h-[70vh] w-[380px] rounded-2xl border border-slate-200 shadow-2xl"
         />
@@ -193,9 +193,9 @@ export function NavChat() {
       <button
         onClick={() => setOpen((o) => !o)}
         className="fixed bottom-6 right-6 z-40 flex size-14 items-center justify-center rounded-full bg-green-800 text-white shadow-lg shadow-green-900/30 transition hover:bg-green-900"
-        aria-label={open ? "ปิด AgriChatLaw" : "เปิด AgriChatLaw"}
+        aria-label={open ? "ปิด AgriBot" : "เปิด AgriBot"}
       >
-        {open ? <X className="size-6" /> : <Scale className="size-6" />}
+        {open ? <X className="size-6" /> : <Bot className="size-6" />}
       </button>
     </div>
   );

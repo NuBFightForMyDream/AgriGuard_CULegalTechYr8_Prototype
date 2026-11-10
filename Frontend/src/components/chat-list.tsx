@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageCirclePlus, Pin, Scale, Search } from "lucide-react";
+import { Bot, MessageCirclePlus, Pin, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -44,10 +44,10 @@ export function ChatList() {
       </div>
       <ul className="flex-1 divide-y divide-slate-100 overflow-y-auto">
         <li>
-          <Link href="/chat/agrichatlaw" className={cx("flex items-center gap-3 px-4 py-3 hover:bg-green-50/60", pathname === "/chat/agrichatlaw" && "bg-green-50")}>
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-green-800 to-emerald-600 text-white"><Scale className="size-6" /></span>
+          <Link href="/chat/agribot" className={cx("flex items-center gap-3 px-4 py-3 hover:bg-green-50/60", pathname === "/chat/agribot" && "bg-green-50")}>
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-green-800 to-emerald-600 text-white"><Bot className="size-6" /></span>
             <span className="min-w-0 flex-1">
-              <span className="flex items-center gap-1.5 font-semibold text-slate-900">AgriChatLaw <Pin className="size-3 text-green-700" /></span>
+              <span className="flex items-center gap-1.5 font-semibold text-slate-900">AgriBot <Pin className="size-3 text-green-700" /></span>
               <span className="block truncate text-sm text-slate-500">ถามสัญญา & กฎหมาย · หรือให้พาไปหน้าที่ต้องการ</span>
             </span>
             <Badge tone="lime">ปักหมุด</Badge>

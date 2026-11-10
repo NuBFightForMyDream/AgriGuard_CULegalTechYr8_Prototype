@@ -120,7 +120,7 @@ def nav_chat(db: Session, user: User, message: str, history: list[dict], current
 
 
 def assistant(db: Session, user: User, message: str, history: list[dict], current_path: str | None) -> dict:
-    """AgriChatLaw: one chat for both jobs. Legal questions get a cited answer (plus related pages); everything else navigates."""
+    """AgriBot: one chat for both jobs. Legal questions get a cited answer (plus related pages); everything else navigates."""
     if not navigator.wants_legal(message):
         return {**nav_chat(db, user, message, history, current_path), "kind": "nav"}
     a = ask(db, message, user)

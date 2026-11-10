@@ -47,7 +47,7 @@ CATALOG: list[tuple[str, Dest]] = [
     ("BUYER", Dest("offers_out", "/offers", "ข้อเสนอของฉัน", "ข้อเสนอที่ส่งให้สวน สถานะ และถอนข้อเสนอ", "ข้อเสนอ ยื่นราคา")),
     ("BUYER", Dest("my_trust", "/buyers/{org}", "AgriTrust ของฉัน", "คะแนนความน่าเชื่อถือของบริษัท ที่มาของคะแนน และการอุทธรณ์", "คะแนน trust อุทธรณ์ ความน่าเชื่อถือ")),
     ("FARMER BUYER INSPECTOR ADMIN", Dest("history", "/history", "ประวัติธุรกรรม", "บันทึกทุกการเปลี่ยนแปลง ใครทำอะไรเมื่อไร", "ประวัติ ย้อนหลัง log บันทึก")),
-    ("FARMER BUYER INSPECTOR ADMIN", Dest("assistant", "/chat/agrichatlaw", "AgriChatLaw", "แชทถามเรื่องสัญญา กติกา ข้อพิพาท AgriTrust และข้อมูลส่วนบุคคล พร้อมแหล่งอ้างอิง", "กฎหมาย สิทธิ ข้อกฎหมาย สัญญาผูกพันไหม PDPA ลายเซ็น")),
+    ("FARMER BUYER INSPECTOR ADMIN", Dest("assistant", "/chat/agribot", "AgriBot", "แชทถามเรื่องสัญญา กติกา ข้อพิพาท AgriTrust และข้อมูลส่วนบุคคล พร้อมแหล่งอ้างอิง", "กฎหมาย สิทธิ ข้อกฎหมาย สัญญาผูกพันไหม PDPA ลายเซ็น")),
     ("ADMIN", Dest("admin_users", "/admin/users", "ผู้ใช้และสิทธิ์", "ให้สิทธิ์ผู้ตรวจคุณภาพหรือผู้ดูแล", "ผู้ใช้ สิทธิ์ role")),
     ("ADMIN", Dest("admin_verify", "/admin/verification", "ยืนยันธุรกิจ", "ตรวจและยืนยันองค์กรที่ลงทะเบียนใหม่", "ยืนยัน verify องค์กร")),
     ("ADMIN", Dest("admin_quality", "/admin/quality", "มาตรฐานคุณภาพ", "เกณฑ์คัดเกรดของผลผลิตแต่ละชนิด", "มาตรฐาน เกณฑ์ เกรด")),
@@ -81,7 +81,7 @@ def action(d: Dest) -> dict:
     return {"id": d.id, "route": d.route, "label": d.label, "description": d.description, "task": d.id.startswith("task:")}
 
 
-# AgriChatLaw routing: a legal question (topic word + question form) goes to the legal Q&A,
+# AgriBot routing: a legal question (topic word + question form) goes to the legal Q&A,
 # anything that reads like "take me somewhere / I want to do X" stays with navigation.
 LEGAL_WORDS = ("กฎหมาย", "ผูกพัน", "สิทธิ", "ข้อพิพาท", "pdpa", "ข้อมูลส่วน", "ลายเซ็น", "ผิดสัญญา", "ยกเลิก", "ค่าปรับ",
                "มัดจำ", "คะแนน", "agritrust", "อุทธรณ์", "รับผิดชอบ", "เงื่อนไข", "ข้อสัญญา", "ปฏิเสธสินค้า", "ชดเชย", "ฟ้อง",

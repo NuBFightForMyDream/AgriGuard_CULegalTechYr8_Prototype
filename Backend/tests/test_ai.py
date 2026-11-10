@@ -193,7 +193,7 @@ def test_nav_ai_mode_drops_invented_destinations(client, fake_ai):
     assert "admin_users" not in calls[0]["content"][0]["text"] and "USER ROLE: FARMER" in calls[0]["content"][0]["text"]
 
 
-def test_agrichatlaw_answers_legal_questions_with_citations(client, fake_ai):
+def test_agribot_answers_legal_questions_with_citations(client, fake_ai):
     from agriguard_ai import legal
 
     calls, answers = fake_ai
@@ -210,6 +210,6 @@ def test_agrichatlaw_answers_legal_questions_with_citations(client, fake_ai):
     assert r["kind"] == "nav" and r["actions"][0]["route"] == "/produce/new"
 
 
-def test_agrichatlaw_legal_without_key_lists_documents(client):
+def test_agribot_legal_without_key_lists_documents(client):
     r = ok(client.post("/api/assistant/chat", headers=BUYER_B, json={"message": "ลายเซ็นอิเล็กทรอนิกส์ใช้ได้ตามกฎหมายไหม"}))
     assert r["kind"] == "legal" and r["mode"] == "rules" and r["citations"] and r["reply"]

@@ -93,7 +93,7 @@ def test_forecast_baseline():
     assert fc.forecast("mango", None, D(5000), D(0))["insufficient_data"] is True
 
 
-def test_agrichatlaw_routes_legal_questions_and_navigation():
+def test_agribot_routes_legal_questions_and_navigation():
     from agriguard_ai.navigator import wants_legal
 
     for q in ("สัญญา HarvestLock ผูกพันเมื่อไหร่", "เปิดข้อพิพาทแล้วคะแนน AgriTrust ลดไหม", "ผู้ซื้อยกเลิกหลังเซ็นสัญญาได้ไหม",
