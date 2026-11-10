@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from sqlalchemy import select
 
 from app.catalog import PRODUCTS, PROVINCES, REJECTION_REASONS
+from app.config import settings
 from app.deps import DB, CurrentUser
 from app.models import QualityStandard, User
 from app.seed import reset
@@ -33,9 +34,14 @@ def demo_users(db: DB):
 
 
 @router.post("/demo/reset")
-def demo_reset(db: DB):
+def demo_reset(db: DB, scenarios: bool = True):
+    """Re-seed the demo. `scenarios=false` keeps only the small base data (used by scripted walkthroughs)."""
     reset(db)
     db.commit()
+    if scenarios and settings.demo_scenarios:
+        from app.demo_scenarios import build  # local import: it imports the app
+
+        build()
     return {"status": "reset"}
 
 

@@ -40,7 +40,11 @@ async def lifespan(_: FastAPI):
         upgrade_to_head()
     if settings.demo_seed:
         with SessionLocal() as db:
-            seed_if_empty(db)
+            seeded = seed_if_empty(db)
+        if seeded and settings.demo_scenarios:
+            from app.demo_scenarios import build
+
+            build()
     with SessionLocal() as db:
         ensure_standards(db)
         ensure_community(db)

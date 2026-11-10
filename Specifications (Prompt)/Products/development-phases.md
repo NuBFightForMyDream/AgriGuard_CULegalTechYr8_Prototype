@@ -70,6 +70,10 @@ Navigation: a bottom tab bar on phones (home, search, chat, status, community; t
 
 Chat rules: only between a farm and a buyer organization (`conversations` is unique per pair); the latest contract, else the latest offer, is the thread's status chip. Community: default groups are created at startup; anyone signed in can post, comment and like; authors and admins can delete. Chat and community content is not moderated automatically yet; agreements made in chat are not binding until they become a HarvestLock. API: `/api/chats`, `/api/chats/{id}/messages`, `/api/chats/unread`, `/api/chats/contacts`, `/api/community/*`, `/api/deals/suggestions`.
 
+## Demo data
+
+`POST /api/demo/reset` (and the first start on an empty database) seeds the base data, then plays a fuller season through the real API (`Backend/app/demo_scenarios.py`): 7 farms, 7 buyers, 14 listings, 9 purchase requests, and 14 HarvestLocks covering every order state (awaiting confirmation, confirmed, harvested, in transit, QC pending, payment pending, overdue, disputed, paid, completed), plus open and rejected offers, chats per deal and community threads. Each deal's timestamps are moved back days or weeks so flows and chats read like a real season. The main walkthrough on PL-2026-001 (buyers B/C/D) is untouched. `?scenarios=false` resets to the small base data only (scripted walkthroughs use it); `DEMO_SCENARIOS=false` turns the extra deals off entirely. The backend test suite uses the base data; `tests/test_demo_scenarios.py` checks that the scenarios still build.
+
 ## AI features (roadmap Phase 3, started)
 
 | Feature | What it does | Guardrails |
