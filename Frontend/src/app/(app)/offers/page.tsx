@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
 import { FarmerOffersTable, OfferPrices } from "@/components/offers-table";
-import { Button, Card, Empty, ErrorState, PageHeader, PageSkeleton, StatusBadge, Table, Tabs, Td } from "@/components/ui";
+import { Button, Card, Empty, ErrorState, PageHeader, PageSkeleton, StatusBadge, SubNav, Table, Tabs, Td } from "@/components/ui";
 import { post } from "@/lib/api";
 import { fmtDate, fmtKg } from "@/lib/format";
-import { OFFER_STATUS, productName } from "@/lib/labels";
+import { OFFER_STATUS, productName, SUBNAV } from "@/lib/labels";
 import { useSession } from "@/lib/session";
 import type { Offer } from "@/lib/types";
 import { useAction } from "@/lib/useAction";
@@ -28,6 +28,7 @@ export default function OffersPage() {
   if (user.role === "FARMER") {
     return (
       <>
+        <SubNav items={SUBNAV.farmerOffers} />
         <PageHeader title="ข้อเสนอซื้อ" subtitle="ข้อเสนอจากผู้ซื้อสำหรับประกาศผลผลิตของคุณ — เปิด Smart Allocation เพื่อแบ่งผลผลิต" />
         <Tabs value={tab} onChange={setTab} tabs={tabs} />
         <Card><FarmerOffersTable offers={shown} showListing /></Card>
@@ -37,6 +38,7 @@ export default function OffersPage() {
 
   return (
     <>
+      <SubNav items={SUBNAV.buyerRequests} />
       <PageHeader title="ข้อเสนอของฉัน" subtitle="ข้อเสนอที่ส่งให้สวน เมื่อเกษตรกรจัดสรรแล้วจะได้ HarvestLock ให้ยืนยัน" />
       <Tabs value={tab} onChange={setTab} tabs={tabs} />
       <Card>

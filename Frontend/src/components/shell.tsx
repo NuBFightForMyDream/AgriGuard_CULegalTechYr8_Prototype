@@ -3,8 +3,6 @@
 import {
   Activity,
   BadgeCheck,
-  BookCheck,
-  Building2,
   ClipboardCheck,
   ClipboardList,
   FileSignature,
@@ -20,9 +18,7 @@ import {
   ShoppingBasket,
   Siren,
   Sparkles,
-  SplitSquareHorizontal,
   Sprout,
-  Store,
   Truck,
   Users,
   Wallet,
@@ -40,7 +36,7 @@ import { NavChat } from "./nav-chat";
 import { NotificationBell } from "./notifications";
 import { Avatar, cx } from "./ui";
 
-type NavItem = { href: string; label: string; icon: React.ElementType; short?: string };
+type NavItem = { href: string; label: string; icon: React.ElementType; short?: string; also?: string[] };
 
 /** The five tabs from the app sketch: home, search, chat, status, community. */
 function tabsFor(user: User): NavItem[] {
@@ -57,52 +53,37 @@ function tabsFor(user: User): NavItem[] {
   return byRole[user.role];
 }
 
-/** Everything else, grouped under "เครื่องมือ" (desktop sidebar and the phone menu sheet). */
+/** The few tools not in the tabs (desktop "เครื่องมือ", phone menu sheet). Related pages share one item and show tabs (SubNav). */
 function toolsFor(user: User): NavItem[] {
   const c = {
-    contracts: { href: "/contracts", label: "สัญญา HarvestLock", icon: FileSignature },
-    deliveries: { href: "/deliveries", label: "เก็บเกี่ยว & ขนส่ง", icon: Truck },
-    quality: { href: "/quality", label: "GradeProof", icon: ClipboardCheck },
     payments: { href: "/payments", label: "การชำระเงิน", icon: Wallet },
-    history: { href: "/history", label: "ประวัติธุรกรรม", icon: History },
     disputes: { href: "/disputes", label: "ข้อพิพาท", icon: Scale },
-    assistant: { href: "/assistant", label: "ผู้ช่วยกฎหมาย AI", icon: Sparkles },
+    history: { href: "/history", label: "ประวัติธุรกรรม", icon: History },
+    law: { href: "/chat/agrichatlaw", label: "AgriChatLaw", icon: Sparkles },
   };
   const byRole: Record<Role, NavItem[]> = {
     FARMER: [
       { href: "/produce", label: "ผลผลิตของฉัน", icon: Sprout },
-      { href: "/offers", label: "ข้อเสนอซื้อ", icon: ShoppingBasket },
-      { href: "/allocation", label: "Smart Allocation", icon: SplitSquareHorizontal },
-      c.contracts,
-      c.deliveries,
-      { ...c.quality, label: "ผล GradeProof" },
+      { href: "/offers", label: "ข้อเสนอ & จัดสรร", icon: ShoppingBasket, also: ["/allocation"] },
+      { href: "/deliveries", label: "ขนส่ง & ผลตรวจ", icon: Truck, also: ["/quality"] },
       c.payments,
       c.disputes,
-      { href: "/buyers", label: "AgriTrust ผู้ซื้อ", icon: ShieldCheck },
-      c.assistant,
       c.history,
     ],
     BUYER: [
-      { href: "/requests", label: "คำขอซื้อ", icon: ShoppingBasket },
-      { href: "/offers", label: "ข้อเสนอของฉัน", icon: Store },
-      { ...c.contracts, label: "คำสั่งซื้อ & HarvestLock" },
-      { ...c.deliveries, label: "สินค้าที่กำลังมา" },
-      { ...c.quality, label: "ตรวจคุณภาพ" },
+      { href: "/requests", label: "คำขอซื้อ & ข้อเสนอ", icon: ShoppingBasket, also: ["/offers"] },
+      { href: "/deliveries", label: "รับของ & ผลตรวจ", icon: Truck, also: ["/quality"] },
       c.payments,
       c.disputes,
       { href: `/buyers/${user.organization.id}`, label: "AgriTrust ของฉัน", icon: ShieldCheck },
-      c.assistant,
       c.history,
     ],
-    INSPECTOR: [c.deliveries, c.history],
+    INSPECTOR: [{ href: "/deliveries", label: "ล็อตที่กำลังขนส่ง", icon: Truck }, c.law, c.history],
     ADMIN: [
-      { href: "/admin/users", label: "ผู้ใช้และสิทธิ์", icon: Users },
-      { href: "/admin/verification", label: "ยืนยันธุรกิจ", icon: Building2 },
+      { href: "/admin/users", label: "ผู้ใช้ & องค์กร", icon: Users, also: ["/admin/verification"] },
       { href: "/admin/quality", label: "มาตรฐานคุณภาพ", icon: ClipboardList },
-      { href: "/admin/risk", label: "Trust & Risk", icon: Siren },
-      { href: "/admin/appeals", label: "อุทธรณ์ AgriTrust", icon: BookCheck },
-      { href: "/buyers", label: "AgriTrust ผู้ซื้อ", icon: ShieldCheck },
-      c.assistant,
+      { href: "/admin/risk", label: "AgriTrust & ความเสี่ยง", icon: Siren, also: ["/admin/appeals", "/buyers"] },
+      c.law,
       { ...c.history, label: "Audit Logs" },
     ],
   };
@@ -172,7 +153,8 @@ function Frame({ user, children }: { user: User; children: React.ReactNode }) {
 
   const tabs = tabsFor(user);
   const tools = toolsFor(user);
-  const isActive = (href: string) => pathname === href || (href !== "/dashboard" && pathname.startsWith(href + "/"));
+  const hit = (href: string) => pathname === href || (href !== "/dashboard" && pathname.startsWith(href + "/"));
+  const isActive = (href: string, also: string[] = []) => hit(href) || also.some(hit);
   const leave = () => {
     signOut();
     router.replace("/login");
@@ -186,10 +168,10 @@ function Frame({ user, children }: { user: User; children: React.ReactNode }) {
       href={item.href}
       className={cx(
         "flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition",
-        isActive(item.href) ? "bg-green-800 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+        isActive(item.href, item.also) ? "bg-green-800 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
       )}
     >
-      <item.icon className={cx("size-4", isActive(item.href) ? "text-lime-300" : "text-slate-400")} />
+      <item.icon className={cx("size-4", isActive(item.href, item.also) ? "text-lime-300" : "text-slate-400")} />
       <span className="flex-1">{item.label}</span>
       <Dot n={badge} />
     </Link>
@@ -301,7 +283,7 @@ function Frame({ user, children }: { user: User; children: React.ReactNode }) {
             </div>
             <div className="mt-5 grid grid-cols-3 gap-2">
               {tools.map((t) => (
-                <Link key={t.href} href={t.href} className={cx("flex flex-col items-center gap-1.5 rounded-2xl p-3 text-center text-xs font-medium", isActive(t.href) ? "bg-green-50 text-green-900" : "bg-slate-50 text-slate-700")}>
+                <Link key={t.href} href={t.href} className={cx("flex flex-col items-center gap-1.5 rounded-2xl p-3 text-center text-xs font-medium", isActive(t.href, t.also) ? "bg-green-50 text-green-900" : "bg-slate-50 text-slate-700")}>
                   <t.icon className="size-5 text-green-800" />
                   {t.label}
                 </Link>

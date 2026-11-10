@@ -10,7 +10,6 @@ import {
   Package,
   Plus,
   ShoppingBasket,
-  Sparkles,
   Sprout,
   Truck,
   Wallet,
@@ -120,7 +119,7 @@ function BigActions({ primary }: { primary: { href: string; label: string; hint:
 
 function Shortcuts({ items }: { items: { href: string; label: string; icon: React.ElementType; badge?: number }[] }) {
   return (
-    <div className="mt-4 grid grid-cols-4 gap-2 sm:gap-3">
+    <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
       {items.map((i) => (
         <Link
           key={i.href}
@@ -200,9 +199,8 @@ function Farmer({ d, user }: { d: FarmerDash; user: User }) {
       <Shortcuts
         items={[
           { href: "/produce", label: "ผลผลิตของฉัน", icon: Sprout },
-          { href: "/allocation", label: "ข้อเสนอ & จัดสรร", icon: ShoppingBasket, badge: k.pending_offers },
+          { href: "/offers", label: "ข้อเสนอ & จัดสรร", icon: ShoppingBasket, badge: k.pending_offers },
           { href: "/payments", label: "รับเงิน", icon: Wallet },
-          { href: "/assistant", label: "ผู้ช่วย AI", icon: Sparkles },
         ]}
       />
       <Todo
@@ -300,10 +298,9 @@ function Buyer({ d, user }: { d: BuyerDash; user: User }) {
       <BigActions primary={{ href: "/requests/new", label: "สร้างคำขอซื้อ", hint: "ระบบจับคู่สวนให้" }} />
       <Shortcuts
         items={[
-          { href: "/requests", label: "คำขอซื้อ", icon: ShoppingBasket, badge: k.pending_offers },
-          { href: "/deliveries", label: "รับของ & ตรวจ", icon: Truck, badge: k.incoming_deliveries + k.pending_inspections },
+          { href: "/requests", label: "คำขอซื้อ & ข้อเสนอ", icon: ShoppingBasket, badge: k.pending_offers },
+          { href: "/deliveries", label: "รับของ & ผลตรวจ", icon: Truck, badge: k.incoming_deliveries + k.pending_inspections },
           { href: "/payments", label: "ชำระเงิน", icon: Wallet },
-          { href: "/assistant", label: "ผู้ช่วย AI", icon: Sparkles },
         ]}
       />
       <Todo

@@ -1,10 +1,10 @@
 "use client";
 
 import useSWR from "swr";
-import { Badge, Button, Card, ErrorState, PageHeader, PageSkeleton, Table, Td } from "@/components/ui";
+import { Badge, Button, Card, ErrorState, PageHeader, PageSkeleton, SubNav, Table, Td } from "@/components/ui";
 import { post } from "@/lib/api";
 import { fmtDate } from "@/lib/format";
-import { BUSINESS_TYPE } from "@/lib/labels";
+import { BUSINESS_TYPE, SUBNAV } from "@/lib/labels";
 import type { Org } from "@/lib/types";
 import { useAction } from "@/lib/useAction";
 
@@ -18,6 +18,7 @@ export default function VerificationPage() {
   const waiting = data.filter((o) => !o.verified).length;
   return (
     <>
+      <SubNav items={SUBNAV.adminPeople} />
       <PageHeader title="ยืนยันธุรกิจ" subtitle={`รอตรวจสอบ ${waiting} องค์กร — ตรวจจากข้อมูลที่ลงทะเบียน; ยังไม่ได้เชื่อมการตรวจเอกสารนิติบุคคลกับระบบภายนอก`} />
       <Card>
         <Table head={["องค์กร", "ประเภท", "จังหวัด", "สมาชิก", "ลงทะเบียน", "สถานะ", ""]}>

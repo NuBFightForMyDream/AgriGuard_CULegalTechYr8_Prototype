@@ -3,9 +3,9 @@
 import { SplitSquareHorizontal } from "lucide-react";
 import useSWR from "swr";
 import { InventoryBar } from "@/components/inventory";
-import { Card, Empty, ErrorState, LinkButton, PageHeader, PageSkeleton } from "@/components/ui";
+import { Card, Empty, ErrorState, LinkButton, PageHeader, PageSkeleton, SubNav } from "@/components/ui";
 import { fmtKg, fmtRange } from "@/lib/format";
-import { productName } from "@/lib/labels";
+import { productName, SUBNAV } from "@/lib/labels";
 import type { Listing } from "@/lib/types";
 
 export default function AllocationIndex() {
@@ -15,6 +15,7 @@ export default function AllocationIndex() {
   const ready = data.filter((l) => l.pending_offers > 0 && l.inventory.available_kg > 0);
   return (
     <>
+      <SubNav items={SUBNAV.farmerOffers} />
       <PageHeader title="Smart Allocation" subtitle="แบ่งผลผลิตหนึ่งรอบให้ผู้ซื้อหลายราย โดยไม่จองเกินผลผลิตที่ยังไม่ผูกพัน" />
       {ready.length === 0 ? (
         <Card><Empty icon={<SplitSquareHorizontal className="size-10" />} title="ยังไม่มีประกาศที่รอจัดสรร">ประกาศจะปรากฏที่นี่เมื่อมีข้อเสนอซื้อและยังมีผลผลิตที่ยังไม่ผูกพัน</Empty></Card>

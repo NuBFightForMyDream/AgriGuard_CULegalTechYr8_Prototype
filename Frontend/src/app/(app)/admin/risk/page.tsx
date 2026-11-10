@@ -4,7 +4,8 @@ import { Info } from "lucide-react";
 import Link from "next/link";
 import useSWR from "swr";
 import { TrustBadge } from "@/components/trust";
-import { Badge, Card, ErrorState, PageHeader, PageSkeleton } from "@/components/ui";
+import { Badge, Card, ErrorState, PageHeader, PageSkeleton, SubNav } from "@/components/ui";
+import { SUBNAV } from "@/lib/labels";
 import type { Org, TrustSummary } from "@/lib/types";
 
 type Row = Org & { trust: TrustSummary; contracts: number; signals: { code: string; severity: "high" | "medium" | "info"; message: string }[] };
@@ -17,6 +18,7 @@ export default function RiskPage() {
   const sorted = [...data].sort((a, b) => b.signals.filter((s) => s.severity !== "info").length - a.signals.filter((s) => s.severity !== "info").length);
   return (
     <>
+      <SubNav items={SUBNAV.adminTrust} />
       <PageHeader title="Trust & Risk Monitoring" subtitle="สัญญาณจากกฎตรวจจับความผิดปกติสำหรับให้คนตรวจทาน — ไม่ใช่คำตัดสิน และไม่หักคะแนนอัตโนมัติ" />
       <div className="mb-4 flex gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
         <Info className="mt-0.5 size-4 shrink-0" />

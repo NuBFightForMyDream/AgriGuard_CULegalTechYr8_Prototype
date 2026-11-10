@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import useSWR from "swr";
-import { Badge, Button, Card, Empty, ErrorState, Field, Input, PageHeader, PageSkeleton, Tabs } from "@/components/ui";
+import { Badge, Button, Card, Empty, ErrorState, Field, Input, PageHeader, PageSkeleton, SubNav, Tabs } from "@/components/ui";
 import { post } from "@/lib/api";
 import { fmtDate, fmtDateTime } from "@/lib/format";
+import { SUBNAV } from "@/lib/labels";
 import type { Appeal } from "@/lib/types";
 import { useAction } from "@/lib/useAction";
 
@@ -19,6 +20,7 @@ export default function AppealsPage() {
   const shown = data.filter((a) => (tab === "OPEN" ? a.status === "OPEN" : a.status !== "OPEN"));
   return (
     <>
+      <SubNav items={SUBNAV.adminTrust} />
       <PageHeader title="อุทธรณ์ AgriTrust" subtitle="รับอุทธรณ์ = เหตุการณ์ไม่ถูกนำมาคิดคะแนน (เก็บบันทึกไว้) และแสดงคะแนนก่อน/หลัง" />
       <Tabs value={tab} onChange={setTab} tabs={[
         { value: "OPEN", label: "รอพิจารณา", count: data.filter((a) => a.status === "OPEN").length },

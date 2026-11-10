@@ -3,9 +3,9 @@
 import { ClipboardCheck } from "lucide-react";
 import Link from "next/link";
 import useSWR from "swr";
-import { Badge, Card, Empty, ErrorState, LinkButton, PageHeader, PageSkeleton, SegmentBar, Table, Td } from "@/components/ui";
+import { Badge, Card, Empty, ErrorState, LinkButton, PageHeader, PageSkeleton, SegmentBar, SubNav, Table, Td } from "@/components/ui";
 import { fmtDateTime, fmtKg } from "@/lib/format";
-import { FLAG_LABEL, productName } from "@/lib/labels";
+import { FLAG_LABEL, productName, SUBNAV } from "@/lib/labels";
 import { useSession } from "@/lib/session";
 import type { Inspection, Lot } from "@/lib/types";
 
@@ -21,6 +21,7 @@ export default function QualityPage() {
   const canInspect = user.role === "INSPECTOR" || user.role === "BUYER";
   return (
     <>
+      <SubNav items={SUBNAV.delivery} />
       <PageHeader title="GradeProof" subtitle="ผลตรวจคุณภาพเทียบกับเงื่อนไข HarvestLock — ประเด็นที่ไม่ตรงสัญญาถูกส่งให้คนตรวจทาน ไม่ใช่คำตัดสิน" />
       {canInspect && (
         <Card title={`รอตรวจคุณภาพ (${queue.length})`} className="mb-6">

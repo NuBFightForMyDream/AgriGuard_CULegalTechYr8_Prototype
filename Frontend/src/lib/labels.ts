@@ -171,3 +171,12 @@ export const SIGN_METHOD: Record<string, string> = {
   PROPOSER: "ผู้เสนอแก้ไข",
   AUTHENTICATED_CLICK: "ยืนยันผ่านบัญชีที่เข้าสู่ระบบ",
 };
+
+/** Pages merged under one menu item; each page shows these as tabs. */
+export const SUBNAV = {
+  farmerOffers: [{ href: "/offers", label: "ข้อเสนอซื้อ" }, { href: "/allocation", label: "จัดสรรผลผลิต" }],
+  buyerRequests: [{ href: "/requests", label: "คำขอซื้อ" }, { href: "/offers", label: "ข้อเสนอที่ส่ง" }],
+  delivery: [{ href: "/deliveries", label: "ขนส่ง" }, { href: "/quality", label: "ผลตรวจคุณภาพ" }],
+  adminPeople: [{ href: "/admin/users", label: "ผู้ใช้และสิทธิ์" }, { href: "/admin/verification", label: "ยืนยันธุรกิจ" }],
+  adminTrust: [{ href: "/admin/risk", label: "ความเสี่ยง" }, { href: "/admin/appeals", label: "อุทธรณ์" }, { href: "/buyers", label: "คะแนนผู้ซื้อ" }],
+};

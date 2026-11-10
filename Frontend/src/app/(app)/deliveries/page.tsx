@@ -3,9 +3,9 @@
 import { Truck } from "lucide-react";
 import Link from "next/link";
 import useSWR from "swr";
-import { Card, Empty, ErrorState, PageHeader, PageSkeleton, StatusBadge, Table, Td } from "@/components/ui";
+import { Card, Empty, ErrorState, PageHeader, PageSkeleton, StatusBadge, SubNav, Table, Td } from "@/components/ui";
 import { fmtDate, fmtDateTime, fmtKg } from "@/lib/format";
-import { LOT_STATUS, productName } from "@/lib/labels";
+import { LOT_STATUS, productName, SUBNAV } from "@/lib/labels";
 import { useSession } from "@/lib/session";
 import type { Lot } from "@/lib/types";
 
@@ -16,6 +16,7 @@ export default function DeliveriesPage() {
   if (!data || !user) return <PageSkeleton />;
   return (
     <>
+      <SubNav items={SUBNAV.delivery} />
       <PageHeader
         title={user.role === "BUYER" ? "สินค้าที่กำลังมา" : "เก็บเกี่ยว & ขนส่ง"}
         subtitle="แต่ละล็อตเชื่อมกับสวน ประกาศ สัญญา ผู้ซื้อ การขนส่ง ผลตรวจ และการชำระเงิน"

@@ -1,9 +1,9 @@
 "use client";
 
 import useSWR from "swr";
-import { Badge, Card, ErrorState, PageHeader, PageSkeleton, Select, Table, Td } from "@/components/ui";
+import { Badge, Card, ErrorState, PageHeader, PageSkeleton, Select, SubNav, Table, Td } from "@/components/ui";
 import { post } from "@/lib/api";
-import { ACTOR_TONE, ROLE } from "@/lib/labels";
+import { ACTOR_TONE, ROLE, SUBNAV } from "@/lib/labels";
 import { useSession } from "@/lib/session";
 import type { Role, User } from "@/lib/types";
 import { useAction } from "@/lib/useAction";
@@ -18,6 +18,7 @@ export default function AdminUsersPage() {
   if (!data) return <PageSkeleton />;
   return (
     <>
+      <SubNav items={SUBNAV.adminPeople} />
       <PageHeader title="ผู้ใช้และสิทธิ์" subtitle="ผู้ใช้ Google เลือกได้เฉพาะเกษตรกรหรือผู้ซื้อ — สิทธิ์ผู้ตรวจคุณภาพและผู้ดูแลระบบมอบโดยผู้ดูแลเท่านั้น" />
       <Card>
         <Table head={["ผู้ใช้", "องค์กร", "เข้าสู่ระบบ", "บทบาท", "เปลี่ยนบทบาท"]}>

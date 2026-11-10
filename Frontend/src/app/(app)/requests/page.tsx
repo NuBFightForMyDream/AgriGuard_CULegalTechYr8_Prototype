@@ -3,9 +3,9 @@
 import { ShoppingBasket } from "lucide-react";
 import Link from "next/link";
 import useSWR from "swr";
-import { Card, Empty, ErrorState, LinkButton, PageHeader, PageSkeleton, StatusBadge, Table, Td } from "@/components/ui";
+import { Card, Empty, ErrorState, LinkButton, PageHeader, PageSkeleton, StatusBadge, SubNav, Table, Td } from "@/components/ui";
 import { fmtKg, fmtRange, fmtTHB } from "@/lib/format";
-import { REQUEST_STATUS, SOURCING, productName } from "@/lib/labels";
+import { productName, REQUEST_STATUS, SOURCING, SUBNAV } from "@/lib/labels";
 import type { PurchaseRequest } from "@/lib/types";
 
 export default function RequestsPage() {
@@ -14,6 +14,7 @@ export default function RequestsPage() {
   if (!data) return <PageSkeleton />;
   return (
     <>
+      <SubNav items={SUBNAV.buyerRequests} />
       <PageHeader title="คำขอซื้อ" subtitle="เริ่มจากความต้องการจริง แล้วให้ระบบจับคู่สวนที่เหมาะสม" actions={<LinkButton href="/requests/new">+ สร้างคำขอซื้อ</LinkButton>} />
       <Card>
         {data.length === 0 ? (

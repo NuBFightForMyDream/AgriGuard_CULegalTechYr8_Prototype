@@ -3,16 +3,19 @@
 import Link from "next/link";
 import useSWR from "swr";
 import { TrustBadge } from "@/components/trust";
-import { Badge, Card, ErrorState, PageHeader, PageSkeleton, Table, Td } from "@/components/ui";
-import { BUSINESS_TYPE } from "@/lib/labels";
+import { Badge, Card, ErrorState, PageHeader, PageSkeleton, SubNav, Table, Td } from "@/components/ui";
+import { BUSINESS_TYPE, SUBNAV } from "@/lib/labels";
+import { useSession } from "@/lib/session";
 import type { Org, TrustSummary } from "@/lib/types";
 
 export default function BuyersPage() {
+  const { user } = useSession();
   const { data, error } = useSWR<(Org & { trust: TrustSummary })[]>("/buyers");
   if (error) return <ErrorState error={error} />;
   if (!data) return <PageSkeleton />;
   return (
     <>
+      {user?.role === "ADMIN" && <SubNav items={SUBNAV.adminTrust} />}
       <PageHeader title="AgriTrust ผู้ซื้อ" subtitle="ความน่าเชื่อถือจากธุรกรรมที่ตรวจสอบแล้ว — ไม่ใช่คะแนนเครดิต และผู้ซื้อใหม่ไม่ถูกลงโทษเพราะไม่มีประวัติ" />
       <Card>
         <Table head={["ผู้ซื้อ", "ประเภท", "จังหวัด", "ยืนยันธุรกิจ", "AgriTrust", ""]}>

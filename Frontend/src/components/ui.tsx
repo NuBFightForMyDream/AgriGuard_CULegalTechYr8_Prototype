@@ -2,6 +2,7 @@
 
 import { Loader2, X } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import type { Tone } from "@/lib/labels";
 
@@ -321,5 +322,27 @@ export function Chips<T extends string>({ value, onChange, items, className }: {
         </button>
       ))}
     </div>
+  );
+}
+
+/** Link tabs joining pages that share one menu item (e.g. offers + allocation). */
+export function SubNav({ items }: { items: { href: string; label: string }[] }) {
+  const pathname = usePathname();
+  return (
+    <nav className="mb-4 flex gap-1 overflow-x-auto rounded-xl bg-white p-1 shadow-sm ring-1 ring-slate-200/80 sm:w-fit" aria-label="หน้าย่อย">
+      {items.map((i) => {
+        const active = pathname === i.href || pathname.startsWith(i.href + "/");
+        return (
+          <Link
+            key={i.href}
+            href={i.href}
+            aria-current={active ? "page" : undefined}
+            className={cx("shrink-0 whitespace-nowrap rounded-lg px-4 py-1.5 text-sm font-medium", active ? "bg-green-800 text-white" : "text-slate-600 hover:bg-slate-50")}
+          >
+            {i.label}
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
