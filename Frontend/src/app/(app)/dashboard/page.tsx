@@ -7,14 +7,10 @@ import {
   ChevronRight,
   ClipboardCheck,
   FileSignature,
-  MessagesSquare,
   Package,
   Plus,
-  Search,
-  ShieldCheck,
   ShoppingBasket,
   Sparkles,
-  SplitSquareHorizontal,
   Sprout,
   Truck,
   Wallet,
@@ -124,12 +120,16 @@ function BigActions({ primary }: { primary: { href: string; label: string; hint:
 
 function Shortcuts({ items }: { items: { href: string; label: string; icon: React.ElementType; badge?: number }[] }) {
   return (
-    <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-8">
+    <div className="mt-4 grid grid-cols-4 gap-2 sm:gap-3">
       {items.map((i) => (
-        <Link key={i.href} href={i.href} className="relative flex flex-col items-center gap-1.5 rounded-2xl p-2 text-center text-[11px] font-medium leading-tight text-slate-700 hover:bg-white">
-          <span className="flex size-11 items-center justify-center rounded-2xl bg-white text-green-800 shadow-sm ring-1 ring-slate-200/80"><i.icon className="size-5" /></span>
-          {i.label}
-          {!!i.badge && <span className="absolute right-2 top-1 min-w-[18px] rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-[18px] text-white">{i.badge}</span>}
+        <Link
+          key={i.href}
+          href={i.href}
+          className="relative flex flex-col items-center gap-1.5 rounded-2xl p-2 text-center text-[11px] font-medium leading-tight text-slate-700 hover:bg-white sm:flex-row sm:gap-3 sm:border sm:border-slate-200/80 sm:bg-white sm:p-3 sm:text-left sm:text-sm sm:shadow-sm sm:hover:border-green-700"
+        >
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white text-green-800 shadow-sm ring-1 ring-slate-200/80 sm:size-10 sm:rounded-xl sm:bg-green-50 sm:shadow-none sm:ring-0"><i.icon className="size-5" /></span>
+          <span className="min-w-0">{i.label}</span>
+          {!!i.badge && <span className="absolute right-2 top-1 min-w-[18px] rounded-full bg-red-500 px-1 text-center text-[10px] font-semibold leading-[18px] text-white sm:static sm:ml-auto">{i.badge}</span>}
         </Link>
       ))}
     </div>
@@ -200,18 +200,14 @@ function Farmer({ d, user }: { d: FarmerDash; user: User }) {
       <Shortcuts
         items={[
           { href: "/produce", label: "ผลผลิตของฉัน", icon: Sprout },
-          { href: "/offers", label: "ข้อเสนอซื้อ", icon: ShoppingBasket, badge: k.pending_offers },
-          { href: "/allocation", label: "จัดสรร", icon: SplitSquareHorizontal },
-          { href: "/marketplace", label: "หาผู้ซื้อ", icon: Search },
+          { href: "/allocation", label: "ข้อเสนอ & จัดสรร", icon: ShoppingBasket, badge: k.pending_offers },
           { href: "/payments", label: "รับเงิน", icon: Wallet },
-          { href: "/buyers", label: "AgriTrust", icon: ShieldCheck },
           { href: "/assistant", label: "ผู้ช่วย AI", icon: Sparkles },
-          { href: "/community", label: "ชุมชน", icon: MessagesSquare },
         ]}
       />
       <Todo
         items={[
-          { show: k.pending_offers > 0, href: "/offers", text: `มีข้อเสนอซื้อรอพิจารณา ${k.pending_offers} รายการ — จัดสรรผลผลิตให้ผู้ซื้อได้เลย` },
+          { show: k.pending_offers > 0, href: "/allocation", text: `มีข้อเสนอซื้อรอพิจารณา ${k.pending_offers} รายการ — จัดสรรผลผลิตให้ผู้ซื้อได้เลย` },
           { show: d.orders.some((o) => o.order_status === "PAYMENT_OVERDUE"), href: "/payments", text: "มีคำสั่งซื้อที่ผู้ซื้อชำระเงินเลยกำหนด", tone: "red" },
         ]}
       />
@@ -304,14 +300,10 @@ function Buyer({ d, user }: { d: BuyerDash; user: User }) {
       <BigActions primary={{ href: "/requests/new", label: "สร้างคำขอซื้อ", hint: "ระบบจับคู่สวนให้" }} />
       <Shortcuts
         items={[
-          { href: "/requests", label: "คำขอซื้อ", icon: ShoppingBasket },
-          { href: "/farms", label: "ค้นหาสวน", icon: Search },
-          { href: "/offers", label: "ข้อเสนอ", icon: FileSignature, badge: k.pending_offers },
-          { href: "/deliveries", label: "ของที่กำลังมา", icon: Truck, badge: k.incoming_deliveries },
-          { href: "/quality", label: "ตรวจคุณภาพ", icon: ClipboardCheck, badge: k.pending_inspections },
+          { href: "/requests", label: "คำขอซื้อ", icon: ShoppingBasket, badge: k.pending_offers },
+          { href: "/deliveries", label: "รับของ & ตรวจ", icon: Truck, badge: k.incoming_deliveries + k.pending_inspections },
           { href: "/payments", label: "ชำระเงิน", icon: Wallet },
           { href: "/assistant", label: "ผู้ช่วย AI", icon: Sparkles },
-          { href: "/community", label: "ชุมชน", icon: MessagesSquare },
         ]}
       />
       <Todo
