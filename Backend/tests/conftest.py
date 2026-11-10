@@ -2,6 +2,7 @@ import os
 
 os.environ["DATABASE_URL"] = "sqlite:///./test.db"
 os.environ["DEMO_SEED"] = "false"
+os.environ["DEMO_SCENARIOS"] = "false"
 os.environ["RUN_MIGRATIONS"] = "false"
 
 import pytest  # noqa: E402

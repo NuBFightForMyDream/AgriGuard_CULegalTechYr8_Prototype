@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     run_migrations: bool = True
     # Seed the demo scenario when the database is empty.
     demo_seed: bool = True
+    # Also play the richer demo deals (app/demo_scenarios.py) after seeding / on demo reset.
+    demo_scenarios: bool = True
     # Allow the demo user picker (X-Demo-User). Anyone can act as any demo user, so keep it for demos only.
     demo_login: bool = True
     # Supabase Auth: when set, Bearer JWTs from Google sign-in are accepted (Technical/deployment.md).

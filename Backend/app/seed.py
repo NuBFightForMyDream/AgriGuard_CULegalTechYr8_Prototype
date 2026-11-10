@@ -50,6 +50,10 @@ ORGS = [
     ("buyer_c", "Siam Fruit Processing Co., Ltd.", "BUYER", "PROCESSOR", "ฉะเชิงเทรา", True),
     ("buyer_d", "Eastern Wholesale Market", "BUYER", "WHOLESALER", "ชลบุรี", True),
     ("buyer_e", "NewLeaf Foods", "BUYER", "PROCESSOR", "กรุงเทพมหานคร", False),
+    ("maeping", "สวนลำไยแม่ปิง (Mae Ping Longan)", "FARM", None, "เชียงใหม่", True),
+    ("trat", "สวนเงาะตราด (Trat Rambutan Farm)", "FARM", None, "ตราด", True),
+    ("buyer_f", "Thai Fruit Export Hub", "BUYER", "EXPORTER", "สมุทรปราการ", True),
+    ("buyer_g", "Bangkok Fresh Mart", "BUYER", "WHOLESALER", "นครปฐม", True),
 ]
 
 USERS = [
@@ -61,6 +65,11 @@ USERS = [
     ("malee@siamfruit.example", "มาลี วงศ์ใหญ่", "BUYER", "ฝ่ายจัดซื้อวัตถุดิบ · Buyer C", "buyer_c"),
     ("thana@easternwholesale.example", "ธนา รุ่งเรือง", "BUYER", "ผู้ค้าส่ง · Buyer D", "buyer_d"),
     ("siriporn@newleaf.example", "ศิริพร ใหม่ใจ", "BUYER", "ผู้ซื้อรายใหม่", "buyer_e"),
+    ("suda@chumphon.example", "สุดา รักษ์สวน", "FARMER", "เจ้าของสวนมังคุดชุมพร", "chumphon"),
+    ("boonmee@maeping.example", "บุญมี ปิงคำ", "FARMER", "เจ้าของสวนลำไยแม่ปิง", "maeping"),
+    ("somsri@trat.example", "สมศรี ตราดดี", "FARMER", "เจ้าของสวนเงาะตราด", "trat"),
+    ("worawut@tfeh.example", "วรวุฒิ ส่งออกดี", "BUYER", "ผู้จัดการจัดซื้อ · Export Hub", "buyer_f"),
+    ("napa@bkkfresh.example", "นภา ตลาดสด", "BUYER", "ฝ่ายจัดซื้อ · Fresh Mart", "buyer_g"),
     ("preecha@agriguard.example", "ปรีชา ตรวจดี", "INSPECTOR", "ผู้ตรวจคุณภาพ", "platform"),
     ("admin@agriguard.example", "ผู้ดูแลระบบ", "ADMIN", "Platform Administrator", "platform"),
 ]
@@ -70,6 +79,8 @@ FARMS = [
     ("sunrise", "สวนซันไรส์", "ระยอง", D(30)),
     ("goldendurian", "สวนทุเรียนทองคำ", "จันทบุรี", D(60)),
     ("chumphon", "สวนมังคุดชุมพร", "ชุมพร", D(25)),
+    ("maeping", "สวนลำไยแม่ปิง", "เชียงใหม่", D(80)),
+    ("trat", "สวนเงาะตราด", "ตราด", D(35)),
 ]
 
 LISTINGS = [
@@ -79,6 +90,16 @@ LISTINGS = [
     ("PL-2026-003", "sunrise", "mango", "น้ำดอกไม้", 3000, date(2026, 12, 10), date(2026, 12, 20), ["A", "B"], (40, 48)),
     ("PL-2026-004", "goldendurian", "durian", "หมอนทอง", 8000, date(2027, 4, 25), date(2027, 5, 15), ["A", "B"], (110, 150)),
     ("PL-2026-005", "chumphon", "mangosteen", "ผิวมัน", 4000, date(2027, 5, 1), date(2027, 5, 20), ["A", "B", "C"], (60, 85)),
+    # Current-season listings that the richer demo deals (app/demo_scenarios.py) run on.
+    ("PL-2026-006", "greenvalley", "longan", "อีดอ", 4000, date(2026, 10, 25), date(2026, 11, 25), ["AA", "A", "B"], (35, 45)),
+    ("PL-2026-007", "greenvalley", "rambutan", "โรงเรียน", 2500, date(2026, 10, 20), date(2026, 11, 15), ["A", "B"], (30, 40)),
+    ("PL-2026-008", "sunrise", "orange", "สายน้ำผึ้ง", 3500, date(2026, 11, 1), date(2026, 11, 30), ["A", "B", "C"], (40, 55)),
+    ("PL-2026-009", "goldendurian", "durian", "ชะนี", 5000, date(2026, 10, 15), date(2026, 11, 20), ["A", "B"], (95, 130)),
+    ("PL-2026-010", "chumphon", "mangosteen", "ผิวลาย", 3000, date(2026, 9, 20), date(2026, 10, 25), ["A", "B", "C"], (55, 80)),
+    ("PL-2026-011", "maeping", "longan", "สีชมพู", 6000, date(2026, 10, 1), date(2026, 11, 30), ["AA", "A", "B"], (40, 55)),
+    ("PL-2026-012", "trat", "rambutan", "สีชมพู", 3000, date(2026, 11, 15), date(2026, 12, 10), ["A", "B"], (28, 38)),
+    ("PL-2026-013", "maeping", "longan", "อีดอ", 8000, date(2027, 7, 10), date(2027, 8, 20), ["AA", "A", "B"], (35, 50)),
+    ("PL-2026-014", "trat", "durian", "หมอนทอง", 4000, date(2027, 4, 20), date(2027, 5, 15), ["A", "B", "C"], (105, 140)),
 ]
 
 REQUESTS = [
@@ -87,7 +108,14 @@ REQUESTS = [
     ("PR-2026-002", "buyer_c", "mango", "น้ำดอกไม้", 2500, 1000, 48, ["A", "B"], date(2026, 12, 14), date(2026, 12, 20), "ฉะเชิงเทรา", 7),
     ("PR-2026-003", "buyer_d", "mango", "น้ำดอกไม้", 2000, 500, 50, ["A", "B"], date(2026, 12, 15), date(2026, 12, 19), "ชลบุรี", 5),
     ("PR-2026-004", "buyer_e", "durian", "หมอนทอง", 5000, 5000, 130, ["A", "B"], date(2027, 4, 25), date(2027, 5, 10), "กรุงเทพมหานคร", 7),
+    ("PR-2026-005", "buyer_f", "longan", "อีดอ", 5000, 1000, 42, ["AA", "A"], date(2027, 7, 15), date(2027, 8, 15), "สมุทรปราการ", 7),
+    ("PR-2026-006", "buyer_g", "rambutan", None, 2000, 500, 32, ["A", "B"], date(2026, 11, 20), date(2026, 12, 5), "นครปฐม", 3),
+    ("PR-2026-007", "buyer_c", "durian", "หมอนทอง", 3000, 3000, 120, ["A", "B"], date(2027, 5, 1), date(2027, 5, 20), "ฉะเชิงเทรา", 14),
+    ("PR-2026-008", "buyer_g", "mangosteen", None, 2500, 500, 70, ["A", "B"], date(2027, 5, 5), date(2027, 5, 25), "นครปฐม", 5),
+    ("PR-2026-009", "buyer_d", "orange", "สายน้ำผึ้ง", 1500, 500, 48, ["A", "B"], date(2026, 11, 25), date(2026, 12, 10), "ชลบุรี", 5),
 ]
+SINGLE_SOURCE = {"PR-2026-004", "PR-2026-007"}
+MAX_SUPPLIERS = {"PR-2026-005": 3}
 
 OFFERS = [
     # code, buyer, request, kg, prices, terms days, deposit, message
@@ -101,6 +129,8 @@ TRUST_HISTORY = {
     "buyer_b": (42, {"PAYMENT": 1, "PICKUP": 4, "CONTRACT": 2, "QC": 3, "DISPUTE": 2}),
     "buyer_c": (20, {"PAYMENT": 3, "PICKUP": 2, "CONTRACT": 2, "QC": 2, "DISPUTE": 1}),
     "buyer_d": (12, {"PAYMENT": 5, "PICKUP": 4, "CONTRACT": 4, "QC": 3, "DISPUTE": 2}),
+    "buyer_f": (28, {"PAYMENT": 2, "PICKUP": 1, "CONTRACT": 1, "QC": 2, "DISPUTE": 1}),
+    "buyer_g": (9, {"PAYMENT": 2, "PICKUP": 1, "CONTRACT": 1, "QC": 1, "DISPUTE": 0}),
 }
 # Chat threads: (farm org, buyer org, [(sender side, hours ago, text)])
 CHATS = [
@@ -139,6 +169,25 @@ POSTS = [
     ("buyers", "malee@siamfruit.example", 30, "โรงงานแปรรูปรับเกรด B ราคาเท่าไหร่กันบ้างคะ",
      "อยากทราบราคากลางมะม่วงเกรด B สำหรับแปรรูปช่วงธันวาคม เพื่อตั้งราคาเป้าหมายให้เหมาะสมค่ะ",
      [("thana@easternwholesale.example", "แถวชลบุรีอยู่ราว 30-33 บาทครับ")], []),
+    ("chanthaburi", "prasert@goldendurian.example", 3, "รถห้องเย็นแถวจันท์ ใครมีเบอร์แนะนำบ้างครับ",
+     "ล็อตทุเรียนชะนีจะส่งกรุงเทพฯ อาทิตย์หน้า อยากได้รถห้องเย็นที่ตรงเวลา ขอบคุณครับ",
+     [("somchai@greenvalley.example", "ผมใช้เจ้าประจำอยู่ครับ เดี๋ยวทักแชทไปให้"), ("wilai@sunrise.example", "ฝากด้วยคนค่ะ")],
+     ["somchai@greenvalley.example"]),
+    ("contracts", "boonmee@maeping.example", 12, "ถ้าผลผลิตขาดจากที่ตกลง ต้องทำยังไงในระบบ",
+     "ปีนี้ลำไยติดผลน้อย กลัวส่งไม่ครบตามสัญญา มีขั้นตอนแจ้งผู้ซื้อไหมครับ",
+     [("admin@agriguard.example", "แจ้งผลผลิตขาดได้ที่หน้าประกาศผลผลิต ระบบจะเสนอการแก้ไขสัญญาให้ผู้ซื้อแต่ละรายยอมรับ ไม่ถือเป็นการผิดสัญญาถ้าแจ้งก่อนเก็บเกี่ยว"),
+      ("somchai@greenvalley.example", "เคยใช้แล้วครับ ผู้ซื้อยอมรับภายในวันเดียว")],
+     ["somchai@greenvalley.example", "suda@chumphon.example", "wilai@sunrise.example"]),
+    ("buyers", "worawut@tfeh.example", 26, "ลำไยอีดอเกรด AA ปีหน้า เปิดรับสวนพันธมิตร",
+     "Export Hub กำลังหาสวนลำไยภาคเหนือสำหรับส่งจีน ช่วง ก.ค.–ส.ค. 2570 สนใจดูคำขอซื้อ PR-2026-005 ได้เลยครับ",
+     [("boonmee@maeping.example", "สนใจครับ ส่งข้อเสนอผ่านระบบได้เลยไหม"), ("worawut@tfeh.example", "ได้ครับ หรือทักแชทมาคุยก่อนก็ได้")],
+     ["boonmee@maeping.example", "somchai@greenvalley.example"]),
+    ("durian", "suda@chumphon.example", 48, "มังคุดผิวลายปีนี้ราคาดี ขายผ่านสัญญาล่วงหน้าคุ้มไหม",
+     "ปีนี้ลองทำ HarvestLock ครั้งแรก ได้ราคาตามตกลง ไม่โดนกดราคาตอนเก็บ เล่าให้ฟังเผื่อใครลังเลค่ะ",
+     [("prasert@goldendurian.example", "ดีครับ ผมก็ใช้มา 2 ฤดูแล้ว")], ["prasert@goldendurian.example", "napa@bkkfresh.example", "somchai@greenvalley.example"]),
+    ("buyers", "napa@bkkfresh.example", 60, "ตลาดค้าส่งต้องการเงาะสีชมพูช่วงปลายปี",
+     "Fresh Mart รับเงาะเกรด A/B 2 ตัน ส่งนครปฐม ชำระภายใน 3 วันหลังตรวจรับ ดูคำขอซื้อในระบบได้ค่ะ",
+     [("somsri@trat.example", "สวนตราดมีค่ะ เก็บกลางเดือนพฤศจิกายน")], ["somsri@trat.example"]),
     ("mango", "anan@freshfruit.example", 70, "มาตรฐานมะม่วงส่งออกญี่ปุ่นที่ต้องรู้",
      "ต้องผ่านการอบไอน้ำ (VHT) น้ำหนักผล 300-450 กรัม ผิวสวยไม่มีตำหนิเกิน 5% ฝากเกษตรกรที่สนใจครับ",
      [("somchai@greenvalley.example", "ขอบคุณครับ ปีนี้จะลองคัดเกรดตามนี้")], ["somchai@greenvalley.example", "wilai@sunrise.example"]),
@@ -190,7 +239,7 @@ def seed(db: Session) -> None:
             quantity_kg=D(kg), min_quantity_kg=D(mn), target_price=D(target), accepted_grades=grades,
             delivery_start=start, delivery_end=end, destination_province=province, payment_terms_days=days,
             expires_on=start - timedelta(days=5), status="OPEN", created_at=ago(12 - i),
-            sourcing_mode="SINGLE" if code == "PR-2026-004" else "MULTI",
+            sourcing_mode="SINGLE" if code in SINGLE_SOURCE else "MULTI", max_suppliers=MAX_SUPPLIERS.get(code),
         )
         requests[code] = r
         db.add(r)
@@ -261,9 +310,11 @@ def _seed_social(db: Session, orgs: dict) -> None:
     db.commit()
 
 
-def seed_if_empty(db: Session) -> None:
+def seed_if_empty(db: Session) -> bool:
     if db.scalar(select(Organization.id).limit(1)) is None:
         seed(db)
+        return True
+    return False
 
 
 def reset(db: Session) -> None:
