@@ -11,8 +11,11 @@ from app.routers import (
     admin,
     ai,
     auth,
+    chats,
+    community,
     contracts,
     dashboard,
+    deals,
     disputes,
     files,
     health,
@@ -27,6 +30,7 @@ from app.routers import (
     trust,
 )
 from app.seed import seed_if_empty
+from app.services.community import ensure_community
 from app.services.standards import ensure_standards
 
 
@@ -39,6 +43,7 @@ async def lifespan(_: FastAPI):
             seed_if_empty(db)
     with SessionLocal() as db:
         ensure_standards(db)
+        ensure_community(db)
     yield
 
 
@@ -51,5 +56,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for r in (health, auth, meta, admin, ai, notifications, dashboard, disputes, files, listings, purchase_requests, offers, contracts, lots, settlements, trust, history):
+for r in (health, auth, meta, admin, ai, notifications, chats, community, deals, dashboard, disputes, files, listings, purchase_requests, offers, contracts, lots, settlements, trust, history):
     app.include_router(r.router, prefix="/api")

@@ -168,7 +168,16 @@ def contract_brief(c: Contract) -> dict:
         "created_at": c.created_at,
         "settlement_net": s.net_amount if s else None,
         "settlement_status": s.status if s else None,
+        "sourcing": _sourcing_brief(c),
     }
+
+
+def _sourcing_brief(c: Contract) -> dict | None:
+    r = c.offer.purchase_request
+    if r is None:
+        return None
+    return {"request_code": r.code, "mode": r.sourcing_mode, "max_suppliers": r.max_suppliers,
+            "request_kg": r.quantity_kg}
 
 
 def inspection_out(i: QcInspection) -> dict:

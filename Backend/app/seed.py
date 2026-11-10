@@ -12,6 +12,12 @@ from sqlalchemy.orm import Session
 
 from app.db import Base
 from app.models import (
+    ChatMessage,
+    CommunityComment,
+    CommunityGroup,
+    CommunityLike,
+    CommunityPost,
+    Conversation,
     Farm,
     Offer,
     Organization,
@@ -96,6 +102,48 @@ TRUST_HISTORY = {
     "buyer_c": (20, {"PAYMENT": 3, "PICKUP": 2, "CONTRACT": 2, "QC": 2, "DISPUTE": 1}),
     "buyer_d": (12, {"PAYMENT": 5, "PICKUP": 4, "CONTRACT": 4, "QC": 3, "DISPUTE": 2}),
 }
+# Chat threads: (farm org, buyer org, [(sender side, hours ago, text)])
+CHATS = [
+    ("greenvalley", "buyer_b", [
+        ("buyer", 30, "สวัสดีครับคุณสมชาย สนใจมะม่วงน้ำดอกไม้เกรด A สำหรับส่งออกครับ"),
+        ("farmer", 29, "สวัสดีครับ ปีนี้ผลผลิตประมาณ 5 ตัน คาดว่าเกรด A ราว 60% ครับ"),
+        ("buyer", 28, "ส่งข้อเสนอ 3,000 กก. ไปแล้วนะครับ ราคาเกรด A 45 บาท รับที่กรุงเทพฯ"),
+        ("farmer", 3, "ได้รับแล้วครับ ขอดูข้อเสนอของผู้ซื้อรายอื่นก่อน แล้วจะแจ้งผลภายในวันนี้ครับ"),
+    ]),
+    ("greenvalley", "buyer_d", [
+        ("buyer", 20, "ราคาเกรด A ของเรา 50 บาทนะครับ ชำระภายใน 5 วันหลังตรวจรับ"),
+        ("buyer", 2, "ถ้าสะดวกส่งเพิ่มอีก 500 กก. เราพร้อมรับครับ"),
+    ]),
+    ("goldendurian", "buyer_e", [
+        ("buyer", 50, "สนใจทุเรียนหมอนทองทั้งล็อต 5 ตัน จากสวนเดียวค่ะ ส่งได้ครบไหมคะ"),
+        ("farmer", 48, "ได้ครับ สวนเรามีประมาณ 8 ตัน ช่วงปลายเมษาครับ"),
+    ]),
+]
+
+# Community: (group slug, author email, hours ago, title, body, [(commenter email, text)], likers)
+POSTS = [
+    ("chanthaburi", "somchai@greenvalley.example", 6, "ปีนี้ฝนมาเร็ว มะม่วงติดผลน้อยลงไหมครับ",
+     "สวนผมที่ท่าใหม่ติดผลน้อยกว่าปีก่อนราว 10% มีใครเจอเหมือนกันบ้างครับ แล้วแก้ยังไง",
+     [("wilai@sunrise.example", "ที่ระยองก็เป็นค่ะ ลองพ่นแคลเซียมโบรอนช่วงดอกบานดู ช่วยได้เยอะ"),
+      ("prasert@goldendurian.example", "ทุเรียนก็โดนครับ ปีนี้ต้องระวังเรื่องโรคด้วย")],
+     ["wilai@sunrise.example", "prasert@goldendurian.example", "anan@freshfruit.example"]),
+    ("contracts", "wilai@sunrise.example", 20, "ผู้ซื้อขอลดราคาหลังเซ็น HarvestLock ทำได้ไหม",
+     "เคยเจอผู้ซื้อโทรมาขอลดราคาตอนรถมารับของ ในแอปมีวิธีป้องกันไหมคะ",
+     [("somchai@greenvalley.example", "ใน HarvestLock ราคาถูกล็อกไว้ ถ้าจะเปลี่ยนต้องยื่นแก้ไขสัญญาและเราต้องยอมรับก่อนครับ"),
+      ("admin@agriguard.example", "ถูกต้องครับ การแก้ไขต้องได้รับความยินยอมทั้งสองฝ่าย และถ้าผู้ซื้อผิดสัญญาสามารถเปิดข้อพิพาทได้ คะแนน AgriTrust จะสะท้อนพฤติกรรมนี้")],
+     ["somchai@greenvalley.example", "prasert@goldendurian.example"]),
+    ("durian", "prasert@goldendurian.example", 40, "แชร์วิธีดูทุเรียนแก่ก่อนตัด",
+     "เคาะฟังเสียง ดูหนามปลายแห้ง และนับวันหลังดอกบาน 110-120 วันสำหรับหมอนทอง ใครมีเทคนิคเพิ่มแชร์กันครับ",
+     [("siriporn@newleaf.example", "ขอบคุณค่ะ เป็นประโยชน์กับฝั่งผู้ซื้อด้วย")],
+     ["somchai@greenvalley.example", "siriporn@newleaf.example"]),
+    ("buyers", "malee@siamfruit.example", 30, "โรงงานแปรรูปรับเกรด B ราคาเท่าไหร่กันบ้างคะ",
+     "อยากทราบราคากลางมะม่วงเกรด B สำหรับแปรรูปช่วงธันวาคม เพื่อตั้งราคาเป้าหมายให้เหมาะสมค่ะ",
+     [("thana@easternwholesale.example", "แถวชลบุรีอยู่ราว 30-33 บาทครับ")], []),
+    ("mango", "anan@freshfruit.example", 70, "มาตรฐานมะม่วงส่งออกญี่ปุ่นที่ต้องรู้",
+     "ต้องผ่านการอบไอน้ำ (VHT) น้ำหนักผล 300-450 กรัม ผิวสวยไม่มีตำหนิเกิน 5% ฝากเกษตรกรที่สนใจครับ",
+     [("somchai@greenvalley.example", "ขอบคุณครับ ปีนี้จะลองคัดเกรดตามนี้")], ["somchai@greenvalley.example", "wilai@sunrise.example"]),
+]
+
 FAIL_NOTES = {
     "PAYMENT": "ชำระเงินล่าช้ากว่ากำหนด",
     "PICKUP": "มารับสินค้าช้ากว่านัด",
@@ -172,9 +220,43 @@ def seed(db: Session) -> None:
                     occurred_at=when,
                 ))
     db.commit()
-    from app.services.standards import ensure_standards  # local import avoids a cycle
+    from app.services.community import ensure_community  # local imports avoid a cycle
+    from app.services.standards import ensure_standards
 
     ensure_standards(db)
+    ensure_community(db)
+    _seed_social(db, orgs)
+
+
+def _hours(h: float) -> datetime:
+    return datetime.now(timezone.utc) - timedelta(hours=h)
+
+
+def _seed_social(db: Session, orgs: dict) -> None:
+    people = {u.email: u for u in db.scalars(select(User))}
+    first_user = {u.organization_id: u for u in reversed(list(people.values()))}
+    for farm, buyer, msgs in CHATS:
+        c = Conversation(farmer_org_id=orgs[farm].id, buyer_org_id=orgs[buyer].id, created_at=_hours(msgs[0][1] + 1))
+        db.add(c)
+        db.flush()
+        for side, h, text in msgs:
+            org = orgs[farm if side == "farmer" else buyer]
+            db.add(ChatMessage(conversation_id=c.id, sender_user_id=first_user[org.id].id, sender_org_id=org.id,
+                               body=text, created_at=_hours(h)))
+        c.last_message_at = _hours(msgs[-1][1])
+        # Each side has read up to its own last message.
+        c.farmer_read_at = max((_hours(h) for side, h, _ in msgs if side == "farmer"), default=None)
+        c.buyer_read_at = max((_hours(h) for side, h, _ in msgs if side == "buyer"), default=None)
+    groups = {g.slug: g for g in db.scalars(select(CommunityGroup))}
+    for slug, email, h, title, body, comments, likers in POSTS:
+        p = CommunityPost(group_id=groups[slug].id, author_user_id=people[email].id, title=title, body=body, created_at=_hours(h))
+        db.add(p)
+        db.flush()
+        for i, (who, text) in enumerate(comments):
+            db.add(CommunityComment(post_id=p.id, author_user_id=people[who].id, body=text, created_at=_hours(h - 1 - i)))
+        for who in likers:
+            db.add(CommunityLike(post_id=p.id, user_id=people[who].id))
+    db.commit()
 
 
 def seed_if_empty(db: Session) -> None:

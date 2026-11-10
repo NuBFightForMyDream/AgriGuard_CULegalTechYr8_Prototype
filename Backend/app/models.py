@@ -524,6 +524,95 @@ class AiRun(Base):
     created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
 
 
+# --- Chat and community -------------------------------------------------------------------
+
+
+class Conversation(Base):
+    """One chat thread per farm-buyer pair; deals between the pair are shown alongside it."""
+
+    __tablename__ = "conversations"
+    __table_args__ = (UniqueConstraint("farmer_org_id", "buyer_org_id", name="uq_conversations_pair"),)
+
+    id: Mapped[uuid.UUID] = pk()
+    farmer_org_id: Mapped[uuid.UUID] = fk("organizations.id")
+    buyer_org_id: Mapped[uuid.UUID] = fk("organizations.id")
+    farmer_read_at: Mapped[datetime | None] = mapped_column(TS)
+    buyer_read_at: Mapped[datetime | None] = mapped_column(TS)
+    last_message_at: Mapped[datetime | None] = mapped_column(TS, index=True)
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
+
+    farmer_org: Mapped[Organization] = relationship(foreign_keys=[farmer_org_id])
+    buyer_org: Mapped[Organization] = relationship(foreign_keys=[buyer_org_id])
+    messages: Mapped[list["ChatMessage"]] = relationship(back_populates="conversation", order_by="ChatMessage.created_at")
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id: Mapped[uuid.UUID] = pk()
+    conversation_id: Mapped[uuid.UUID] = fk("conversations.id")
+    sender_user_id: Mapped[uuid.UUID] = fk("users.id")
+    sender_org_id: Mapped[uuid.UUID] = fk("organizations.id")
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow, index=True)
+
+    conversation: Mapped[Conversation] = relationship(back_populates="messages")
+    sender: Mapped[User] = relationship()
+
+
+class CommunityGroup(Base):
+    __tablename__ = "community_groups"
+
+    id: Mapped[uuid.UUID] = pk()
+    slug: Mapped[str] = mapped_column(String(48), unique=True)
+    name: Mapped[str] = mapped_column(String(120))
+    description: Mapped[str] = mapped_column(String(255))
+    province: Mapped[str | None] = mapped_column(String(64))
+    product_type: Mapped[str | None] = mapped_column(String(32))
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
+
+
+class CommunityPost(Base):
+    __tablename__ = "community_posts"
+
+    id: Mapped[uuid.UUID] = pk()
+    group_id: Mapped[uuid.UUID] = fk("community_groups.id")
+    author_user_id: Mapped[uuid.UUID] = fk("users.id")
+    title: Mapped[str] = mapped_column(String(160))
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow, index=True)
+
+    group: Mapped[CommunityGroup] = relationship()
+    author: Mapped[User] = relationship()
+    comments: Mapped[list["CommunityComment"]] = relationship(
+        back_populates="post", order_by="CommunityComment.created_at", cascade="all, delete-orphan"
+    )
+    likes: Mapped[list["CommunityLike"]] = relationship(cascade="all, delete-orphan")
+
+
+class CommunityComment(Base):
+    __tablename__ = "community_comments"
+
+    id: Mapped[uuid.UUID] = pk()
+    post_id: Mapped[uuid.UUID] = fk("community_posts.id")
+    author_user_id: Mapped[uuid.UUID] = fk("users.id")
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
+
+    post: Mapped[CommunityPost] = relationship(back_populates="comments")
+    author: Mapped[User] = relationship()
+
+
+class CommunityLike(Base):
+    __tablename__ = "community_likes"
+    __table_args__ = (UniqueConstraint("post_id", "user_id", name="uq_community_likes_post_user"),)
+
+    id: Mapped[uuid.UUID] = pk()
+    post_id: Mapped[uuid.UUID] = fk("community_posts.id")
+    user_id: Mapped[uuid.UUID] = fk("users.id")
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
+
+
 # --- System -------------------------------------------------------------------------------
 
 
