@@ -9,12 +9,6 @@ import io
 from decimal import ROUND_FLOOR, Decimal
 
 from PIL import Image
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-
-from app.models import EvidenceFile, ProduceLot, QualityStandard, User
-from app.services.ai import client as ai
-from app.services.storage import storage
 
 PROMPT_VERSION = "qc-photo-v1"
 MAX_IMAGES = 4
@@ -51,19 +45,14 @@ product, or are not enough to judge, set can_assess to false and explain in note
 Grade shares plus reject_percent should total about 100. Write descriptions and notes in Thai."""
 
 
-def _jpeg(data: bytes) -> str:
+def to_jpeg_b64(data: bytes) -> str:
+    """Downscale to the model's useful size and re-encode as JPEG (also strips EXIF metadata)."""
     img = Image.open(io.BytesIO(data))
     img = img.convert("RGB")
     img.thumbnail((MAX_SIDE, MAX_SIDE))
     out = io.BytesIO()
     img.save(out, format="JPEG", quality=85)
     return base64.standard_b64encode(out.getvalue()).decode()
-
-
-def lot_images(db: Session, lot: ProduceLot) -> list[EvidenceFile]:
-    rows = db.scalars(select(EvidenceFile).where(EvidenceFile.entity_type == "lot", EvidenceFile.entity_id == lot.id)
-                      .order_by(EvidenceFile.created_at.desc())).all()
-    return [f for f in rows if f.content_type in SUPPORTED][:MAX_IMAGES]
 
 
 def suggested_kg(result: dict, received_kg: Decimal, grades: list[str]) -> dict:
@@ -82,27 +71,18 @@ def suggested_kg(result: dict, received_kg: Decimal, grades: list[str]) -> dict:
     return {"grades": {g: float(v) for g, v in kg.items()}, "rejected_kg": float(rejected)}
 
 
-def assess(db: Session, lot: ProduceLot, user: User) -> dict:
-    c = lot.contract
-    files = lot_images(db, lot)
-    if not files:
-        raise ValueError("ยังไม่มีภาพของล็อตนี้ (JPG/PNG/WebP) — แนบภาพที่การ์ดล็อตก่อน")
-    std = db.scalar(select(QualityStandard).where(QualityStandard.product_type == c.listing.product_type))
-    criteria = "\n".join(f"- {g['grade']}: {g['criteria']}" for g in (std.grades if std else []))
-    grades = sorted(c.terms["grade_prices"])
-    content: list[dict] = []
-    for f in files:
-        content.append({"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": _jpeg(storage().get(f.storage_key))}})
+DISCLAIMER = "คำแนะนำจาก AI จากภาพตัวอย่าง ผู้ตรวจต้องตรวจจริงและเป็นผู้ตัดสินผล"
+
+
+def photo_content(images_jpeg_b64: list[str], *, product_type: str, variety: str | None, lot_code: str, received_kg,
+                  grades: list[str], criteria: list[dict], rejection_conditions: list[str]) -> list[dict]:
+    content: list[dict] = [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b}}
+                           for b in images_jpeg_b64[:MAX_IMAGES]]
+    rules = "\n".join(f"- {g['grade']}: {g['criteria']}" for g in criteria)
     content.append({"type": "text", "text": (
-        f"Product: {c.listing.product_type} variety {c.listing.variety or '-'}. Lot {lot.code}, received "
-        f"{lot.received_kg or lot.harvested_kg} kg. Grades in this contract: {', '.join(grades)}.\n"
-        f"Platform grading criteria:\n{criteria or '- (none configured)'}\n"
-        f"Contract rejection reasons: {', '.join(c.terms.get('rejection_conditions', []))}.\n"
+        f"Product: {product_type} variety {variety or '-'}. Lot {lot_code}, received {received_kg} kg. "
+        f"Grades in this contract: {', '.join(grades)}.\n"
+        f"Platform grading criteria:\n{rules or '- (none configured)'}\n"
+        f"Contract rejection reasons: {', '.join(rejection_conditions)}.\n"
         "Estimate the share of each contract grade and the reject share from these photos.")})
-    run = ai.run(db, task="QC_PHOTO_ASSIST", prompt_version=PROMPT_VERSION, system=SYSTEM, schema=SCHEMA, content=content,
-                 entity_type="lot", entity_id=lot.id, user_id=user.id,
-                 hash_parts=(PROMPT_VERSION, lot.id, [f.sha256 for f in files], criteria))
-    received = lot.received_kg or lot.harvested_kg
-    return {**run.output, "run_id": run.id, "model": run.model, "label": "AI-suggested", "images_used": len(files),
-            "suggested_kg": suggested_kg(run.output, received, grades),
-            "disclaimer": "คำแนะนำจาก AI จากภาพตัวอย่าง ผู้ตรวจต้องตรวจจริงและเป็นผู้ตัดสินผล"}
+    return content

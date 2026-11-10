@@ -1,42 +1,51 @@
-"""Provider-neutral wrapper for structured (JSON-schema) AI answers, with audit logging.
+"""Provider-neutral structured (JSON-schema) generation: Gemini API or Claude API, with failover.
 
-Two providers: Claude API (Anthropic) and Gemini API (Google AI Studio). Callers pass Anthropic-style content
-blocks ({"type": "text"} / {"type": "image", "source": {...base64}}); each provider adapter converts them.
-Every call: fixed system prompt, JSON-schema output, refusal/safety and max-token handling, and an AiRun row
-(model, prompt version, input hash, output) so AI output is traceable.
+Callers pass Anthropic-style content blocks ({"type": "text"} / {"type": "image", "source": {...base64}}); each
+provider adapter converts them. Every call: fixed system prompt, JSON-schema output, refusal/safety and max-token
+handling, and clear Thai error messages. Logging the call is the caller's job (Backend: ai_runs table).
 """
 
 import base64
 import hashlib
 import json
 import re
-import uuid
+from dataclasses import dataclass
 
 import anthropic
 from google import genai
 from google.genai import errors as genai_errors
 from google.genai import types as genai_types
-from sqlalchemy.orm import Session
 
-from app.config import settings
-from app.models import AiRun
+from agriguard_ai.config import settings
 
 
 class AIUnavailable(Exception):
-    """No API key configured, or the API could not be reached."""
+    """No API key configured, or the provider could not answer."""
 
 
 class AIRefused(Exception):
-    """The model declined (after server-side fallback)."""
+    """The model declined (safety filter / refusal). Not retried on another provider."""
+
+
+@dataclass
+class Generation:
+    data: dict
+    model: str
+    input_tokens: int | None = None
+    output_tokens: int | None = None
 
 
 _client: anthropic.Anthropic | None = None
 _gemini: genai.Client | None = None
 
 
+def _key(p: str) -> str | None:
+    return settings.anthropic_api_key if p == "anthropic" else settings.gemini_api_key
+
+
 def provider() -> str | None:
     if settings.ai_provider in ("anthropic", "gemini"):
-        return settings.ai_provider if (settings.anthropic_api_key if settings.ai_provider == "anthropic" else settings.gemini_api_key) else None
+        return settings.ai_provider if _key(settings.ai_provider) else None
     if settings.anthropic_api_key:
         return "anthropic"
     if settings.gemini_api_key:
@@ -53,24 +62,6 @@ def model_name() -> str | None:
     return {"anthropic": settings.ai_model, "gemini": settings.gemini_model}.get(p) if p else None
 
 
-def _get_client() -> anthropic.Anthropic:
-    global _client
-    if _client is None:
-        _client = anthropic.Anthropic(api_key=settings.anthropic_api_key, max_retries=2, timeout=120)
-    return _client
-
-
-def _get_gemini() -> genai.Client:
-    global _gemini
-    if _gemini is None:
-        _gemini = genai.Client(api_key=settings.gemini_api_key)
-    return _gemini
-
-
-def _key(p: str) -> str | None:
-    return settings.anthropic_api_key if p == "anthropic" else settings.gemini_api_key
-
-
 def providers_in_order() -> list[str]:
     """Primary provider first, then the other one if its key is set (failover, e.g. Gemini free quota -> Claude)."""
     first = provider()
@@ -79,8 +70,16 @@ def providers_in_order() -> list[str]:
     return [first] + [p for p in ("anthropic", "gemini") if p != first and _key(p)]
 
 
+def generate(system: str, content: list[dict], schema: dict) -> Generation:
+    """One structured answer from the configured provider(s)."""
+    if not available():
+        raise AIUnavailable("ยังไม่ได้ตั้งค่า AI (GEMINI_API_KEY หรือ ANTHROPIC_API_KEY)")
+    data, model, tin, tout = _call(system, content, schema)
+    return Generation(data, model, tin, tout)
+
+
 def _call(system: str, content: list[dict], schema: dict) -> tuple[dict, str, int | None, int | None]:
-    """One structured request, with failover to the other provider. Tests replace this to avoid the network."""
+    """Try each provider in order. Tests replace this to avoid the network."""
     last: AIUnavailable | None = None
     for p in providers_in_order():
         try:
@@ -113,6 +112,45 @@ def _guarded(p: str, system: str, content: list[dict], schema: dict) -> tuple[di
         raise AIUnavailable(f"Gemini ตอบกลับผิดพลาด ({code})") from e
     except (json.JSONDecodeError, StopIteration) as e:
         raise AIUnavailable("อ่านคำตอบของ AI ไม่ได้") from e
+
+
+# --- Claude ------------------------------------------------------------------------------------
+
+def _get_client() -> anthropic.Anthropic:
+    global _client
+    if _client is None:
+        _client = anthropic.Anthropic(api_key=settings.anthropic_api_key, max_retries=2, timeout=120)
+    return _client
+
+
+def _call_anthropic(system: str, content: list[dict], schema: dict) -> tuple[dict, str, int | None, int | None]:
+    response = _get_client().beta.messages.create(
+        model=settings.ai_model,
+        max_tokens=16000,
+        system=system,
+        messages=[{"role": "user", "content": content}],
+        output_config={"effort": settings.ai_effort, "format": {"type": "json_schema", "schema": schema}},
+        betas=["server-side-fallback-2026-07-01"],
+        fallbacks="default",
+    )
+    if response.stop_reason == "refusal":
+        raise AIRefused("AI ปฏิเสธคำขอนี้")
+    if response.stop_reason == "max_tokens":
+        raise AIUnavailable("คำตอบของ AI ยาวเกินกำหนด")
+    text = next((b.text for b in response.content if b.type == "text"), None)
+    if text is None:
+        raise AIUnavailable("AI ไม่ได้ส่งคำตอบกลับมา")
+    usage = response.usage
+    return json.loads(text), response.model, getattr(usage, "input_tokens", None), getattr(usage, "output_tokens", None)
+
+
+# --- Gemini ------------------------------------------------------------------------------------
+
+def _get_gemini() -> genai.Client:
+    global _gemini
+    if _gemini is None:
+        _gemini = genai.Client(api_key=settings.gemini_api_key)
+    return _gemini
 
 
 def gemini_parts(content: list[dict]) -> list:
@@ -157,43 +195,10 @@ def _call_gemini(system: str, content: list[dict], schema: dict) -> tuple[dict, 
             getattr(usage, "prompt_token_count", None), getattr(usage, "candidates_token_count", None))
 
 
-def _call_anthropic(system: str, content: list[dict], schema: dict) -> tuple[dict, str, int | None, int | None]:
-    response = _get_client().beta.messages.create(
-        model=settings.ai_model,
-        max_tokens=16000,
-        system=system,
-        messages=[{"role": "user", "content": content}],
-        output_config={"effort": settings.ai_effort, "format": {"type": "json_schema", "schema": schema}},
-        betas=["server-side-fallback-2026-07-01"],
-        fallbacks="default",
-    )
-    if response.stop_reason == "refusal":
-        raise AIRefused("AI ปฏิเสธคำขอนี้")
-    if response.stop_reason == "max_tokens":
-        raise AIUnavailable("คำตอบของ AI ยาวเกินกำหนด")
-    text = next((b.text for b in response.content if b.type == "text"), None)
-    if text is None:
-        raise AIUnavailable("AI ไม่ได้ส่งคำตอบกลับมา")
-    usage = response.usage
-    return json.loads(text), response.model, getattr(usage, "input_tokens", None), getattr(usage, "output_tokens", None)
-
+# --- helpers -------------------------------------------------------------------------------------
 
 def input_hash(*parts) -> str:
     return hashlib.sha256(json.dumps(parts, sort_keys=True, ensure_ascii=False, default=str).encode()).hexdigest()
-
-
-def run(db: Session, *, task: str, prompt_version: str, system: str, content: list[dict], schema: dict,
-        entity_type: str | None = None, entity_id: uuid.UUID | None = None, user_id: uuid.UUID | None = None,
-        hash_parts: tuple = ()) -> AiRun:
-    if not available():
-        raise AIUnavailable("ยังไม่ได้ตั้งค่า AI (GEMINI_API_KEY หรือ ANTHROPIC_API_KEY)")
-    data, model, tin, tout = _call(system, content, schema)
-    record = AiRun(task=task, model=model, prompt_version=prompt_version, input_hash=input_hash(*hash_parts),
-                   entity_type=entity_type, entity_id=entity_id, user_id=user_id, output=data,
-                   input_tokens=tin, output_tokens=tout)
-    db.add(record)
-    db.flush()
-    return record
 
 
 _PATTERNS = [

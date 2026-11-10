@@ -16,7 +16,9 @@ services:
       retries: 10
 
   be:
-    build: ./Backend
+    build:
+      context: .
+      dockerfile: Backend/Dockerfile
     environment:
       DATABASE_URL: postgresql+psycopg://agriguard:agriguard@db:5432/agriguard
       CORS_ORIGINS: '["http://localhost:3000"]'

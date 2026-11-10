@@ -1,5 +1,8 @@
 """Approved-document retrieval for the Legal AI (RAG without an embeddings service).
 
+The documents are the Markdown files in knowledge/ (one "## " section = one citable source). Edit or add files
+there to change what the assistants may answer from; ids are "<file-stem>#<section number>".
+
 Thai has no spaces between words, so documents and queries are compared as character 3-gram TF-IDF vectors,
 which needs no Thai word segmenter and works for mixed Thai/English text.
 """
@@ -11,7 +14,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
-KNOWLEDGE_DIR = Path(__file__).resolve().parents[2] / "knowledge"
+KNOWLEDGE_DIR = Path(__file__).resolve().parent / "knowledge"
 N = 3
 
 
@@ -23,7 +26,7 @@ class Source:
     kind: str  # "policy" | "contract"
 
 
-def _grams(text: str) -> Counter:
+def grams(text: str) -> Counter:
     t = re.sub(r"\s+", " ", text.lower()).strip()
     return Counter(t[i:i + N] for i in range(max(0, len(t) - N + 1)))
 
@@ -56,7 +59,7 @@ def corpus() -> list[Source]:
 
 @lru_cache
 def _index() -> tuple[list[Counter], dict[str, float]]:
-    vectors = [_grams(s.title + " " + s.text) for s in corpus()]
+    vectors = [grams(s.title + " " + s.text) for s in corpus()]
     df = Counter(g for v in vectors for g in v)
     idf = {g: math.log((1 + len(vectors)) / (1 + c)) + 1 for g, c in df.items()}
     return vectors, idf
@@ -71,6 +74,6 @@ def _cosine(a: Counter, b: Counter, idf: dict[str, float]) -> float:
 
 def search(query: str, k: int = 5) -> list[Source]:
     vectors, idf = _index()
-    q = _grams(query)
+    q = grams(query)
     scored = sorted(zip(corpus(), (_cosine(q, v, idf) for v in vectors)), key=lambda x: x[1], reverse=True)
     return [s for s, score in scored[:k] if score > 0]

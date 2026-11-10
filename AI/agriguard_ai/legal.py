@@ -7,12 +7,8 @@ model/prompt/document versions, high-risk findings require human review. It is n
 
 from datetime import date
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-
-from app.models import AiRun, Contract, User
-from app.services.ai import client as ai
-from app.services.ai.knowledge import Source, search
+from agriguard_ai.providers import redact
+from agriguard_ai.retrieval import Source, search
 
 PROMPT_VERSION = "legal-v1"
 DISCLAIMER = "สร้างโดย AI จากเงื่อนไขสัญญาและเอกสารนโยบายที่อนุมัติเท่านั้น ไม่ใช่คำปรึกษาทางกฎหมาย ควรให้ผู้เชี่ยวชาญตรวจทานก่อนตัดสินใจ"
@@ -40,7 +36,7 @@ def contract_clauses(terms: dict) -> list[Source]:
         ("C-dispute", "การระงับข้อพิพาท", t.get("dispute_procedure") or "ไม่ระบุ"),
         ("C-law", "กฎหมายที่ใช้บังคับ", t.get("governing_law") or "ไม่ระบุ"),
     ]
-    return [Source(i, title, ai.redact(text), "contract") for i, title, text in rows]
+    return [Source(i, title, redact(text), "contract") for i, title, text in rows]
 
 
 # --- deterministic rule engine ----------------------------------------------------------------
@@ -137,11 +133,11 @@ Ground rules:
 - The platform's payments, deposits and e-signatures are simulated in this prototype; the policy documents say so."""
 
 
-def _sources_block(sources: list[Source]) -> str:
+def sources_block(sources: list[Source]) -> str:
     return "\n".join(f"[{s.id}] {s.title}: {s.text}" for s in sources)
 
 
-def _cite(source_ids: list[str], sources: list[Source]) -> list[dict]:
+def cite(source_ids: list[str], sources: list[Source]) -> list[dict]:
     by_id = {s.id: s for s in sources}
     seen, out = set(), []
     for sid in source_ids:
@@ -152,73 +148,59 @@ def _cite(source_ids: list[str], sources: list[Source]) -> list[dict]:
     return out
 
 
-def review(db: Session, c: Contract, user: User, buyer_trust: dict, refresh: bool = False) -> dict:
-    terms = c.terms
-    rules = rule_findings(terms, buyer_trust)
-    base = {
-        "contract_id": c.id, "version": c.current_version, "rule_findings": rules,
-        "disclaimer": DISCLAIMER, "ai": None, "ai_error": None,
-    }
-    if not ai.available():
-        base["ai_error"] = "ยังไม่ได้ตั้งค่า AI (GEMINI_API_KEY หรือ ANTHROPIC_API_KEY) — แสดงเฉพาะผลตรวจจากกฎ"
-        base["human_review_required"] = any(r["severity"] == "high" for r in rules)
-        return base
+NO_AI_REVIEW = "ยังไม่ได้ตั้งค่า AI (GEMINI_API_KEY หรือ ANTHROPIC_API_KEY) — แสดงเฉพาะผลตรวจจากกฎ"
+NO_AI_ANSWER = "ยังไม่ได้ตั้งค่า AI (GEMINI_API_KEY หรือ ANTHROPIC_API_KEY) — แสดงเอกสารที่เกี่ยวข้องแทน"
 
-    clauses = contract_clauses(terms)
+
+# --- contract review -----------------------------------------------------------------------------
+
+def review_sources(terms: dict) -> list[Source]:
     policies = search("สัญญา ราคา ส่งมอบ ตรวจคุณภาพ ปฏิเสธ ชำระเงิน ยกเลิก ข้อพิพาท ผลผลิตขาด แก้ไขสัญญา", k=6)
-    sources = clauses + policies
-    key = (PROMPT_VERSION, c.id, terms, [r["code"] for r in rules], [s.id for s in policies])
-    cached = None if refresh else db.scalar(
-        select(AiRun).where(AiRun.task == "CONTRACT_REVIEW", AiRun.entity_id == c.id, AiRun.input_hash == ai.input_hash(*key))
-        .order_by(AiRun.created_at.desc()))
-    try:
-        run = cached or ai.run(
-            db, task="CONTRACT_REVIEW", prompt_version=PROMPT_VERSION, system=SYSTEM, schema=REVIEW_SCHEMA,
-            entity_type="contract", entity_id=c.id, user_id=user.id, hash_parts=key,
-            content=[{"type": "text", "text": (
-                f"SOURCES:\n{_sources_block(sources)}\n\n"
-                f"RULE-ENGINE FINDINGS (already shown to the user, do not repeat them as new risks): "
-                f"{'; '.join(r['message'] for r in rules) or 'none'}\n\n"
-                "Review this HarvestLock agreement for both parties. Give: a 2-3 sentence summary; a plain-language "
-                "explanation a farmer can follow; the key terms with their clause ids; risks or unclear points with "
-                "who they affect and what to check (cite ids); and questions each party should confirm before signing "
-                "or delivering.")}],
-        )
-    except (ai.AIUnavailable, ai.AIRefused) as e:
-        base["ai_error"] = str(e)
-        base["human_review_required"] = any(r["severity"] == "high" for r in rules)
-        return base
-    out = dict(run.output)
-    out["key_terms"] = [{**k, "citations": _cite(k["source_ids"], sources)} for k in out.get("key_terms", [])]
-    out["risks"] = [{**r, "citations": _cite(r["source_ids"], sources)} for r in out.get("risks", [])]
-    base["ai"] = {**out, "model": run.model, "prompt_version": run.prompt_version, "run_id": run.id,
-                  "generated_at": run.created_at, "cached": cached is not None, "label": "AI-generated"}
-    base["human_review_required"] = any(r["severity"] == "high" for r in rules) or any(
-        r["severity"] == "high" for r in out.get("risks", []))
-    return base
+    return contract_clauses(terms) + policies
 
 
-def ask(db: Session, question: str, user: User, c: Contract | None = None) -> dict:
-    question = ai.redact(question.strip())
-    clauses = contract_clauses(c.terms) if c else []
-    policies = search(question, k=5)
-    sources = clauses + policies
-    if not ai.available():
-        return {"answer": None, "found": False, "citations": [_cite([s.id], sources)[0] for s in policies[:3]],
-                "ai_error": "ยังไม่ได้ตั้งค่า AI (GEMINI_API_KEY หรือ ANTHROPIC_API_KEY) — แสดงเอกสารที่เกี่ยวข้องแทน", "disclaimer": DISCLAIMER}
-    try:
-        run = ai.run(
-            db, task="LEGAL_QA", prompt_version=PROMPT_VERSION, system=SYSTEM, schema=ANSWER_SCHEMA,
-            entity_type="contract" if c else None, entity_id=c.id if c else None, user_id=user.id,
-            hash_parts=(PROMPT_VERSION, question, [s.id for s in sources]),
-            content=[{"type": "text", "text": (
-                f"SOURCES:\n{_sources_block(sources) or '(none)'}\n\nQUESTION from a {user.role.lower()}: {question}\n\n"
-                "Answer in Thai in at most 6 sentences using only SOURCES, citing ids. If the sources do not cover it, "
-                "set found=false and say what document or person could answer it.")}],
-        )
-    except (ai.AIUnavailable, ai.AIRefused) as e:
-        return {"answer": None, "found": False, "citations": [], "ai_error": str(e), "disclaimer": DISCLAIMER}
-    out = run.output
-    citations = _cite(out.get("source_ids", []), sources)
-    return {"answer": out.get("answer"), "found": bool(out.get("found")) and bool(citations), "citations": citations,
-            "model": run.model, "run_id": run.id, "label": "AI-generated", "disclaimer": DISCLAIMER, "ai_error": None}
+def review_content(sources: list[Source], rules: list[dict]) -> list[dict]:
+    return [{"type": "text", "text": (
+        f"SOURCES:\n{sources_block(sources)}\n\n"
+        f"RULE-ENGINE FINDINGS (already shown to the user, do not repeat them as new risks): "
+        f"{'; '.join(r['message'] for r in rules) or 'none'}\n\n"
+        "Review this HarvestLock agreement for both parties. Give: a 2-3 sentence summary; a plain-language "
+        "explanation a farmer can follow; the key terms with their clause ids; risks or unclear points with "
+        "who they affect and what to check (cite ids); and questions each party should confirm before signing "
+        "or delivering.")}]
+
+
+def review_result(output: dict, sources: list[Source]) -> dict:
+    """Attach validated citations; ids the model invented are dropped."""
+    out = dict(output)
+    out["key_terms"] = [{**k, "citations": cite(k["source_ids"], sources)} for k in out.get("key_terms", [])]
+    out["risks"] = [{**r, "citations": cite(r["source_ids"], sources)} for r in out.get("risks", [])]
+    return out
+
+
+def needs_human_review(rules: list[dict], ai_output: dict | None) -> bool:
+    return any(r["severity"] == "high" for r in rules) or any(
+        r["severity"] == "high" for r in (ai_output or {}).get("risks", []))
+
+
+# --- questions -------------------------------------------------------------------------------------
+
+def ask_sources(question: str, terms: dict | None) -> list[Source]:
+    return (contract_clauses(terms) if terms else []) + search(question, k=5)
+
+
+def ask_content(sources: list[Source], role: str, question: str) -> list[dict]:
+    return [{"type": "text", "text": (
+        f"SOURCES:\n{sources_block(sources) or '(none)'}\n\nQUESTION from a {role.lower()}: {question}\n\n"
+        "Answer in Thai in at most 6 sentences using only SOURCES, citing ids. If the sources do not cover it, "
+        "set found=false and say what document or person could answer it.")}]
+
+
+def ask_result(output: dict, sources: list[Source]) -> dict:
+    citations = cite(output.get("source_ids", []), sources)
+    return {"answer": output.get("answer"), "found": bool(output.get("found")) and bool(citations), "citations": citations}
+
+
+def related_documents(sources: list[Source], k: int = 3) -> list[dict]:
+    """What to show when no AI is configured: the best-matching approved policy sections."""
+    return [cite([s.id], sources)[0] for s in sources if s.kind == "policy"][:k]

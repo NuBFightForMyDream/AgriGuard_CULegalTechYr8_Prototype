@@ -5,10 +5,11 @@ from pydantic import BaseModel, Field
 
 from app.deps import DB, CurrentUser, get_or_404
 from app.models import ProduceListing, ProduceLot
+from agriguard_ai import forecast as fc
+from agriguard_ai.providers import providers_in_order
+
 from app.routers.contracts import load_contract
-from app.services import forecast as fc
-from app.services.ai import client as ai
-from app.services.ai import legal, navigator, vision
+from app.services import ai_bridge as ai
 from app.services.inventory import listing_inventory
 from app.views import TrustCache
 
@@ -37,7 +38,7 @@ def status(user: CurrentUser):
         "available": ai.available(),
         "provider": ai.provider(),
         "model": ai.model_name(),
-        "failover": ai.providers_in_order()[1:],
+        "failover": providers_in_order()[1:],
         "features": {
             "contract_review": "rule engine always; AI summary when available",
             "legal_qa": "answers only from contract clauses and approved policy documents",
@@ -50,7 +51,7 @@ def status(user: CurrentUser):
 @router.post("/legal/contracts/{contract_id}/review")
 def review_contract(contract_id: uuid.UUID, db: DB, user: CurrentUser, refresh: bool = False):
     c = load_contract(db, user, contract_id)
-    out = legal.review(db, c, user, TrustCache(db).summary(c.buyer_org_id), refresh=refresh)
+    out = ai.review_contract(db, c, user, TrustCache(db).summary(c.buyer_org_id), refresh=refresh)
     db.commit()
     return out
 
@@ -58,7 +59,7 @@ def review_contract(contract_id: uuid.UUID, db: DB, user: CurrentUser, refresh: 
 @router.post("/legal/ask")
 def ask(payload: Question, db: DB, user: CurrentUser):
     c = load_contract(db, user, payload.contract_id) if payload.contract_id else None
-    out = legal.ask(db, payload.question, user, c)
+    out = ai.ask(db, payload.question, user, c)
     db.commit()
     return out
 
@@ -70,7 +71,7 @@ def ai_grade(lot_id: uuid.UUID, db: DB, user: CurrentUser):
     if not (user.role == "INSPECTOR" or (user.role == "BUYER" and user.organization_id == c.buyer_org_id)):
         raise HTTPException(403, "เฉพาะผู้ตรวจคุณภาพหรือผู้ซื้อของสัญญานี้")
     try:
-        out = vision.assess(db, lot, user)
+        out = ai.photo_assist(db, lot, user)
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
     except (ai.AIUnavailable, ai.AIRefused) as e:
@@ -90,6 +91,6 @@ def listing_forecast(listing_id: uuid.UUID, db: DB, user: CurrentUser):
 @router.post("/assistant/chat")
 def nav_chat(payload: ChatIn, db: DB, user: CurrentUser):
     """Navigation chatbot: reply + up to 3 links, drawn only from this user's allowed pages and pending tasks."""
-    out = navigator.chat(db, user, payload.message, [t.model_dump() for t in payload.history], payload.current_path)
+    out = ai.nav_chat(db, user, payload.message, [t.model_dump() for t in payload.history], payload.current_path)
     db.commit()
     return out

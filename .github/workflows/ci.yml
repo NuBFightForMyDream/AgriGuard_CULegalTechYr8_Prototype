@@ -31,6 +31,18 @@ jobs:
           DATABASE_URL: postgresql+psycopg://agriguard:agriguard@localhost:5432/agriguard
         run: uv run alembic upgrade head && uv run alembic check
 
+  ai:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: AI
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - name: AI package tests (no network, no database)
+        run: uv run python -m pytest -q
+
   frontend:
     runs-on: ubuntu-latest
     defaults:
