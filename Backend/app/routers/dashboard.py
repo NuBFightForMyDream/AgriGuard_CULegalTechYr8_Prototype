@@ -44,6 +44,16 @@ def _outstanding(contracts):
                 if c.settlement and c.settlement.status != "PAID"), Z)
 
 
+def _farm_reliability(db, org_id) -> dict:
+    """Share of the farm's finished contracts that completed; None until there is enough history (same rule as AgriTrust)."""
+    rows = db.scalars(select(Contract.order_status).where(Contract.farmer_org_id == org_id)).all()
+    done = sum(1 for s in rows if s == "COMPLETED")
+    failed = sum(1 for s in rows if s in ("CANCELLED", "DISPUTED"))
+    finished = done + failed
+    return {"completed_contracts": done,
+            "reliability": None if finished < trust.MIN_TRANSACTIONS else round(trust.smoothed(done, finished), 1)}
+
+
 @router.get("/dashboard")
 def dashboard(db: DB, user: CurrentUser):
     expire_reservations(db)
@@ -69,6 +79,7 @@ def dashboard(db: DB, user: CurrentUser):
                 "active_orders": sum(1 for c in active if c.order_status != "AWAITING_CONFIRMATION"),
                 "expected_revenue": sum((c.quantity_kg * Decimal(str(top_price(c.offer))) for c in contracts), Z),
                 "payments_pending": _outstanding(contracts),
+                **_farm_reliability(db, user.organization_id),
             },
             "allocation_chart": [
                 {"code": listing.code, "product_type": listing.product_type, "variety": listing.variety,
@@ -86,7 +97,7 @@ def dashboard(db: DB, user: CurrentUser):
 
     if user.role == "BUYER":
         requests = db.scalars(select(PurchaseRequest).where(
-            PurchaseRequest.buyer_org_id == user.organization_id, PurchaseRequest.status == "OPEN")).all()
+            PurchaseRequest.buyer_org_id == user.organization_id, PurchaseRequest.status.in_(("OPEN", "PARTIALLY_FILLED")))).all()
         listings = db.scalars(select(ProduceListing)).all()
         cache: dict = {}
         matched = {listing.id for r in requests for listing in listings
@@ -104,6 +115,7 @@ def dashboard(db: DB, user: CurrentUser):
                 "incoming_deliveries": sum(1 for lot in lots if lot.status == "IN_TRANSIT"),
                 "pending_inspections": sum(1 for c in active if c.order_status == "QC_PENDING"),
                 "payment_obligations": _outstanding(contracts),
+                "order_value": sum((c.quantity_kg * Decimal(str(top_price(c.offer))) for c in contracts), Z),
             },
             "trust": {k: profile[k] for k in ("score", "band", "insufficient_data", "transactions")},
             "orders": [contract_brief(c) for c in active[:8]],

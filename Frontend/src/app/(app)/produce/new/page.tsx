@@ -55,7 +55,7 @@ export default function NewListingPage() {
           <Field label="ปริมาณประมาณการ (กก.)" hint="ประมาณการ ไม่ใช่ปริมาณที่รับประกัน">
             <Input name="estimated_qty_kg" type="number" min="1" step="1" required />
           </Field>
-          <Field label="เกรดที่คาดว่าจะได้">
+          <Field label="เกรดที่คาดว่าจะได้" group>
             <div className="flex flex-wrap gap-2 pt-1">
               {spec?.grades.map((g) => (
                 <button

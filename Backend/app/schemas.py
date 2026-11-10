@@ -57,6 +57,8 @@ class PurchaseRequestCreate(BaseModel):
     destination_province: str
     payment_terms_days: int = Field(default=3, ge=0, le=90)
     expires_on: date | None = None
+    sourcing_mode: Literal["SINGLE", "MULTI"] = "MULTI"
+    max_suppliers: int | None = Field(default=None, ge=2, le=20)
 
     _product = field_validator("product_type")(_check_product)
     _grades = field_validator("accepted_grades")(_check_grades)
@@ -74,6 +76,10 @@ class PurchaseRequestCreate(BaseModel):
             raise ValueError("วันสิ้นสุดรับสินค้าต้องไม่ก่อนวันเริ่ม")
         if self.min_quantity_kg and self.min_quantity_kg > self.quantity_kg:
             raise ValueError("ปริมาณขั้นต่ำต้องไม่เกินปริมาณที่ต้องการ")
+        if self.sourcing_mode == "SINGLE":
+            # One supplier must deliver the full quantity.
+            self.min_quantity_kg = self.quantity_kg
+            self.max_suppliers = None
         return self
 
 

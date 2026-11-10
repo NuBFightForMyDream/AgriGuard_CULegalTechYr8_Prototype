@@ -14,7 +14,9 @@ export function OfferDialog({ listing, request, onClose }: { listing: Listing | 
   if (!listing) return null;
 
   const grades = listing.expected_grades.filter((g) => !request || request.accepted_grades.includes(g));
-  const defaultQty = Math.min(request?.quantity_kg ?? listing.inventory.available_kg, listing.inventory.available_kg || listing.estimated_qty_kg);
+  const single = request?.sourcing_mode === "SINGLE";
+  const wanted = request?.fill ? Number(request.fill.remaining_kg) : request?.quantity_kg;
+  const defaultQty = single ? Number(request!.quantity_kg) : Math.min(wanted ?? listing.inventory.available_kg, listing.inventory.available_kg || listing.estimated_qty_kg);
   const priceFor = (g: string, i: number) => prices[g] ?? (i === 0 && request?.target_price ? String(request.target_price) : "");
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
@@ -49,12 +51,16 @@ export function OfferDialog({ listing, request, onClose }: { listing: Listing | 
         {request && <> · สำหรับคำขอ {request.code}</>}
       </div>
       <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
-        <Field label="ปริมาณที่เสนอซื้อ (กก.)">
-          <Input name="quantity_kg" type="number" min="1" step="10" defaultValue={defaultQty} required />
+        <Field label="ปริมาณที่เสนอซื้อ (กก.)" hint={single ? "ซื้อจากผู้ขายรายเดียว: ต้องเต็มจำนวนของคำขอ" : request?.fill ? `ยังขาดอยู่ ${Number(request.fill.remaining_kg).toLocaleString("th-TH")} กก.` : undefined}>
+          <Input name="quantity_kg" type="number" min="1" step="10" defaultValue={defaultQty} readOnly={single} required />
         </Field>
-        <Field label="ปริมาณขั้นต่ำที่รับได้ (กก.)" hint="ถ้าได้รับจัดสรรน้อยกว่านี้จะไม่รับ">
-          <Input name="min_quantity_kg" type="number" min="0" step="10" defaultValue={request?.min_quantity_kg ?? ""} />
-        </Field>
+        {single ? (
+          <Field label="ปริมาณขั้นต่ำที่รับได้"><Input value="เต็มจำนวน (สวนแบ่งให้บางส่วนไม่ได้)" disabled /></Field>
+        ) : (
+          <Field label="ปริมาณขั้นต่ำที่รับได้ (กก.)" hint="ถ้าได้รับจัดสรรน้อยกว่านี้จะไม่รับ">
+            <Input name="min_quantity_kg" type="number" min="0" step="10" defaultValue={request?.min_quantity_kg ?? ""} />
+          </Field>
+        )}
         <div className="sm:col-span-2">
           <div className="mb-1 text-sm font-medium text-slate-700">ราคาต่อกิโลกรัมตามเกรด (บาท) — เว้นว่างเกรดที่ไม่รับ</div>
           <div className="grid gap-3 sm:grid-cols-3">

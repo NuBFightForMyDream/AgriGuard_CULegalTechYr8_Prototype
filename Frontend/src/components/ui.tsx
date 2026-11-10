@@ -2,6 +2,7 @@
 
 import { Loader2, X } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import type { Tone } from "@/lib/labels";
 
@@ -47,7 +48,7 @@ export function Button({ variant = "primary", size = "md", loading, className, c
   return (
     <button
       className={cx(
-        "inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-colors disabled:cursor-not-allowed",
+        "inline-flex items-center justify-center gap-1.5 rounded-xl font-medium transition-colors disabled:cursor-not-allowed",
         size === "sm" ? "px-2.5 py-1.5 text-sm" : "px-4 py-2 text-sm",
         VARIANTS[variant],
         className,
@@ -66,7 +67,7 @@ export function LinkButton({ href, variant = "primary", size = "md", className, 
     <Link
       href={href}
       className={cx(
-        "inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-colors",
+        "inline-flex items-center justify-center gap-1.5 rounded-xl font-medium transition-colors",
         size === "sm" ? "px-2.5 py-1.5 text-sm" : "px-4 py-2 text-sm",
         VARIANTS[variant ?? "primary"],
         className,
@@ -79,14 +80,14 @@ export function LinkButton({ href, variant = "primary", size = "md", className, 
 
 export function Card({ title, action, children, className, bodyClassName }: { title?: React.ReactNode; action?: React.ReactNode; children: React.ReactNode; className?: string; bodyClassName?: string }) {
   return (
-    <section className={cx("min-w-0 rounded-xl border border-slate-200 bg-white", className)}>
+    <section className={cx("min-w-0 rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.03]", className)}>
       {(title || action) && (
         <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-5 py-3.5">
           <h2 className="text-[15px] font-semibold text-slate-900">{title}</h2>
           {action}
         </header>
       )}
-      <div className={cx("p-5", bodyClassName)}>{children}</div>
+      <div className={bodyClassName ?? "p-5"}>{children}</div>
     </section>
   );
 }
@@ -106,7 +107,7 @@ export function PageHeader({ title, subtitle, actions, eyebrow }: { title: React
 
 export function Stat({ label, value, hint, icon, tone }: { label: string; value: React.ReactNode; hint?: React.ReactNode; icon?: React.ReactNode; tone?: "default" | "warn" }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-900/[0.03]">
       <div className="flex items-center justify-between text-sm text-slate-500">
         <span>{label}</span>
         {icon && <span className={tone === "warn" ? "text-amber-500" : "text-green-700"}>{icon}</span>}
@@ -153,19 +154,21 @@ export function ErrorState({ error }: { error: Error }) {
   );
 }
 
-export function Field({ label, hint, error, children, className }: { label: string; hint?: React.ReactNode; error?: string | null; children: React.ReactNode; className?: string }) {
+export function Field({ label, hint, error, children, className, group }: { label: string; hint?: React.ReactNode; error?: string | null; children: React.ReactNode; className?: string; group?: boolean }) {
+  // `group` for button groups: a <label> would forward clicks to (and name) only the first button.
+  const Tag = group ? "div" : "label";
   return (
-    <label className={cx("block text-sm", className)}>
+    <Tag className={cx("block text-sm", className)} {...(group ? { role: "group", "aria-label": label } : {})}>
       <span className="mb-1 block font-medium text-slate-700">{label}</span>
       {children}
       {hint && !error && <span className="mt-1 block text-xs text-slate-500">{hint}</span>}
       {error && <span className="mt-1 block text-xs text-red-600">{error}</span>}
-    </label>
+    </Tag>
   );
 }
 
 const inputCls =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-700/20 disabled:bg-slate-50";
+  "w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-700/20 disabled:bg-slate-50";
 
 export const Input = (p: React.InputHTMLAttributes<HTMLInputElement>) => <input {...p} className={cx(inputCls, p.className)} />;
 export const Select = (p: React.SelectHTMLAttributes<HTMLSelectElement>) => <select {...p} className={cx(inputCls, p.className)} />;
@@ -258,17 +261,88 @@ export const Td = ({ children, className }: { children: React.ReactNode; classNa
 
 export function Tabs<T extends string>({ value, onChange, tabs }: { value: T; onChange: (v: T) => void; tabs: { value: T; label: string; count?: number }[] }) {
   return (
-    <div className="mb-4 flex flex-wrap gap-1 rounded-lg bg-slate-100 p-1 text-sm">
+    <div className="mb-4 flex flex-wrap gap-1 rounded-xl bg-slate-100 p-1 text-sm">
       {tabs.map((t) => (
         <button
           key={t.value}
           onClick={() => onChange(t.value)}
-          className={cx("rounded-md px-3 py-1.5 font-medium", value === t.value ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900")}
+          className={cx("rounded-lg px-3 py-1.5 font-medium", value === t.value ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900")}
         >
           {t.label}
           {t.count !== undefined && <span className="ml-1.5 text-xs text-slate-400">{t.count}</span>}
         </button>
       ))}
     </div>
+  );
+}
+
+const AVATAR_TONES = [
+  "bg-green-100 text-green-800",
+  "bg-sky-100 text-sky-800",
+  "bg-amber-100 text-amber-800",
+  "bg-violet-100 text-violet-800",
+  "bg-rose-100 text-rose-800",
+  "bg-teal-100 text-teal-800",
+];
+
+/** First visible letter: skips Thai leading vowels (เ แ โ ใ ไ) and bracketed prefixes. */
+export function initial(name: string): string {
+  const s = name.replace(/^[\s(]+/, "");
+  const ch = [...s].find((c) => !"เแโใไ".includes(c)) ?? "?";
+  return ch.toUpperCase();
+}
+
+export function Avatar({ name, size = "md", className, icon }: { name: string; size?: "sm" | "md" | "lg" | "xl"; className?: string; icon?: React.ReactNode }) {
+  const hash = [...name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+  const sizes = { sm: "size-8 text-sm", md: "size-10 text-base", lg: "size-12 text-lg", xl: "size-16 text-2xl" };
+  return (
+    <span className={cx("inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold", sizes[size], AVATAR_TONES[hash % AVATAR_TONES.length], className)} aria-hidden>
+      {icon ?? initial(name)}
+    </span>
+  );
+}
+
+/** Horizontal filter chips (scrolls sideways on phones). */
+export function Chips<T extends string>({ value, onChange, items, className }: { value: T; onChange: (v: T) => void; items: { value: T; label: string; count?: number }[]; className?: string }) {
+  return (
+    <div className={cx("-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0", className)} role="tablist">
+      {items.map((t) => (
+        <button
+          key={t.value}
+          role="tab"
+          aria-selected={value === t.value}
+          onClick={() => onChange(t.value)}
+          className={cx(
+            "shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium ring-1 ring-inset transition",
+            value === t.value ? "bg-green-800 text-white ring-green-800" : "bg-white text-slate-600 ring-slate-200 hover:bg-slate-50",
+          )}
+        >
+          {t.label}
+          {t.count !== undefined && <span className={cx("ml-1.5 text-xs", value === t.value ? "text-green-100" : "text-slate-400")}>{t.count}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Link tabs joining pages that share one menu item (e.g. offers + allocation). */
+export function SubNav({ items }: { items: { href: string; label: string }[] }) {
+  const pathname = usePathname();
+  return (
+    <nav className="mb-4 flex gap-1 overflow-x-auto rounded-xl bg-white p-1 shadow-sm ring-1 ring-slate-200/80 sm:w-fit" aria-label="หน้าย่อย">
+      {items.map((i) => {
+        const active = pathname === i.href || pathname.startsWith(i.href + "/");
+        return (
+          <Link
+            key={i.href}
+            href={i.href}
+            aria-current={active ? "page" : undefined}
+            className={cx("shrink-0 whitespace-nowrap rounded-lg px-4 py-1.5 text-sm font-medium", active ? "bg-green-800 text-white" : "text-slate-600 hover:bg-slate-50")}
+          >
+            {i.label}
+          </Link>
+        );
+      })}
+    </nav>
   );
 }

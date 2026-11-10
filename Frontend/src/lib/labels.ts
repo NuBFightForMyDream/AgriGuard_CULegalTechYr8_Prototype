@@ -100,7 +100,21 @@ export const OFFER_STATUS: Record<string, [string, Tone]> = {
 
 export const REQUEST_STATUS: Record<string, [string, Tone]> = {
   OPEN: ["เปิดรับ", "green"],
+  PARTIALLY_FILLED: ["ได้บางส่วน", "amber"],
+  FULFILLED: ["ได้ครบแล้ว", "blue"],
   CANCELLED: ["ยกเลิก", "gray"],
+};
+
+export const SOURCING: Record<string, { label: string; short: string; tone: Tone }> = {
+  SINGLE: { label: "ผู้ขายรายเดียว", short: "รายเดียว", tone: "violet" },
+  MULTI: { label: "หลายผู้ขาย", short: "หลายราย", tone: "blue" },
+  DIRECT: { label: "ซื้อตรงจากประกาศ", short: "ซื้อตรง", tone: "gray" },
+};
+
+export const SOURCING_TERM: Record<string, string> = {
+  SINGLE: "ผู้ขายรายเดียว — สัญญานี้ต้องส่งครบทั้งคำขอ ผู้ซื้อไม่รับข้อเสนอจากผู้ขายรายอื่นสำหรับคำขอนี้",
+  MULTI: "หลายผู้ขาย — สัญญานี้เป็นส่วนหนึ่งของปริมาณที่ผู้ซื้อต้องการ",
+  DIRECT: "ซื้อตรงจากประกาศของสวน",
 };
 
 export const LOT_STATUS: Record<string, [string, Tone]> = {
@@ -157,3 +171,48 @@ export const SIGN_METHOD: Record<string, string> = {
   PROPOSER: "ผู้เสนอแก้ไข",
   AUTHENTICATED_CLICK: "ยืนยันผ่านบัญชีที่เข้าสู่ระบบ",
 };
+
+/** Pages merged under one menu item; each page shows these as tabs. */
+export const SUBNAV = {
+  farmerOffers: [{ href: "/offers", label: "ข้อเสนอซื้อ" }, { href: "/allocation", label: "จัดสรรผลผลิต" }],
+  buyerRequests: [{ href: "/requests", label: "คำขอซื้อ" }, { href: "/offers", label: "ข้อเสนอที่ส่ง" }],
+  delivery: [{ href: "/deliveries", label: "ขนส่ง" }, { href: "/quality", label: "ผลตรวจคุณภาพ" }],
+  adminPeople: [{ href: "/admin/users", label: "ผู้ใช้และสิทธิ์" }, { href: "/admin/verification", label: "ยืนยันธุรกิจ" }],
+  adminTrust: [{ href: "/admin/risk", label: "ความเสี่ยง" }, { href: "/admin/appeals", label: "อุทธรณ์" }, { href: "/buyers", label: "คะแนนผู้ซื้อ" }],
+};
+
+/** Plain-language deal stage for chat (สถานะคู่สนทนา): collapses contract and offer states into a few words. */
+export type DealStage = "none" | "dealing" | "not_shipped" | "shipping" | "delivered" | "paying" | "done" | "problem" | "failed";
+export const DEAL_STAGE: Record<DealStage, [string, Tone]> = {
+  none: ["ยังไม่มีดีล", "gray"],
+  dealing: ["กำลังดีล", "amber"],
+  not_shipped: ["ยังไม่ส่ง", "blue"],
+  shipping: ["กำลังส่ง", "violet"],
+  delivered: ["ส่งแล้ว", "lime"],
+  paying: ["ส่งแล้ว · รอจ่ายเงิน", "amber"],
+  done: ["ดีลสำเร็จ", "green"],
+  problem: ["มีปัญหา", "red"],
+  failed: ["ดีลไม่สำเร็จ", "gray"],
+};
+const CONTRACT_STAGE: Record<string, DealStage> = {
+  AWAITING_CONFIRMATION: "dealing",
+  CONFIRMED: "not_shipped",
+  HARVESTED: "not_shipped",
+  IN_TRANSIT: "shipping",
+  DELIVERED: "delivered",
+  QC_PENDING: "delivered",
+  QC_ACCEPTED: "delivered",
+  PAYMENT_PENDING: "paying",
+  PAID: "paying",
+  COMPLETED: "done",
+  PAYMENT_OVERDUE: "problem",
+  QC_DISPUTED: "problem",
+  DISPUTED: "problem",
+  CANCELLED: "failed",
+  RESERVATION_EXPIRED: "failed",
+};
+export function dealStage(deal: { kind: "contract" | "offer"; status: string } | null | undefined): DealStage {
+  if (!deal) return "none";
+  if (deal.kind === "offer") return deal.status === "PENDING" ? "dealing" : deal.status === "ALLOCATED" ? "dealing" : "failed";
+  return CONTRACT_STAGE[deal.status] ?? "dealing";
+}

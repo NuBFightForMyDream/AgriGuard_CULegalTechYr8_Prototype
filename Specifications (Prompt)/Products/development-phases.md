@@ -43,16 +43,43 @@ Every step of the demo scenario (overall_flow §20) runs through the API and is 
 
 **Verification:** 48 backend tests (unit, end-to-end, auth, migrations, disputes, amendments, lots/files, admin) plus headless-browser runs of the demo, dispute, amendment, multi-lot/QR and admin flows.
 
+## Buyer sourcing mode
+
+When creating a purchase request the buyer chooses how many suppliers to deal with:
+
+| Mode | Rules |
+| --- | --- |
+| **SINGLE** (ผู้ขายรายเดียว) | Matching only shows farms that can supply the full quantity; offers must be for the full quantity and cannot be split by the farm. The buyer may send offers to several farms to compare, but signing a HarvestLock with one closes the request: other pending offers are withdrawn and other unsigned reservations are released automatically (audited). |
+| **MULTI** (หลายผู้ขาย) | Buyer can split across farms, optionally capped (`max_suppliers` ≥ 2). Offers cannot exceed what is still missing. The request moves OPEN → PARTIALLY_FILLED → FULFILLED as HarvestLocks are signed; when it is full or the cap is reached, remaining offers/reservations are closed. |
+
+The mode is written into every HarvestLock (`sourcing_mode` term), shown in the contract document and read by the Legal AI (clause `C-sourcing`). API: `sourcing_mode` / `max_suppliers` on `POST /api/purchase-requests`; `fill`, `accepting_offers` on request responses.
+
+## App redesign: chat, status and community
+
+The UI follows the team's hand-drawn sketch (mobile first, adapted to desktop):
+
+| Screen | Phone | Desktop |
+| --- | --- | --- |
+| Home (`/dashboard`) | Greeting card with income, contracts and credit % tiles; two big buttons (create listing/request, Status); shortcut grid; to-do alerts; deal cards | Same content in a wider grid, plus the charts and activity feed |
+| Search (`/marketplace` farmer, `/farms` buyer) | Picture cards (illustrated produce cover, match % pill), search box, product chips, chat button | Three-column grid |
+| Chat (`/chat`) | AgriBot pinned on top, then one thread per farm–buyer pair with unread count and the pair's deal status; a thread opens full screen | List and thread side by side |
+| Status (`/status`) | Tabs **Status** (deal cards with a clickable 12-step purchase flow, "ขั้นที่ 9/12 · สรุปยอดแล้ว": opens every step with its date, who acts, what is next and all audit events recorded in that step; sourcing mode chip, red frame for problem states, filters) and **หา Deal** (best-fit requests for farmers; best-fit farms per open request for buyers) | Same, multi-column |
+| Community (`/community`) | Group chips, new/top sort, search, posts with likes and comments | Group list on the left |
+
+Navigation: a bottom tab bar on phones (home, search, chat, status, community; the chat button is raised) and a sidebar on desktop (main menu + tools). The tools list is kept short (about six items per role); related pages share one item and show tabs at the top (offers + allocation, requests + sent offers, deliveries + QC results, users + business verification, risk + appeals + buyer scores). Contracts are reached from Status; AgriBot is pinned in Chat (floating on desktop, in the tools list for inspectors and admins).
+
+Chat rules: only between a farm and a buyer organization (`conversations` is unique per pair); the latest contract, else the latest offer, is the thread's status chip. Community: default groups are created at startup; anyone signed in can post, comment and like; authors and admins can delete. Chat and community content is not moderated automatically yet; agreements made in chat are not binding until they become a HarvestLock. API: `/api/chats`, `/api/chats/{id}/messages`, `/api/chats/unread`, `/api/chats/contacts`, `/api/community/*`, `/api/deals/suggestions`.
+
 ## AI features (roadmap Phase 3, started)
 
 | Feature | What it does | Guardrails |
 | --- | --- | --- |
 | Legal AI (contract review + Q&A) | Rule engine checks required/risky clauses; the configured model (Gemini `gemini-3.8-flash` via `GEMINI_API_KEY`, or Claude `claude-opus-5-5` via `ANTHROPIC_API_KEY`) summarises in plain Thai, lists risks and answers questions | Grounded only in the contract's clauses and approved policy documents (`Backend/app/knowledge/`); every point cites a real source id, invented ids are dropped; "not found" instead of guessing; personal data redacted; labelled AI-generated; high-risk → human review; every call logged in `ai_runs` |
 | QC photo assist | The model's vision input estimates grade shares and defects from lot photos | Suggestion only; inspector edits and submits; inspection records `ai_run_id`; "cannot assess" allowed |
-| Navigation chatbot | Floating "ผู้ช่วยนำทาง" on every page: the user says what they want to do; it replies briefly with up to 3 buttons to the right page, including their own pending tasks (contracts to sign, lots to inspect, offers to allocate) | Destinations only from a role-filtered page catalog and the user's tasks in the database; ids the model invents are dropped; keyword matching when no AI key is set |
+| AgriBot (legal Q&A + navigation in one chat) | Pinned at the top of Chat (floating on desktop). Each message is routed: a legal question (topic word + question form, e.g. "ผู้ซื้อยกเลิกหลังเซ็นสัญญาได้ไหม") gets the Legal AI answer with citations and up to 2 related pages; anything else ("อยากลงขายมะม่วง", "มีงานอะไรค้าง") gets a short reply with up to 3 buttons to the right page, including the user's pending tasks | Same guardrails as Legal AI for answers; destinations only from a role-filtered page catalog and the user's tasks; invented ids dropped; keyword matching and related documents when no AI key is set. `/assistant` now redirects here |
 | Harvest forecast | p10/p50/p90 from yield-per-rai ranges and farm area; warns when estimate or commitments exceed it | Labelled as a baseline, not a trained model, until real harvest data exists |
 
-Pages: contract workspace (ผู้ช่วยอ่านสัญญา), `/assistant`, the floating guide, QC form, produce detail. API: `/api/assistant/chat`, `/api/legal/*`, `/api/lots/{id}/ai-grade`, `/api/listings/{id}/forecast`, `/api/ai/status`. With both `GEMINI_API_KEY` and `ANTHROPIC_API_KEY` set, a failed call on the primary provider (e.g. Gemini free-tier quota) is retried on the other; refusals are not. Without an AI key the rule engine, retrieval, keyword navigation and forecast still work. The Gemini free tier allows Google to use submitted content to improve its products: fine for demo data, not for real customers.
+Pages: contract workspace (ผู้ช่วยอ่านสัญญา), AgriBot (`/chat/agribot`), QC form, produce detail. API: `/api/assistant/chat`, `/api/legal/*`, `/api/lots/{id}/ai-grade`, `/api/listings/{id}/forecast`, `/api/ai/status`. With both `GEMINI_API_KEY` and `ANTHROPIC_API_KEY` set, a failed call on the primary provider (e.g. Gemini free-tier quota) is retried on the other; refusals are not. Without an AI key the rule engine, retrieval, keyword navigation and forecast still work. The Gemini free tier allows Google to use submitted content to improve its products: fine for demo data, not for real customers.
 
 ## Not built yet
 
