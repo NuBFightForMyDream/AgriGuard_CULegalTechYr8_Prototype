@@ -83,11 +83,11 @@ def test_failover_from_gemini_to_claude(monkeypatch):
 
     def claude_ok(*a):
         used.append("anthropic")
-        return {"ok": True}, "claude-opus-5-5", 1, 1
+        return {"ok": True}, "claude-sonnet-5-5", 1, 1
 
     monkeypatch.setattr(ai, "_call_gemini", gemini_quota)
     monkeypatch.setattr(ai, "_call_anthropic", claude_ok)
-    assert ai.generate("s", [{"type": "text", "text": "x"}], {"type": "object"}).model == "claude-opus-5-5"
+    assert ai.generate("s", [{"type": "text", "text": "x"}], {"type": "object"}).model == "claude-sonnet-5-5"
     assert used == ["gemini", "anthropic"]
 
 

@@ -36,7 +36,7 @@ def fake_ai(monkeypatch):
         calls.append({"system": system, "content": content, "schema": schema})
         props = schema["properties"]
         key = "review" if "risks" in props else "photo" if "grade_shares" in props else "nav" if "destination_ids" in props else "ask"
-        return answers[key], "claude-opus-5-5", 1000, 200
+        return answers[key], "claude-sonnet-5-5", 1000, 200
 
     monkeypatch.setattr(ai_settings, "anthropic_api_key", "test-key")
     monkeypatch.setattr(providers, "_call", fake_call)
@@ -79,7 +79,7 @@ def test_review_filters_invented_citations_caches_and_logs(client, fake_ai):
     }
     cid = contract(client)
     r = ok(client.post(f"/api/legal/contracts/{cid}/review", headers=FARMER))
-    assert r["ai"]["label"] == "AI-generated" and r["ai"]["model"] == "claude-opus-5-5"
+    assert r["ai"]["label"] == "AI-generated" and r["ai"]["model"] == "claude-sonnet-5-5"
     assert [c["id"] for c in r["ai"]["key_terms"][0]["citations"]] == ["C-price"]
     assert [c["id"] for c in r["ai"]["risks"][0]["citations"]] == ["C-payment", "harvestlock-policy#4"]
     assert r["human_review_required"] is True
