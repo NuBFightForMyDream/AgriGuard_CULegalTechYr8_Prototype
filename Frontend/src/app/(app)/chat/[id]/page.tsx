@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, FileSignature, Loader2, MapPin, Send, ShoppingBasket } from "lucide-react";
+import { ChevronLeft, FileSignature, Loader2, MapPin, MessageCircleOff, Send, ShoppingBasket } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -8,8 +8,8 @@ import useSWR, { useSWRConfig } from "swr";
 import { DealChip } from "@/components/chat-list";
 import { useToast } from "@/components/toast";
 import { TrustBadge } from "@/components/trust";
-import { Avatar, cx, ErrorState, Skeleton } from "@/components/ui";
-import { post } from "@/lib/api";
+import { Avatar, cx, Skeleton } from "@/components/ui";
+import { ApiError, post } from "@/lib/api";
 import { fmtDate, fmtKg } from "@/lib/format";
 import { BUSINESS_TYPE, productName } from "@/lib/labels";
 import type { ChatMessage, ChatThread } from "@/lib/types";
@@ -57,7 +57,17 @@ export default function ChatThreadPage() {
     }
   }
 
-  if (error) return <div className="p-4"><ErrorState error={error} /></div>;
+  if (error) {
+    const gone = error instanceof ApiError && (error.status === 404 || error.status === 403);
+    return (
+      <div className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-3 bg-white p-6 text-center lg:static lg:h-full lg:rounded-2xl lg:border lg:border-slate-200/80">
+        <MessageCircleOff className="size-10 text-slate-300" />
+        <div className="font-medium text-slate-800">{gone ? "ไม่พบห้องแชทนี้" : "โหลดแชทไม่สำเร็จ"}</div>
+        <p className="max-w-xs text-sm text-slate-500">{gone ? "ห้องแชทอาจถูกลบไปแล้ว (เช่น หลังรีเซ็ตข้อมูลเดโม) หรือคุณไม่มีสิทธิ์เข้าห้องนี้" : error.message}</p>
+        <Link href="/chat" className="rounded-xl bg-green-800 px-4 py-2 text-sm font-medium text-white hover:bg-green-900">กลับไปรายการแชท</Link>
+      </div>
+    );
+  }
 
   const o = data?.counterpart;
   const deals = data ? data.contracts.filter((c) => !["CANCELLED", "RESERVATION_EXPIRED"].includes(c.order_status)) : [];

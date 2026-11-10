@@ -236,7 +236,9 @@ def _seed_social(db: Session, orgs: dict) -> None:
     people = {u.email: u for u in db.scalars(select(User))}
     first_user = {u.organization_id: u for u in reversed(list(people.values()))}
     for farm, buyer, msgs in CHATS:
-        c = Conversation(farmer_org_id=orgs[farm].id, buyer_org_id=orgs[buyer].id, created_at=_hours(msgs[0][1] + 1))
+        # Stable ids so a demo reset keeps links to these threads working.
+        c = Conversation(id=sid(f"chat:{farm}:{buyer}"), farmer_org_id=orgs[farm].id, buyer_org_id=orgs[buyer].id,
+                         created_at=_hours(msgs[0][1] + 1))
         db.add(c)
         db.flush()
         for side, h, text in msgs:
