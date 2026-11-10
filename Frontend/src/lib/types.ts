@@ -75,9 +75,18 @@ export type Offer = {
   };
 };
 
+export type SourcingMode = "SINGLE" | "MULTI";
+
+export type RequestFill = { confirmed_kg: number; reserved_kg: number; remaining_kg: number; suppliers: number; supplier_names: string[] };
+
 export type PurchaseRequest = {
   id: string;
   code: string;
+  sourcing_mode: SourcingMode;
+  max_suppliers: number | null;
+  fill: RequestFill | null;
+  accepting_offers?: boolean;
+  closed_reason?: string | null;
   buyer: Org;
   buyer_trust?: TrustSummary;
   product_type: string;
@@ -245,6 +254,8 @@ export type Terms = {
   shortfall_policy: string;
   cancellation: string;
   dispute_procedure: string;
+  governing_law?: string;
+  sourcing_mode?: SourcingMode | "DIRECT";
 };
 
 export type Action =

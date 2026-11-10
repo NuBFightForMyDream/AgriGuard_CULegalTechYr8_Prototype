@@ -15,7 +15,7 @@ import { TrustBadge } from "@/components/trust";
 import { Badge, Card, DL, ErrorState, LinkButton, PageHeader, PageSkeleton, StatusBadge } from "@/components/ui";
 import { ACTOR_LABEL, ACTOR_TONE_OF, STAGES, Stepper, Swimlane, currentStage, effectiveStatus, isStopped } from "@/components/workflow";
 import { fmtDate, fmtDateTime, fmtKg, fmtRange, fmtTHB } from "@/lib/format";
-import { DISPUTE_CATEGORY, DISPUTE_STATUS, SIGN_METHOD, VERSION_STATUS, FLAG_LABEL, LOT_STATUS, ORDER_STATUS, REJECTION, SETTLEMENT_STATUS, SHORTFALL_POLICY, productName } from "@/lib/labels";
+import { DISPUTE_CATEGORY, DISPUTE_STATUS, SIGN_METHOD, SOURCING_TERM, VERSION_STATUS, FLAG_LABEL, LOT_STATUS, ORDER_STATUS, REJECTION, SETTLEMENT_STATUS, SHORTFALL_POLICY, productName } from "@/lib/labels";
 import { useSession } from "@/lib/session";
 import type { ContractDetail } from "@/lib/types";
 
@@ -103,6 +103,7 @@ export default function ContractWorkspace() {
           <DL
             items={[
               ["คู่สัญญา", `${t.farmer} ↔ ${t.buyer}`],
+              ...(t.sourcing_mode ? [["รูปแบบการซื้อ", SOURCING_TERM[t.sourcing_mode]] as [string, string]] : []),
               ["ผลผลิต", `${productName(t.product_type, t.variety)} (ประกาศ ${t.listing_code}, ข้อเสนอ ${t.offer_code})`],
               ["ปริมาณ", `${fmtKg(t.quantity_kg)} ±${t.tolerance_pct}%`],
               ["ราคาตามเกรด", Object.entries(t.grade_prices).map(([g, p]) => `${g}: ${fmtTHB(p)}/กก.`).join(" · ")],

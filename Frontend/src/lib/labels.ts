@@ -100,7 +100,21 @@ export const OFFER_STATUS: Record<string, [string, Tone]> = {
 
 export const REQUEST_STATUS: Record<string, [string, Tone]> = {
   OPEN: ["เปิดรับ", "green"],
+  PARTIALLY_FILLED: ["ได้บางส่วน", "amber"],
+  FULFILLED: ["ได้ครบแล้ว", "blue"],
   CANCELLED: ["ยกเลิก", "gray"],
+};
+
+export const SOURCING: Record<string, { label: string; short: string; tone: Tone }> = {
+  SINGLE: { label: "ผู้ขายรายเดียว", short: "รายเดียว", tone: "violet" },
+  MULTI: { label: "หลายผู้ขาย", short: "หลายราย", tone: "blue" },
+  DIRECT: { label: "ซื้อตรงจากประกาศ", short: "ซื้อตรง", tone: "gray" },
+};
+
+export const SOURCING_TERM: Record<string, string> = {
+  SINGLE: "ผู้ขายรายเดียว — สัญญานี้ต้องส่งครบทั้งคำขอ ผู้ซื้อไม่รับข้อเสนอจากผู้ขายรายอื่นสำหรับคำขอนี้",
+  MULTI: "หลายผู้ขาย — สัญญานี้เป็นส่วนหนึ่งของปริมาณที่ผู้ซื้อต้องการ",
+  DIRECT: "ซื้อตรงจากประกาศของสวน",
 };
 
 export const LOT_STATUS: Record<string, [string, Tone]> = {

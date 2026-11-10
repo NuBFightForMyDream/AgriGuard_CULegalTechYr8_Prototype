@@ -86,7 +86,7 @@ def dashboard(db: DB, user: CurrentUser):
 
     if user.role == "BUYER":
         requests = db.scalars(select(PurchaseRequest).where(
-            PurchaseRequest.buyer_org_id == user.organization_id, PurchaseRequest.status == "OPEN")).all()
+            PurchaseRequest.buyer_org_id == user.organization_id, PurchaseRequest.status.in_(("OPEN", "PARTIALLY_FILLED")))).all()
         listings = db.scalars(select(ProduceListing)).all()
         cache: dict = {}
         matched = {listing.id for r in requests for listing in listings

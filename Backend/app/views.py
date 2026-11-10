@@ -95,8 +95,11 @@ def listing_out(listing: ProduceListing) -> dict:
     }
 
 
-def request_out(r: PurchaseRequest) -> dict:
+def request_out(r: PurchaseRequest, fill: dict | None = None) -> dict:
     return {
+        "sourcing_mode": r.sourcing_mode,
+        "max_suppliers": r.max_suppliers,
+        "fill": fill,
         "id": r.id,
         "code": r.code,
         "buyer": org_brief(r.buyer_org),

@@ -50,6 +50,7 @@ def build_terms(listing: ProduceListing, offer: Offer, qty: Decimal) -> dict:
         "cancellation": "หลังยืนยันแล้ว การยกเลิกต้องได้รับความยินยอมจากทั้งสองฝ่าย และคืนมัดจำตามสัดส่วนที่ตกลง",
         "dispute_procedure": "ยื่นข้อพิพาทพร้อมหลักฐานภายใน 48 ชั่วโมงหลังผลตรวจคุณภาพ ผู้ตรวจทานของแพลตฟอร์มพิจารณา และอาจขอตรวจซ้ำ",
         "governing_law": "กฎหมายไทย",
+        "sourcing_mode": req.sourcing_mode if req else "DIRECT",
     }
 
 

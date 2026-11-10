@@ -3,6 +3,7 @@
 import { CalendarRange, MapPin, Store } from "lucide-react";
 import Link from "next/link";
 import useSWR from "swr";
+import { SourcingBadge } from "@/components/sourcing";
 import { TrustBadge } from "@/components/trust";
 import { Badge, Card, Empty, ErrorState, PageHeader, PageSkeleton } from "@/components/ui";
 import { fmtKg, fmtRange, fmtTHB } from "@/lib/format";
@@ -38,11 +39,12 @@ export default function MarketplacePage() {
                 <span className="font-medium">{r.buyer.name}</span>
                 {r.buyer.business_type && <span className="text-slate-500">{BUSINESS_TYPE[r.buyer.business_type]}</span>}
                 {r.buyer_trust && <TrustBadge trust={r.buyer_trust} orgId={r.buyer.id} />}
+                <SourcingBadge r={r} />
               </div>
               <div className="mt-3 grid gap-1 text-sm text-slate-600 sm:grid-cols-2">
                 <span className="inline-flex items-center gap-1"><CalendarRange className="size-4 text-slate-400" />รับ {fmtRange(r.delivery_start, r.delivery_end)}</span>
                 <span className="inline-flex items-center gap-1"><MapPin className="size-4 text-slate-400" />ส่งที่ {r.destination_province}</span>
-                <span>เกรด {r.accepted_grades.join(", ")} · ขั้นต่ำ {fmtKg(r.min_quantity_kg)}</span>
+                <span>เกรด {r.accepted_grades.join(", ")} · {r.sourcing_mode === "SINGLE" ? `ต้องส่งได้ครบ ${fmtKg(r.quantity_kg)} จากสวนเดียว` : `ยังขาด ${fmtKg(r.fill?.remaining_kg ?? r.quantity_kg)} · ขั้นต่ำต่อสวน ${fmtKg(r.min_quantity_kg)}`}</span>
                 <span>ราคาเป้าหมาย {r.target_price ? `${fmtTHB(r.target_price)}/กก.` : "—"} · ชำระใน {r.payment_terms_days} วัน</span>
               </div>
               {r.best_match && (

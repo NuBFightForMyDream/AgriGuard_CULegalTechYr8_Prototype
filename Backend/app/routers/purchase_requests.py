@@ -9,6 +9,7 @@ from app.models import Contract, Farm, ProduceListing, PurchaseRequest
 from app.schemas import PurchaseRequestCreate, Reason
 from app.services import matching, trust
 from app.services.inventory import expire_reservations, listing_inventory
+from app.services import sourcing
 from app.services.orders import audit
 from app.views import TrustCache, listing_out, offer_out, request_out
 
@@ -29,11 +30,13 @@ def _supply(db, listing: ProduceListing, reliability_cache: dict) -> matching.Su
     )
 
 
-def _demand(r: PurchaseRequest) -> matching.Demand:
+def _demand(r: PurchaseRequest, remaining_kg=None) -> matching.Demand:
+    qty = float(remaining_kg if remaining_kg is not None else r.quantity_kg) or float(r.quantity_kg)
+    single = r.sourcing_mode == "SINGLE"
     return matching.Demand(
         product_type=r.product_type, variety=r.variety, delivery_start=r.delivery_start, delivery_end=r.delivery_end,
-        grades=r.accepted_grades, quantity_kg=float(r.quantity_kg),
-        min_quantity_kg=float(r.min_quantity_kg) if r.min_quantity_kg else None,
+        grades=r.accepted_grades, quantity_kg=qty,
+        min_quantity_kg=qty if single else (min(float(r.min_quantity_kg), qty) if r.min_quantity_kg else None),
         destination_province=r.destination_province,
     )
 
@@ -49,7 +52,7 @@ def list_requests(db: DB, user: CurrentUser):
     if user.role == "BUYER":
         q = q.where(PurchaseRequest.buyer_org_id == user.organization_id)
     else:
-        q = q.where(PurchaseRequest.status == "OPEN")
+        q = q.where(PurchaseRequest.status.in_(("OPEN", "PARTIALLY_FILLED")))
     rows = db.scalars(q).all()
     trusts = TrustCache(db)
     out = []
@@ -58,13 +61,13 @@ def list_requests(db: DB, user: CurrentUser):
         my_listings = db.scalars(select(ProduceListing).join(Farm).where(Farm.organization_id == user.organization_id)).all()
     cache: dict = {}
     for r in rows:
-        item = request_out(r)
+        item = request_out(r, sourcing.fill(db, r))
         item["buyer_trust"] = trusts.summary(r.buyer_org_id)
         if user.role == "FARMER":
             # Farmer marketplace: how well does this request fit one of my listings?
             best = None
             for listing in my_listings:
-                ev = matching.evaluate(_supply(db, listing, cache), _demand(r))
+                ev = matching.evaluate(_supply(db, listing, cache), _demand(r, item["fill"]["remaining_kg"]))
                 if ev["eligible"] and (best is None or ev["score"] > best["score"]):
                     best = {"score": ev["score"], "listing_code": listing.code, "listing_id": listing.id}
             item["best_match"] = best
@@ -84,10 +87,11 @@ def create_request(payload: PurchaseRequestCreate, db: DB, user: CurrentUser):
     db.add(r)
     db.flush()
     audit(db, entity_type="purchase_request", entity_id=r.id, entity_code=r.code, action="REQUEST_CREATED",
-          actor=user, buyer_org_id=user.organization_id, message=f"สร้างคำขอซื้อ {r.quantity_kg:,.0f} กก.")
+          actor=user, buyer_org_id=user.organization_id, message=f"สร้างคำขอซื้อ {r.quantity_kg:,.0f} กก. แบบ{sourcing.MODE_TH[r.sourcing_mode]}"
+                  + (f" สูงสุด {r.max_suppliers} ราย" if r.max_suppliers else ""))
     db.commit()
     db.refresh(r)
-    return request_out(r)
+    return request_out(r, sourcing.fill(db, r))
 
 
 @router.get("/{request_id}")
@@ -95,8 +99,9 @@ def get_request(request_id: uuid.UUID, db: DB, user: CurrentUser):
     r = get_or_404(db, PurchaseRequest, request_id, "คำขอซื้อ")
     _visible(user, r)
     trusts = TrustCache(db)
-    out = request_out(r)
+    out = request_out(r, sourcing.fill(db, r))
     out["buyer_trust"] = trusts.summary(r.buyer_org_id)
+    out["accepting_offers"], out["closed_reason"] = sourcing.accepting_offers(db, r)
     out["offers"] = [offer_out(o, trusts) for o in r.offers] if user.role == "BUYER" else []
     return out
 
@@ -106,7 +111,7 @@ def get_matches(request_id: uuid.UUID, db: DB, user: CurrentUser):
     expire_reservations(db)
     r = get_or_404(db, PurchaseRequest, request_id, "คำขอซื้อ")
     _visible(user, r)
-    demand = _demand(r)
+    demand = _demand(r, sourcing.fill(db, r)["remaining_kg"])
     cache: dict = {}
     offered = {o.listing_id for o in r.offers}
     recs, excluded = [], []
@@ -125,11 +130,12 @@ def cancel_request(request_id: uuid.UUID, payload: Reason, db: DB, user: Current
     require_role(user, "BUYER")
     r = get_or_404(db, PurchaseRequest, request_id, "คำขอซื้อ")
     _visible(user, r)
-    if r.status != "OPEN":
-        raise HTTPException(409, "ยกเลิกได้เฉพาะคำขอที่เปิดอยู่")
+    if r.status not in ("OPEN", "PARTIALLY_FILLED"):
+        raise HTTPException(409, "ยกเลิกได้เฉพาะคำขอที่ยังเปิดรับอยู่")
+    old = r.status
     r.status = "CANCELLED"
     audit(db, entity_type="purchase_request", entity_id=r.id, entity_code=r.code, action="REQUEST_CANCELLED",
-          actor=user, buyer_org_id=user.organization_id, from_status="OPEN", to_status="CANCELLED",
+          actor=user, buyer_org_id=user.organization_id, from_status=old, to_status="CANCELLED",
           message=payload.reason or "ผู้ซื้อยกเลิกคำขอซื้อ")
     db.commit()
-    return request_out(r)
+    return request_out(r, sourcing.fill(db, r))

@@ -12,7 +12,7 @@ const FACTOR: Record<string, string> = {
   reliability: "ความน่าเชื่อถือ (10%)",
 };
 
-export function MatchCard({ m, onOffer }: { m: Match; onOffer: () => void }) {
+export function MatchCard({ m, onOffer }: { m: Match; onOffer?: () => void }) {
   const l = m.listing;
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5">
@@ -45,7 +45,7 @@ export function MatchCard({ m, onOffer }: { m: Match; onOffer: () => void }) {
       </details>
       <div className="mt-4 flex items-center justify-between gap-2">
         {m.already_offered ? <Badge tone="green">ส่งข้อเสนอแล้ว</Badge> : <span />}
-        <Button size="sm" onClick={onOffer} disabled={l.inventory.available_kg <= 0}>ส่งข้อเสนอ</Button>
+        {onOffer ? <Button size="sm" onClick={onOffer} disabled={l.inventory.available_kg <= 0}>ส่งข้อเสนอ</Button> : <span className="text-xs text-slate-500">ปิดรับข้อเสนอแล้ว</span>}
       </div>
     </div>
   );

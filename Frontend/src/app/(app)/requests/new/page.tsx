@@ -24,6 +24,8 @@ type Form = {
   destination_province: string;
   payment_terms_days: string;
   expires_on: string;
+  sourcing_mode: "SINGLE" | "MULTI";
+  max_suppliers: string;
 };
 
 const STEPS = ["ผลผลิต", "ปริมาณ คุณภาพ ราคา", "การส่งมอบและชำระเงิน", "ตรวจทาน"];
@@ -36,13 +38,14 @@ export default function NewRequestPage() {
   const [f, setF] = useState<Form>({
     product_type: "mango", variety: "", quantity_kg: "", min_quantity_kg: "", target_price: "", accepted_grades: ["A"],
     quality_notes: "", delivery_start: "", delivery_end: "", destination_province: "กรุงเทพมหานคร", payment_terms_days: "3", expires_on: "",
+    sourcing_mode: "MULTI", max_suppliers: "",
   });
   const set = (k: keyof Form, v: Form[keyof Form]) => setF((x) => ({ ...x, [k]: v }));
   const spec = catalog?.products.find((p) => p.key === f.product_type);
 
   const stepErrors = [
     !f.product_type ? "เลือกชนิดผลผลิต" : null,
-    !Number(f.quantity_kg) ? "ระบุปริมาณ" : !f.accepted_grades.length ? "เลือกอย่างน้อยหนึ่งเกรด" : Number(f.min_quantity_kg) > Number(f.quantity_kg) ? "ขั้นต่ำต้องไม่เกินปริมาณที่ต้องการ" : null,
+    !Number(f.quantity_kg) ? "ระบุปริมาณ" : !f.accepted_grades.length ? "เลือกอย่างน้อยหนึ่งเกรด" : f.sourcing_mode === "MULTI" && Number(f.min_quantity_kg) > Number(f.quantity_kg) ? "ขั้นต่ำต้องไม่เกินปริมาณที่ต้องการ" : f.max_suppliers && Number(f.max_suppliers) < 2 ? "จำนวนผู้ขายสูงสุดต้องอย่างน้อย 2 ราย" : null,
     !f.delivery_start || !f.delivery_end ? "ระบุช่วงรับสินค้า" : f.delivery_end < f.delivery_start ? "วันสิ้นสุดต้องไม่ก่อนวันเริ่ม" : null,
     null,
   ];
@@ -64,6 +67,8 @@ export default function NewRequestPage() {
           destination_province: f.destination_province,
           payment_terms_days: Number(f.payment_terms_days || 0),
           expires_on: f.expires_on || null,
+          sourcing_mode: f.sourcing_mode,
+          max_suppliers: f.sourcing_mode === "MULTI" ? num(f.max_suppliers) : null,
         }),
       "สร้างคำขอซื้อแล้ว — ดูสวนที่จับคู่ได้",
     );
@@ -97,10 +102,36 @@ export default function NewRequestPage() {
         )}
         {step === 1 && (
           <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <div className="mb-1 text-sm font-medium text-slate-700">จะดีลกับผู้ขายกี่ราย</div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {([
+                  ["SINGLE", "ผู้ขายรายเดียว", "สวนเดียวส่งครบทั้งหมด สัญญาฉบับเดียว คุณภาพสม่ำเสมอ ติดตามง่าย — เมื่อลงนามแล้วระบบปิดข้อเสนออื่นให้อัตโนมัติ"],
+                  ["MULTI", "หลายผู้ขาย", "แบ่งซื้อจากหลายสวน หาของได้ครบง่ายขึ้น กระจายความเสี่ยงถ้าบางสวนผลผลิตขาด — กำหนดจำนวนสวนสูงสุดได้"],
+                ] as const).map(([v, title, hint]) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => set("sourcing_mode", v)}
+                    className={cx("rounded-xl border p-3 text-left", f.sourcing_mode === v ? "border-green-700 bg-green-50 ring-2 ring-green-700/20" : "border-slate-200 hover:border-slate-300")}
+                  >
+                    <div className="font-medium text-slate-900">{title}</div>
+                    <div className="mt-0.5 text-xs text-slate-600">{hint}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
             <Field label="ปริมาณที่ต้องการ (กก.)"><Input type="number" min="1" value={f.quantity_kg} onChange={(e) => set("quantity_kg", e.target.value)} /></Field>
-            <Field label="ปริมาณขั้นต่ำที่รับได้ (กก.)"><Input type="number" min="0" value={f.min_quantity_kg} onChange={(e) => set("min_quantity_kg", e.target.value)} /></Field>
+            {f.sourcing_mode === "MULTI" ? (
+              <>
+                <Field label="ปริมาณขั้นต่ำต่อสวน (กก.)" hint="สวนที่ส่งได้น้อยกว่านี้จะไม่ถูกจับคู่"><Input type="number" min="0" value={f.min_quantity_kg} onChange={(e) => set("min_quantity_kg", e.target.value)} /></Field>
+                <Field label="จำนวนผู้ขายสูงสุด" hint="เว้นว่างได้ ถ้าไม่จำกัด"><Input type="number" min="2" max="20" value={f.max_suppliers} onChange={(e) => set("max_suppliers", e.target.value)} /></Field>
+              </>
+            ) : (
+              <Field label="ปริมาณขั้นต่ำ"><Input value={f.quantity_kg ? `${Number(f.quantity_kg).toLocaleString("th-TH")} (เต็มจำนวน)` : "เต็มจำนวน"} disabled /></Field>
+            )}
             <Field label="ราคาเป้าหมาย (บาท/กก.)"><Input type="number" min="0" step="0.5" value={f.target_price} onChange={(e) => set("target_price", e.target.value)} /></Field>
-            <Field label="เกรดที่รับ">
+            <Field label="เกรดที่รับ" group>
               <div className="flex flex-wrap gap-2 pt-1">
                 {spec?.grades.map((g) => (
                   <button key={g} type="button" onClick={() => set("accepted_grades", f.accepted_grades.includes(g) ? f.accepted_grades.filter((x) => x !== g) : [...f.accepted_grades, g])}
@@ -130,7 +161,8 @@ export default function NewRequestPage() {
           <DL
             items={[
               ["ผลผลิต", productName(f.product_type, f.variety)],
-              ["ปริมาณ", `${fmtKg(Number(f.quantity_kg))} (ขั้นต่ำ ${f.min_quantity_kg ? fmtKg(Number(f.min_quantity_kg)) : "—"})`],
+              ["รูปแบบการซื้อ", f.sourcing_mode === "SINGLE" ? "ผู้ขายรายเดียว (ส่งครบทั้งหมด)" : `หลายผู้ขาย${f.max_suppliers ? ` สูงสุด ${f.max_suppliers} ราย` : ""}`],
+              ["ปริมาณ", f.sourcing_mode === "SINGLE" ? fmtKg(Number(f.quantity_kg)) : `${fmtKg(Number(f.quantity_kg))} (ขั้นต่ำต่อสวน ${f.min_quantity_kg ? fmtKg(Number(f.min_quantity_kg)) : "—"})`],
               ["เกรดที่รับ", f.accepted_grades.join(", ")],
               ["ราคาเป้าหมาย", f.target_price ? `${fmtTHB(Number(f.target_price))}/กก.` : "—"],
               ["ช่วงรับสินค้า", fmtRange(f.delivery_start, f.delivery_end)],

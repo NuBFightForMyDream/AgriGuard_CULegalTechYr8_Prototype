@@ -5,7 +5,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import { Card, Empty, ErrorState, LinkButton, PageHeader, PageSkeleton, StatusBadge, Table, Td } from "@/components/ui";
 import { fmtKg, fmtRange, fmtTHB } from "@/lib/format";
-import { REQUEST_STATUS, productName } from "@/lib/labels";
+import { REQUEST_STATUS, SOURCING, productName } from "@/lib/labels";
 import type { PurchaseRequest } from "@/lib/types";
 
 export default function RequestsPage() {
@@ -19,12 +19,13 @@ export default function RequestsPage() {
         {data.length === 0 ? (
           <Empty icon={<ShoppingBasket className="size-10" />} title="ยังไม่มีคำขอซื้อ" />
         ) : (
-          <Table head={["คำขอ", "ผลผลิต", "ปริมาณ", "เกรด", "ราคาเป้าหมาย", "ช่วงรับสินค้า", "ข้อเสนอ", "สถานะ"]}>
+          <Table head={["คำขอ", "ผลผลิต", "รูปแบบ", "ได้แล้ว / ต้องการ", "เกรด", "ราคาเป้าหมาย", "ช่วงรับสินค้า", "ข้อเสนอ", "สถานะ"]}>
             {data.map((r) => (
               <tr key={r.id} className="hover:bg-slate-50">
                 <Td><Link href={`/requests/${r.id}`} className="font-medium text-green-800 hover:underline">{r.code}</Link></Td>
                 <Td>{productName(r.product_type, r.variety)}</Td>
-                <Td className="tabular">{fmtKg(r.quantity_kg)}</Td>
+                <Td>{SOURCING[r.sourcing_mode].label}{r.max_suppliers ? ` (≤${r.max_suppliers})` : ""}</Td>
+                <Td className="tabular">{fmtKg(r.fill?.confirmed_kg ?? 0)} / {fmtKg(r.quantity_kg)}</Td>
                 <Td>{r.accepted_grades.join(", ")}</Td>
                 <Td className="tabular">{r.target_price ? `${fmtTHB(r.target_price)}/กก.` : "—"}</Td>
                 <Td>{fmtRange(r.delivery_start, r.delivery_end)}</Td>

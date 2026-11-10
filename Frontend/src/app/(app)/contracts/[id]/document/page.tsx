@@ -7,7 +7,7 @@ import useSWR from "swr";
 import { formatTermValue } from "@/components/amendments";
 import { Button, ErrorState, PageSkeleton } from "@/components/ui";
 import { fmtDateTime, fmtKg, fmtRange, fmtTHB } from "@/lib/format";
-import { REJECTION, SHORTFALL_POLICY, SIGN_METHOD, productName } from "@/lib/labels";
+import { REJECTION, SHORTFALL_POLICY, SIGN_METHOD, SOURCING_TERM, productName } from "@/lib/labels";
 import type { ContractDetail } from "@/lib/types";
 
 /** Printable HarvestLock. "Save as PDF" from the browser print dialog produces the contract PDF. */
@@ -22,6 +22,7 @@ export default function ContractDocument() {
     ["ผู้ขาย (เกษตรกร)", t.farmer],
     ["ผู้ซื้อ", t.buyer],
     ["ผลผลิต", `${productName(t.product_type, t.variety)} (ประกาศ ${t.listing_code}, ข้อเสนอ ${t.offer_code})`],
+    ...(t.sourcing_mode ? [["รูปแบบการซื้อ", SOURCING_TERM[t.sourcing_mode]] as [string, string]] : []),
     ["ปริมาณ", `${fmtKg(t.quantity_kg)} ค่าคลาดเคลื่อนที่ยอมรับ ±${t.tolerance_pct}%`],
     ["ราคาตามเกรด", formatTermValue("grade_prices", t.grade_prices) + " ต่อกิโลกรัม"],
     ["ช่วงเก็บเกี่ยว", fmtRange(t.harvest_window[0], t.harvest_window[1])],

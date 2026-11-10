@@ -43,6 +43,17 @@ Every step of the demo scenario (overall_flow §20) runs through the API and is 
 
 **Verification:** 48 backend tests (unit, end-to-end, auth, migrations, disputes, amendments, lots/files, admin) plus headless-browser runs of the demo, dispute, amendment, multi-lot/QR and admin flows.
 
+## Buyer sourcing mode
+
+When creating a purchase request the buyer chooses how many suppliers to deal with:
+
+| Mode | Rules |
+| --- | --- |
+| **SINGLE** (ผู้ขายรายเดียว) | Matching only shows farms that can supply the full quantity; offers must be for the full quantity and cannot be split by the farm. The buyer may send offers to several farms to compare, but signing a HarvestLock with one closes the request: other pending offers are withdrawn and other unsigned reservations are released automatically (audited). |
+| **MULTI** (หลายผู้ขาย) | Buyer can split across farms, optionally capped (`max_suppliers` ≥ 2). Offers cannot exceed what is still missing. The request moves OPEN → PARTIALLY_FILLED → FULFILLED as HarvestLocks are signed; when it is full or the cap is reached, remaining offers/reservations are closed. |
+
+The mode is written into every HarvestLock (`sourcing_mode` term), shown in the contract document and read by the Legal AI (clause `C-sourcing`). API: `sourcing_mode` / `max_suppliers` on `POST /api/purchase-requests`; `fill`, `accepting_offers` on request responses.
+
 ## AI features (roadmap Phase 3, started)
 
 | Feature | What it does | Guardrails |

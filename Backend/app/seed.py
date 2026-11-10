@@ -80,7 +80,7 @@ REQUESTS = [
     ("PR-2026-001", "buyer_b", "mango", "น้ำดอกไม้", 3000, 1000, 45, ["A"], date(2026, 12, 15), date(2026, 12, 18), "กรุงเทพมหานคร", 3),
     ("PR-2026-002", "buyer_c", "mango", "น้ำดอกไม้", 2500, 1000, 48, ["A", "B"], date(2026, 12, 14), date(2026, 12, 20), "ฉะเชิงเทรา", 7),
     ("PR-2026-003", "buyer_d", "mango", "น้ำดอกไม้", 2000, 500, 50, ["A", "B"], date(2026, 12, 15), date(2026, 12, 19), "ชลบุรี", 5),
-    ("PR-2026-004", "buyer_e", "durian", "หมอนทอง", 5000, 2000, 130, ["A", "B"], date(2027, 4, 25), date(2027, 5, 10), "กรุงเทพมหานคร", 7),
+    ("PR-2026-004", "buyer_e", "durian", "หมอนทอง", 5000, 5000, 130, ["A", "B"], date(2027, 4, 25), date(2027, 5, 10), "กรุงเทพมหานคร", 7),
 ]
 
 OFFERS = [
@@ -142,6 +142,7 @@ def seed(db: Session) -> None:
             quantity_kg=D(kg), min_quantity_kg=D(mn), target_price=D(target), accepted_grades=grades,
             delivery_start=start, delivery_end=end, destination_province=province, payment_terms_days=days,
             expires_on=start - timedelta(days=5), status="OPEN", created_at=ago(12 - i),
+            sourcing_mode="SINGLE" if code == "PR-2026-004" else "MULTI",
         )
         requests[code] = r
         db.add(r)

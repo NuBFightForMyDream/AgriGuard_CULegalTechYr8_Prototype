@@ -157,7 +157,7 @@ def reallocation(listing_id: uuid.UUID, db: DB, user: CurrentUser):
     from app.routers.purchase_requests import _demand, _supply  # local import avoids a cycle
     supply = _supply(db, listing, {})
     requests = []
-    for r in db.scalars(select(PurchaseRequest).where(PurchaseRequest.status == "OPEN")):
+    for r in db.scalars(select(PurchaseRequest).where(PurchaseRequest.status.in_(("OPEN", "PARTIALLY_FILLED")))):
         if r.buyer_org_id in offered_by:
             continue
         ev = matching.evaluate(supply, _demand(r))

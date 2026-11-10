@@ -7,6 +7,7 @@ import useSWR from "swr";
 import { MatchCard } from "@/components/match-card";
 import { OfferDialog } from "@/components/offer-dialog";
 import { OfferPrices } from "@/components/offers-table";
+import { FillProgress, SourcingBadge } from "@/components/sourcing";
 import { Button, Card, DL, Empty, ErrorState, PageHeader, PageSkeleton, StatusBadge, Table, Td } from "@/components/ui";
 import { post } from "@/lib/api";
 import { fmtKg, fmtRange, fmtTHB } from "@/lib/format";
@@ -33,13 +34,21 @@ export default function RequestDetail() {
         subtitle={`รับสินค้า ${fmtRange(r.delivery_start, r.delivery_end)} · ส่งที่ ${r.destination_province}`}
         actions={
           <>
+            <SourcingBadge r={r} />
             <StatusBadge map={REQUEST_STATUS} value={r.status} />
-            {r.status === "OPEN" && (
+            {(r.status === "OPEN" || r.status === "PARTIALLY_FILLED") && (
               <Button size="sm" variant="ghost" loading={pending} onClick={() => run(() => post(`/purchase-requests/${r.id}/cancel`, {}), "ยกเลิกคำขอซื้อแล้ว")}>ยกเลิกคำขอ</Button>
             )}
           </>
         }
       />
+      <Card title="ความคืบหน้าการจัดหา" className="mb-6">
+        <FillProgress r={r} />
+        {r.accepting_offers === false && r.closed_reason && <p className="mt-3 text-sm text-slate-600">ปิดรับข้อเสนอแล้ว: {r.closed_reason}</p>}
+        {r.sourcing_mode === "SINGLE" && r.accepting_offers !== false && (
+          <p className="mt-3 text-xs text-slate-500">ซื้อจากผู้ขายรายเดียว: ส่งข้อเสนอให้หลายสวนเพื่อเทียบได้ แต่เมื่อคุณลงนามสัญญากับสวนใดแล้ว ข้อเสนอและการจองของสวนอื่นจะถูกปิดอัตโนมัติ</p>
+        )}
+      </Card>
       <Card title="รายละเอียดคำขอ">
         <DL
           cols={3}
@@ -65,7 +74,7 @@ export default function RequestDetail() {
         <Card><Empty icon={<SearchX className="size-10" />} title="ยังไม่มีสวนที่ตรงเงื่อนไขทั้งหมด">ลองขยายช่วงรับสินค้า ลดปริมาณขั้นต่ำ หรือรับเกรดเพิ่ม</Empty></Card>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
-          {matches.recommendations.map((m) => <MatchCard key={m.listing.id} m={m} onOffer={() => setOfferFor(m.listing)} />)}
+          {matches.recommendations.map((m) => <MatchCard key={m.listing.id} m={m} onOffer={r.accepting_offers === false ? undefined : () => setOfferFor(m.listing)} />)}
         </div>
       )}
       {matches && matches.excluded.length > 0 && (

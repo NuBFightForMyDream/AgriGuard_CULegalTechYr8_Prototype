@@ -132,7 +132,10 @@ class PurchaseRequest(Base):
     destination_province: Mapped[str] = mapped_column(String(64))
     payment_terms_days: Mapped[int] = mapped_column(Integer, default=3)
     expires_on: Mapped[date | None] = mapped_column(Date)
-    status: Mapped[str] = mapped_column(String(24), default="OPEN")
+    # SINGLE: one farm supplies everything under one HarvestLock. MULTI: split across farms (optionally capped).
+    sourcing_mode: Mapped[str] = mapped_column(String(8), default="MULTI", server_default="MULTI")
+    max_suppliers: Mapped[int | None] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(24), default="OPEN")  # OPEN | PARTIALLY_FILLED | FULFILLED | CANCELLED
     created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
 
     buyer_org: Mapped[Organization] = relationship()

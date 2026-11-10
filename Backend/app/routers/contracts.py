@@ -10,6 +10,7 @@ from app.deps import DB, CurrentUser, get_or_404, next_code
 from app.models import Contract, ContractAcceptance, Dispute, ProduceLot, User
 from app.schemas import AmendmentCreate, AmendmentResponse, HarvestCreate, Reason, Signature
 from app.services import amendments as amend
+from app.services import sourcing
 from app.services.contracts import record_trust_events
 from app.services.inventory import aware, expire_reservations
 from app.services.disputes import OPEN_STATES
@@ -185,6 +186,9 @@ def accept(contract_id: uuid.UUID, payload: Signature, db: DB, user: CurrentUser
     c.confirmed_at = datetime.now(timezone.utc)
     _apply(db, c, "CONFIRMED", user,
            f"ผู้ซื้อยืนยัน HarvestLock ฉบับที่ {c.current_version} (hash {current.terms_hash[:12]}…) ทั้งสองฝ่ายยอมรับฉบับเดียวกันแล้ว")
+    if c.offer.purchase_request:
+        db.flush()
+        sourcing.refresh(db, c.offer.purchase_request)
     db.commit()
     return get_contract(contract_id, db, user)
 

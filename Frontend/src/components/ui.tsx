@@ -153,14 +153,16 @@ export function ErrorState({ error }: { error: Error }) {
   );
 }
 
-export function Field({ label, hint, error, children, className }: { label: string; hint?: React.ReactNode; error?: string | null; children: React.ReactNode; className?: string }) {
+export function Field({ label, hint, error, children, className, group }: { label: string; hint?: React.ReactNode; error?: string | null; children: React.ReactNode; className?: string; group?: boolean }) {
+  // `group` for button groups: a <label> would forward clicks to (and name) only the first button.
+  const Tag = group ? "div" : "label";
   return (
-    <label className={cx("block text-sm", className)}>
+    <Tag className={cx("block text-sm", className)} {...(group ? { role: "group", "aria-label": label } : {})}>
       <span className="mb-1 block font-medium text-slate-700">{label}</span>
       {children}
       {hint && !error && <span className="mt-1 block text-xs text-slate-500">{hint}</span>}
       {error && <span className="mt-1 block text-xs text-red-600">{error}</span>}
-    </label>
+    </Tag>
   );
 }
 

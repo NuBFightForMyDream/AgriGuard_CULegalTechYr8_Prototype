@@ -13,6 +13,12 @@ from agriguard_ai.retrieval import Source, search
 PROMPT_VERSION = "legal-v1"
 DISCLAIMER = "สร้างโดย AI จากเงื่อนไขสัญญาและเอกสารนโยบายที่อนุมัติเท่านั้น ไม่ใช่คำปรึกษาทางกฎหมาย ควรให้ผู้เชี่ยวชาญตรวจทานก่อนตัดสินใจ"
 
+SOURCING_TH = {
+    "SINGLE": "ผู้ซื้อซื้อจากผู้ขายรายเดียว: สัญญานี้ต้องส่งครบทั้งคำขอ เมื่อลงนามแล้วผู้ซื้อจะไม่รับข้อเสนอจากผู้ขายรายอื่นสำหรับคำขอนี้",
+    "MULTI": "ผู้ซื้อแบ่งซื้อจากหลายผู้ขาย: สัญญานี้เป็นส่วนหนึ่งของปริมาณที่ผู้ซื้อต้องการ",
+    "DIRECT": "ซื้อโดยตรงจากประกาศของสวน ไม่ได้ผ่านคำขอซื้อ",
+}
+
 REJECTION_TH = {"ROT": "เน่าเสีย", "PEST_DAMAGE": "แมลงทำลาย", "BRUISING": "ช้ำ/บอบช้ำ", "UNDERSIZE": "ขนาดเล็กกว่าเกณฑ์"}
 
 
@@ -35,6 +41,7 @@ def contract_clauses(terms: dict) -> list[Source]:
         ("C-cancellation", "การยกเลิก", t.get("cancellation") or "ไม่ระบุ"),
         ("C-dispute", "การระงับข้อพิพาท", t.get("dispute_procedure") or "ไม่ระบุ"),
         ("C-law", "กฎหมายที่ใช้บังคับ", t.get("governing_law") or "ไม่ระบุ"),
+        ("C-sourcing", "รูปแบบการซื้อของผู้ซื้อ", SOURCING_TH.get(t.get("sourcing_mode") or "", "ไม่ระบุ")),
     ]
     return [Source(i, title, redact(text), "contract") for i, title, text in rows]
 
