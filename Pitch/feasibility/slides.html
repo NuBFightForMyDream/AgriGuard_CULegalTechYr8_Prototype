@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>AgriGuard Feasibility</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --forest: #166534; --emerald: #22C55E; --lime: #A3E635;
+    --bg: #F8FAF9; --surface: #FFFFFF; --ink: #111827; --ink2: #475569; --muted: #64748B;
+    --border: #E2E8F0; --soft: #F0FDF4; --soft2: #ECFCCB;
+    --warn: #B45309; --warn-bg: #FEF3C7; --danger: #B91C1C; --danger-bg: #FEE2E2;
+    --rev: #15803D; --cost: #7C3AED;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; background: var(--bg); overflow: hidden; }
+  body { font-family: "IBM Plex Sans Thai", "Sukhumvit Set", "Thonburi", sans-serif; color: var(--ink); }
+  .slide { display: none; width: 1920px; height: 1080px; padding: 52px 88px 40px; flex-direction: column; position: relative; }
+  .slide.active { display: flex; }
+  .slide::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 14px; background: linear-gradient(var(--forest), var(--emerald)); }
+
+  header { display: flex; align-items: flex-start; justify-content: space-between; gap: 40px; margin-bottom: 28px; }
+  .eyebrow { font-size: 20px; font-weight: 600; letter-spacing: .14em; color: var(--forest); text-transform: uppercase; }
+  h1 { font-size: 60px; font-weight: 700; line-height: 1.1; margin-top: 4px; letter-spacing: -0.01em; }
+  .sub { font-size: 26px; color: var(--ink2); margin-top: 8px; }
+  .body > * { min-height: 0; }
+  .verdict { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; margin-top: 8px; }
+  .verdict small { font-size: 20px; color: var(--muted); font-weight: 500; }
+  .pill { display: inline-flex; align-items: center; gap: 14px; font-size: 32px; font-weight: 700; padding: 12px 30px; border-radius: 999px; border: 2px solid; }
+  .pill i { width: 18px; height: 18px; border-radius: 50%; display: inline-block; }
+  .v-high { color: #14532D; background: #DCFCE7; border-color: #86EFAC; } .v-high i { background: #16A34A; }
+  .v-midhigh { color: #365314; background: #ECFCCB; border-color: #BEF264; } .v-midhigh i { background: #65A30D; }
+  .v-mid { color: #78350F; background: #FEF3C7; border-color: #FCD34D; } .v-mid i { background: #D97706; }
+  .v-low { color: #7C2D12; background: #FFEDD5; border-color: #FDBA74; } .v-low i { background: #EA580C; }
+
+  .body { flex: 1; display: grid; gap: 28px; min-height: 0; }
+  .card { background: var(--surface); border: 2px solid var(--border); border-radius: 24px; padding: 24px 30px; }
+  .card h3 { font-size: 27px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 12px; }
+  .tag { font-size: 18px; font-weight: 600; padding: 4px 14px; border-radius: 999px; }
+  .tag.ok { background: #DCFCE7; color: #14532D; } .tag.todo { background: var(--warn-bg); color: #78350F; } .tag.risk { background: var(--danger-bg); color: #7F1D1D; }
+  ul.list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  ul.list li { font-size: 23px; line-height: 1.4; color: var(--ink); padding-left: 40px; position: relative; }
+  ul.list li b { font-weight: 600; }
+  ul.list li::before { content: ""; position: absolute; left: 0; top: 7px; width: 26px; height: 26px; border-radius: 8px; }
+  ul.check li::before { background: #DCFCE7 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2315803D' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-9'/%3E%3C/svg%3E") center/18px no-repeat; }
+  ul.todo li::before { background: var(--warn-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B45309' stroke-width='3.2' stroke-linecap='round'%3E%3Cpath d='M12 6v8M12 18.5v.5'/%3E%3C/svg%3E") center/18px no-repeat; }
+  ul.dot li::before { width: 12px; height: 12px; border-radius: 50%; top: 14px; left: 8px; background: var(--emerald); }
+  .muted { color: var(--muted); }
+  footer { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; font-size: 18px; color: var(--muted); }
+  footer .brand { font-weight: 700; color: var(--forest); letter-spacing: .02em; }
+  .note { font-size: 19px; color: var(--muted); }
+
+  /* stat strip */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+  .stat { background: var(--soft); border: 2px solid #BBF7D0; border-radius: 20px; padding: 14px 24px; }
+  .stat .n { font-size: 38px; font-weight: 700; color: var(--forest); line-height: 1.15; }
+  .stat .l { font-size: 19px; color: var(--ink2); margin-top: 2px; }
+
+  /* architecture */
+  .arch { display: flex; flex-direction: column; gap: 6px; }
+  .node { border: 2px solid var(--border); border-radius: 16px; padding: 10px 18px; background: var(--bg); }
+  .node .t { font-size: 22px; font-weight: 700; }
+  .node .d { font-size: 18px; color: var(--muted); margin-top: 1px; }
+  .node.users { background: var(--soft); border-color: #BBF7D0; }
+  .node.ai { background: #F5F3FF; border-color: #DDD6FE; }
+  .arrow { height: 18px; display: flex; justify-content: center; }
+  .arrow svg { height: 18px; width: 26px; }
+  .arch-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* tables */
+  table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 20px; }
+  th { text-align: left; font-weight: 700; color: var(--ink2); font-size: 18px; padding: 0 14px 8px; border-bottom: 2px solid var(--border); }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.3; }
+  tr:last-child td { border-bottom: none; }
+  tr.hl td { background: var(--soft); font-weight: 600; }
+  tr.hl td:first-child { border-radius: 12px 0 0 12px; } tr.hl td:last-child { border-radius: 0 12px 12px 0; }
+
+  /* timeline */
+  .timeline { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; position: relative; }
+  .phase { padding: 0 26px 0 0; position: relative; }
+  .phase .bar { height: 14px; border-radius: 7px; margin-bottom: 22px; }
+  .phase:nth-child(1) .bar { background: #BBF7D0; } .phase:nth-child(2) .bar { background: #4ADE80; } .phase:nth-child(3) .bar { background: var(--forest); }
+  .phase .when { font-size: 22px; font-weight: 700; color: var(--forest); }
+  .phase .what { font-size: 30px; font-weight: 700; margin: 6px 0 10px; line-height: 1.25; }
+  .phase .how { font-size: 22px; color: var(--ink2); line-height: 1.45; }
+
+  .ops { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; }
+  .op { background: var(--surface); border: 2px solid var(--border); border-radius: 20px; padding: 22px 22px 20px; display: flex; flex-direction: column; gap: 8px; }
+  .op .t { font-size: 25px; font-weight: 700; }
+  .op .d { font-size: 20px; color: var(--ink2); line-height: 1.4; flex: 1; }
+  .lvl { font-size: 18px; font-weight: 600; align-self: flex-start; padding: 4px 12px; border-radius: 999px; }
+  .lvl.h { background: var(--danger-bg); color: #7F1D1D; } .lvl.m { background: var(--warn-bg); color: #78350F; }
+
+  /* law */
+  .laws { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
+  .law { background: var(--surface); border: 2px solid var(--border); border-top: 8px solid var(--danger); border-radius: 20px; padding: 18px 22px; display: flex; flex-direction: column; gap: 6px; }
+  .law .n { font-size: 17px; font-weight: 700; color: var(--danger); letter-spacing: .06em; }
+  .law .t { font-size: 24px; font-weight: 700; line-height: 1.3; }
+  .law .k { font-size: 16px; font-weight: 700; color: var(--muted); margin-top: 6px; }
+  .law .d { font-size: 19px; line-height: 1.4; color: var(--ink2); }
+  .law .a { font-size: 19px; line-height: 1.4; color: var(--ink); font-weight: 500; }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip { font-size: 19px; padding: 6px 16px; border-radius: 999px; background: var(--bg); border: 2px solid var(--border); }
+  .chip b { font-weight: 700; }
+  .chip.ok { background: #F0FDF4; border-color: #BBF7D0; }
+
+  /* business flow */
+  .flow { display: grid; grid-template-columns: 1fr 460px 1fr; align-items: center; gap: 0; }
+  .party { border-radius: 24px; padding: 26px 28px; border: 2px solid var(--border); background: var(--surface); }
+  .party .who { font-size: 30px; font-weight: 700; }
+  .party .tiers { margin-top: 14px; display: flex; flex-direction: column; gap: 12px; }
+  .tier { border-radius: 14px; padding: 12px 16px; background: var(--bg); border: 2px solid var(--border); }
+  .tier .tn { font-size: 22px; font-weight: 700; display: flex; justify-content: space-between; gap: 10px; }
+  .tier .tn span { color: var(--forest); }
+  .tier .td { font-size: 19px; color: var(--ink2); margin-top: 3px; line-height: 1.35; }
+  .hub { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 0 20px; }
+  .hub .core { width: 240px; height: 240px; border-radius: 50%; background: linear-gradient(145deg, var(--forest), #15803D); color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-shadow: 0 20px 40px -18px rgba(22,101,52,.55); }
+  .hub .core b { font-size: 36px; } .hub .core span { font-size: 20px; opacity: .9; margin-top: 4px; }
+  .harrow { display: flex; align-items: center; gap: 10px; font-size: 20px; color: var(--ink2); font-weight: 600; }
+  .strat { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .strat .card { padding: 22px 26px; }
+  .strat .q { font-size: 20px; font-weight: 700; color: var(--muted); }
+  .strat .a { font-size: 25px; font-weight: 700; margin-top: 6px; line-height: 1.3; }
+  .strat .d { font-size: 20px; color: var(--ink2); margin-top: 6px; line-height: 1.4; }
+
+  /* market */
+  .venn { position: relative; width: 600px; height: 580px; }
+  .venn .c { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); border-radius: 50%; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .venn .tam { width: 580px; height: 580px; background: #DCFCE7; border: 3px solid #86EFAC; padding-top: 44px; }
+  .venn .sam { width: 390px; height: 390px; background: #86EFAC; border: 3px solid #4ADE80; padding-top: 38px; }
+  .venn .som { width: 196px; height: 196px; background: var(--forest); color: #fff; justify-content: center; }
+  .venn .k { font-size: 20px; font-weight: 700; letter-spacing: .1em; }
+  .venn .v { font-size: 32px; font-weight: 700; line-height: 1.15; }
+  .venn .d { font-size: 17px; line-height: 1.3; max-width: 300px; }
+  .venn .tam .k, .venn .sam .k { color: #14532D; } .venn .tam .d, .venn .sam .d { color: #14532D; }
+  .venn .som .v { font-size: 32px; } .venn .som .d { font-size: 16px; opacity: .92; max-width: 160px; }
+
+  /* finance */
+  .legend { display: flex; gap: 28px; font-size: 21px; color: var(--ink2); }
+  .legend span { display: inline-flex; align-items: center; gap: 10px; }
+  .legend i { width: 18px; height: 18px; border-radius: 4px; display: inline-block; }
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .tile { background: var(--surface); border: 2px solid var(--border); border-radius: 20px; padding: 16px 22px; }
+  .tile .l { font-size: 19px; color: var(--ink2); }
+  .tile .n { font-size: 40px; font-weight: 700; line-height: 1.15; margin-top: 2px; white-space: nowrap; }
+  .tile .s { font-size: 17px; color: var(--muted); margin-top: 2px; }
+  .tile.hero { background: var(--soft); border-color: #BBF7D0; } .tile.hero .n { color: var(--forest); }
+</style>
+</head>
+<body>
+
+<!-- 1 TECHNICAL -->
+<section class="slide" id="s1">
+  <header>
+    <div>
+      <div class="eyebrow">Feasibility 1 / 6</div>
+      <h1>Technical Feasibility</h1>
+      <div class="sub">ระบบทำงานครบทั้ง flow แล้ว ที่เหลือคือการต่อกับระบบภายนอก</div>
+    </div>
+    <div class="verdict"><small>ความเป็นไปได้</small><div class="pill v-high"><i></i>สูง</div></div>
+  </header>
+  <div class="body" style="grid-template-columns: 620px 1fr; grid-template-rows: auto auto; gap: 22px; align-content: start;">
+    <div class="card" style="grid-row: span 1;">
+      <h3>สถาปัตยกรรมระบบ</h3>
+      <div class="arch">
+        <div class="node users"><div class="t">ผู้ใช้ 4 บทบาท</div><div class="d">เกษตรกร · ผู้ซื้อ · ผู้ตรวจ QC · แอดมิน</div></div>
+        <div class="arrow"><svg viewBox="0 0 30 22"><path d="M15 0v16M7 10l8 8 8-8" fill="none" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="node"><div class="t">Frontend · Next.js 15</div><div class="d">เว็บภาษาไทย รองรับมือถือ · Vercel</div></div>
+        <div class="arrow"><svg viewBox="0 0 30 22"><path d="M15 0v16M7 10l8 8 8-8" fill="none" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="arch-row">
+          <div class="node"><div class="t">Backend · FastAPI</div><div class="d">state machine + audit · Render</div></div>
+          <div class="node ai"><div class="t">AI · Claude / Gemini</div><div class="d">Legal AI · AgriBot · QC · Forecast</div></div>
+        </div>
+        <div class="arrow"><svg viewBox="0 0 30 22"><path d="M15 0v16M7 10l8 8 8-8" fill="none" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="node"><div class="t">PostgreSQL · Auth · Storage</div><div class="d">Supabase (Singapore) · RLS ทุกตาราง</div></div>
+      </div>
+    </div>
+    <div style="display: grid; grid-template-rows: auto auto; gap: 18px; align-content: start;">
+      <div class="card">
+        <h3>ทำได้แล้ว <span class="tag ok">พิสูจน์ในต้นแบบ</span></h3>
+        <ul class="list check">
+          <li><b>Flow ครบ 10 ขั้น</b> ตั้งแต่คำขอซื้อถึง AgriTrust ทำงานจริงผ่าน API + ฐานข้อมูล</li>
+          <li>สัญญามี <b>terms hash</b> และ <b>audit log</b> ทุกขั้นตอน แก้ย้อนหลังไม่ได้</li>
+          <li>กันการจองเกิน (overbooking) และกันการจ่ายเงินซ้ำ</li>
+          <li>หลักฐานมี SHA-256 · ลิงก์ไฟล์หมดอายุใน 5 นาที</li>
+          <li>AI อ้างอิงแหล่งที่มาจริง · ตัดข้อมูลส่วนบุคคลก่อนส่งให้โมเดล</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>ต้องทำก่อนใช้จริง <span class="tag todo">3–4 เดือน</span></h3>
+        <ul class="list todo">
+          <li>ต่อ <b>escrow ของธนาคาร</b> (ตอนนี้การจ่ายเงินเป็นแบบจำลอง) และ e-signature ที่ได้รับรอง</li>
+          <li>แจ้งเตือนผ่าน <b>LINE</b> + ใช้งานออฟไลน์ในสวน</li>
+          <li>อัปโฮสต์เป็นแบบเสียเงิน · ปิด demo login</li>
+        </ul>
+      </div>
+    </div>
+    <div class="stats" style="grid-column: span 2;">
+      <div class="stat"><div class="n">10 ขั้น</div><div class="l">flow ที่ทำงานจริง end-to-end</div></div>
+      <div class="stat"><div class="n">48</div><div class="l">backend tests + CI อัตโนมัติ</div></div>
+      <div class="stat"><div class="n">~฿10</div><div class="l">ต้นทุน AI ต่อดีล</div></div>
+      <div class="stat"><div class="n">TRL 5 → 7</div><div class="l">พร้อม pilot ใน 3–4 เดือน</div></div>
+    </div>
+  </div>
+  <footer><span class="brand">AgriGuard</span><span>Secure Every Harvest. Trust Every Trade.</span></footer>
+</section>
+
+<!-- 2 MARKET -->
+<section class="slide" id="s2">
+  <header>
+    <div>
+      <div class="eyebrow">Feasibility 2 / 6</div>
+      <h1>Market Feasibility</h1>
+      <div class="sub">ตลาดใหญ่และปัญหามีจริง แต่ยังต้องพิสูจน์ว่าผู้ซื้อยอมเข้ามาใช้</div>
+    </div>
+    <div class="verdict"><small>ความเป็นไปได้</small><div class="pill v-midhigh"><i></i>ปานกลาง–สูง</div></div>
+  </header>
+  <div class="body" style="grid-template-columns: 680px 1fr;">
+    <div class="card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 20px;">
+      <div class="venn">
+        <div class="c tam"><div class="k">TAM</div><div class="v">฿171,000 ล้าน</div><div class="d">ส่งออกผลไม้สดไทย ปี 2025<br>(ยังไม่รวมตลาดในประเทศ)</div></div>
+        <div class="c sam"><div class="k">SAM</div><div class="v">฿35,000–50,000 ล้าน</div><div class="d">ดีล B2B ก่อนเก็บเกี่ยว<br>สวนกลาง–ใหญ่ × ผู้ซื้อนิติบุคคล*</div></div>
+        <div class="c som"><div class="k">SOM</div><div class="v">฿750 ล้าน</div><div class="d">GMV เป้าหมายปีที่ 3*</div></div>
+      </div>
+      <div class="note" style="margin-top: 14px;">ขนาดวงกลมไม่ตามสัดส่วนจริง · * สมมติฐานของทีม</div>
+    </div>
+    <div style="display:grid; grid-template-rows: auto auto auto; gap: 18px; align-content: start;">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <div class="card" style="padding: 18px 24px;">
+          <h3 style="font-size: 24px; margin-bottom: 8px;">Pain ของเกษตรกร</h3>
+          <ul class="list dot">
+            <li>ผู้ซื้อยกเลิก / กดราคาตอนเก็บเกี่ยว</li>
+            <li>เถียงกันเรื่องเกรด</li>
+            <li>ได้เงินช้า ไม่มีหลักฐาน</li>
+          </ul>
+        </div>
+        <div class="card" style="padding: 18px 24px;">
+          <h3 style="font-size: 24px; margin-bottom: 8px;">Pain ของผู้ซื้อ</h3>
+          <ul class="list dot">
+            <li>หาสวนที่ตรงสเปกยาก</li>
+            <li>คุณภาพ ส่งของไม่แน่นอน</li>
+            <li><b>จีนเข้มเรื่องตรวจสอบย้อนกลับ</b></li>
+          </ul>
+        </div>
+      </div>
+      <div class="card" style="padding: 18px 24px;">
+        <h3 style="font-size: 24px; margin-bottom: 6px;">คู่แข่งและทางเลือกเดิม</h3>
+        <table>
+          <tr><th>ผู้เล่น</th><th>จุดแข็ง</th><th>สิ่งที่ขาด</th></tr>
+          <tr><td><b>ล้ง / พ่อค้าคนกลาง</b></td><td>จ่ายเงินสดทันที</td><td>ไม่มีสัญญา ไม่มีหลักฐาน</td></tr>
+          <tr><td><b>กลุ่ม LINE / Facebook</b></td><td>ฟรี ทุกคนใช้อยู่แล้ว</td><td>ไม่มี QC ไม่มีประวัติความน่าเชื่อถือ</td></tr>
+          <tr><td><b>Freshket · สี่มุมเมือง</b></td><td>B2B ออนไลน์ มีทุน</td><td>ขายของพร้อมขาย ไม่ใช่ดีลก่อนเก็บเกี่ยว</td></tr>
+          <tr class="hl"><td>AgriGuard</td><td>สัญญา + QC + หลักฐาน + trace</td><td>ไม่ถือสต็อก ไม่ต้องใช้เงินทุนหมุนเวียน</td></tr>
+        </table>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+        <div class="stat"><div class="l" style="margin:0 0 4px; font-weight:600; color: var(--forest);">โอกาส</div><div style="font-size: 23px; font-weight: 600; line-height: 1.35;">QR trace รายล็อตตอบโจทย์การส่งออกจีน ใช้เป็นจุดดึงผู้ซื้อ</div></div>
+        <div class="stat" style="background: var(--warn-bg); border-color: #FCD34D;"><div class="l" style="margin:0 0 4px; font-weight:600; color: var(--warn);">ความเสี่ยง</div><div style="font-size: 23px; font-weight: 600; line-height: 1.35;">ยังไม่ validate · ผู้ซื้อมีอำนาจต่อรองและไม่ชอบถูกให้คะแนน</div></div>
+      </div>
+    </div>
+  </div>
+  <footer><span class="brand">AgriGuard</span><span>ที่มา: กระทรวงพาณิชย์ (ผ่าน Thairath), OPS MOAC — ส่งออกผลไม้สด 2.08 ล้านตัน · ทุเรียนสด ฿125,737 ล้าน (2025)</span></footer>
+</section>
+
+<!-- 3 PRODUCTION -->
+<section class="slide" id="s3">
+  <header>
+    <div>
+      <div class="eyebrow">Feasibility 3 / 6</div>
+      <h1>Production &amp; Operations</h1>
+      <div class="sub">ซอฟต์แวร์พร้อม ส่วนงานภาคสนามและทีมยังต้องสร้าง</div>
+    </div>
+    <div class="verdict"><small>ความเป็นไปได้</small><div class="pill v-mid"><i></i>ปานกลาง</div></div>
+  </header>
+  <div class="body" style="grid-template-rows: auto auto 1fr;">
+    <div class="card" style="padding: 32px 36px 30px;">
+      <h3 style="margin-bottom: 24px;">แผน 12 เดือนแรก</h3>
+      <div class="timeline">
+        <div class="phase"><div class="bar"></div><div class="when">เดือน 0–3</div><div class="what">ปิดช่องว่างเทคนิค + กฎหมาย</div><div class="how">escrow · LINE · e-sign · legal opinion<br>อัปโฮสต์เป็นแบบเสียเงิน</div></div>
+        <div class="phase"><div class="bar"></div><div class="when">เดือน 3–6</div><div class="what">Pilot ผลไม้ 1 ชนิด × 1 จังหวัด</div><div class="how">เช่น ทุเรียนจันทบุรี (เม.ย.–ก.ค.)<br>หรือมะม่วงน้ำดอกไม้ส่งออก</div></div>
+        <div class="phase"><div class="bar"></div><div class="when">เดือน 6–12</div><div class="what">วัดผล แล้วขยายผลไม้ชนิดที่ 2</div><div class="how">เก็บข้อมูลจริงไปฝึก AI matching / forecast<br>รับผู้ซื้อรายใหญ่เพิ่ม</div></div>
+      </div>
+    </div>
+    <div class="ops">
+      <div class="op"><span class="lvl h">ยาก</span><div class="t">QC ที่เป็นกลาง</div><div class="d">ใครเป็นผู้ตรวจ? ต้องเป็นบุคคลที่สามหรือแล็บ ไม่งั้น GradeProof หมดความหมาย</div></div>
+      <div class="op"><span class="lvl h">ยาก</span><div class="t">พาเกษตรกรเข้าระบบ</div><div class="d">ต้องลงพื้นที่ผ่านสหกรณ์ วิสาหกิจชุมชน และ ธ.ก.ส.</div></div>
+      <div class="op"><span class="lvl m">ปานกลาง</span><div class="t">เครื่องชั่งที่ผ่านรับรอง</div><div class="d">น้ำหนักที่ใช้คิดเงินต้องมีเลขรับรองเครื่องชั่ง</div></div>
+      <div class="op"><span class="lvl m">ปานกลาง</span><div class="t">ไกล่เกลี่ยข้อพิพาท</div><div class="d">ระบบรองรับ workflow แล้ว แต่ต้องมีคนกลางตัดสิน</div></div>
+      <div class="op"><span class="lvl m">ปานกลาง</span><div class="t">ซัพพอร์ตช่วงฤดู</div><div class="d">ต้องตอบเร็วผ่าน LINE OA ช่วงเก็บเกี่ยว</div></div>
+    </div>
+    <div class="card" style="display:flex; align-items:center; gap: 40px; padding: 26px 36px;">
+      <div style="font-size: 28px; font-weight: 700; flex: none;">ทีมขั้นต่ำช่วง pilot</div>
+      <div class="chips">
+        <span class="chip"><b>Developer</b> × 2</span>
+        <span class="chip"><b>Product / Design</b> × 1</span>
+        <span class="chip"><b>Field ops / Sales</b> × 2</span>
+        <span class="chip"><b>ที่ปรึกษากฎหมาย</b> (retainer)</span>
+        <span class="chip"><b>Partner QC</b></span>
+      </div>
+      <div class="note" style="margin-left:auto; flex:none;">burn ≈ ฿350–450k / เดือน*</div>
+    </div>
+  </div>
+  <footer><span class="brand">AgriGuard</span><span>* สมมติฐานของทีม</span></footer>
+</section>
+
+<!-- 4 LAW -->
+<section class="slide" id="s4">
+  <header>
+    <div>
+      <div class="eyebrow">Feasibility 4 / 6</div>
+      <h1>Legal Feasibility</h1>
+      <div class="sub">ทำได้ แต่ต้องปิด 4 เรื่องก่อนเปิดใช้จริง</div>
+    </div>
+    <div class="verdict"><small>ความเป็นไปได้</small><div class="pill v-mid"><i></i>ปานกลาง</div></div>
+  </header>
+  <div class="body" style="grid-template-rows: auto auto auto; gap: 20px; align-content: start;">
+    <div class="laws">
+      <div class="law"><div class="n">ต้องทำ 1 · สำคัญสุด</div><div class="t">พ.ร.บ.เกษตรพันธสัญญา 2560</div><div class="k">ประเด็น</div><div class="d">HarvestLock (ตกลงราคาก่อนเก็บเกี่ยว + มัดจำ) อาจเข้าข่ายเกษตรพันธสัญญา</div><div class="k">สิ่งที่ต้องทำ</div><div class="a">ขอ legal opinion และปรับ template สัญญาให้มีรายการตามที่กฎหมายกำหนด</div></div>
+      <div class="law"><div class="n">ต้องทำ 2</div><div class="t">พ.ร.บ.ระบบการชำระเงิน 2560 · Escrow 2551</div><div class="k">ประเด็น</div><div class="d">ถ้าถือเงินมัดจำหรือค่าสินค้าแทนผู้อื่น ต้องมีใบอนุญาต</div><div class="k">สิ่งที่ต้องทำ</div><div class="a">แพลตฟอร์มไม่แตะเงินเอง ให้ธนาคารหรือผู้ให้บริการที่มีใบอนุญาตถือแทน</div></div>
+      <div class="law"><div class="n">ต้องทำ 3</div><div class="t">PDPA 2562</div><div class="k">ประเด็น</div><div class="d">เก็บข้อมูลไว้ที่สิงคโปร์ (ส่งข้อมูลไปต่างประเทศ) · ใช้ผู้ประมวลผลภายนอกหลายราย</div><div class="k">สิ่งที่ต้องทำ</div><div class="a">Privacy Notice · ข้อตกลง DPA กับผู้ให้บริการทุกราย · แผนรับมือข้อมูลรั่วภายใน 72 ชม.</div></div>
+      <div class="law"><div class="n">ต้องทำ 4</div><div class="t">พ.ร.ฎ.แพลตฟอร์มดิจิทัล 2565</div><div class="k">ประเด็น</div><div class="d">AgriGuard เป็นแพลตฟอร์มตัวกลางระหว่างผู้ซื้อกับผู้ขาย</div><div class="k">สิ่งที่ต้องทำ</div><div class="a">แจ้ง ETDA · มีข้อตกลงการใช้บริการ และช่องทางรับเรื่องร้องเรียน</div></div>
+    </div>
+    <div class="card" style="padding: 16px 26px;">
+      <div style="font-size: 22px; font-weight: 700; margin-bottom: 10px;">ควรทำช่วง pilot</div>
+      <div class="chips">
+        <span class="chip"><b>ธุรกรรมอิเล็กทรอนิกส์ 2544</b> · e-signature ที่ได้รับรอง</span>
+        <span class="chip"><b>มาตราชั่งตวงวัด 2542</b> · เครื่องชั่งผ่านรับรอง</span>
+        <span class="chip"><b>มาตรฐานสินค้าเกษตร (มกษ.)</b> · เกณฑ์เกรด</span>
+        <span class="chip"><b>พ.ร.บ.คอมพิวเตอร์</b> · ระบบลบเนื้อหาตามคำร้อง</span>
+        <span class="chip"><b>การแข่งขันทางการค้า</b> · ห้ามตกลงราคาร่วมกันใน community</span>
+      </div>
+    </div>
+    <div class="card" style="padding: 16px 26px; background: var(--soft); border-color: #BBF7D0;">
+      <div style="font-size: 22px; font-weight: 700; margin-bottom: 10px; color: var(--forest);">ออกแบบไว้แล้วในต้นแบบ</div>
+      <div class="chips">
+        <span class="chip ok">ระบบไม่แตะเงินจริง</span>
+        <span class="chip ok">QR trace ไม่แสดงข้อมูลส่วนบุคคลหรือราคา</span>
+        <span class="chip ok">AgriTrust อิงข้อเท็จจริงที่ตรวจสอบแล้ว + มีระบบอุทธรณ์</span>
+        <span class="chip ok">AI ไม่ตัดคะแนนหรือแก้สัญญาเอง</span>
+        <span class="chip ok">Legal AI มี disclaimer + human review</span>
+      </div>
+    </div>
+  </div>
+  <footer><span class="brand">AgriGuard</span><span>ไม่ใช่คำปรึกษาทางกฎหมาย · ต้องยืนยันกับทนายก่อนเปิดใช้จริง</span></footer>
+</section>
+
+<!-- 5 BUSINESS -->
+<section class="slide" id="s5">
+  <header>
+    <div>
+      <div class="eyebrow">Feasibility 5 / 6</div>
+      <h1>Business Feasibility</h1>
+      <div class="sub">เก็บรายได้สองฝั่ง: ฟีเจอร์ที่ปกป้องผู้ใช้ฟรีเสมอ ฟีเจอร์ที่ช่วยหาเงินเพิ่มอยู่ในแพ็กเกจ Pro</div>
+    </div>
+    <div class="verdict"><small>ความเป็นไปได้</small><div class="pill v-mid"><i></i>ปานกลาง</div></div>
+  </header>
+  <div class="body" style="grid-template-rows: 1fr auto; gap: 28px;">
+    <div class="flow">
+      <div class="party">
+        <div class="who">ผู้ซื้อ</div>
+        <div class="muted" style="font-size: 20px;">ล้ง · ผู้ส่งออก · โรงงาน · modern trade</div>
+        <div class="tiers">
+          <div class="tier"><div class="tn">Basic <span>1% ต่อดีล</span></div><div class="td">ค่าสมาชิก ฿0 · ผู้ใช้ 1 คน · ซื้อได้สูงสุด 3 สวนต่อคำขอ</div></div>
+          <div class="tier" style="background: var(--soft); border-color: #BBF7D0;"><div class="tn">Business <span>฿3,000/เดือน + 0.6%</span></div><div class="td">ผู้ใช้หลายคน · dashboard จัดซื้อ · QR trace ส่งออก<br>คุ้มเมื่อซื้อเกิน ฿750k ต่อเดือน</div></div>
+        </div>
+      </div>
+      <div class="hub">
+        <div class="harrow"><svg width="150" height="24" viewBox="0 0 150 24"><path d="M2 12h140M132 4l10 8-10 8" fill="none" stroke="#15803D" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="core"><b>AgriGuard</b><span>สัญญา · QC · escrow<br>หลักฐาน · trace</span></div>
+        <div class="harrow"><svg width="150" height="24" viewBox="0 0 150 24"><path d="M148 12H8M18 4L8 12l10 8" fill="none" stroke="#15803D" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div style="font-size: 20px; color: var(--ink2); text-align:center; line-height:1.4;">fee รวม ~0.9–1.5% ต่อดีล<br><b style="color: var(--forest);">+ subscription เข้าทุกเดือน แม้นอกฤดู</b></div>
+      </div>
+      <div class="party">
+        <div class="who">เกษตรกร (ผู้ขาย)</div>
+        <div class="muted" style="font-size: 20px;">จ่ายเฉพาะเมื่อเงินเข้าแล้ว · ฤดูแรกฟรี</div>
+        <div class="tiers">
+          <div class="tier"><div class="tn">Free <span>0.5% ต่อดีล</span></div><div class="td">เพดาน ฿3,000/ดีล · สัญญา หลักฐาน ข้อพิพาท AgriBot ใช้ได้ครบ</div></div>
+          <div class="tier" style="background: var(--soft); border-color: #BBF7D0;"><div class="tn">Farm Pro <span>฿1,500/ฤดู + 0.3%</span></div><div class="td">Smart Allocation · พยากรณ์ผลผลิต · AI เกรด · QR trace<br>คุ้มเมื่อขายเกิน ฿750k ต่อฤดู</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="strat">
+      <div class="card"><div class="q">ปัญหาไก่กับไข่</div><div class="a">SaaS ก่อน แล้วค่อยเป็น marketplace</div><div class="d">ขายให้ผู้ซื้อใช้จัดการสวนที่ทำงานด้วยอยู่แล้ว ผู้ซื้อจะพาสวนเข้ามาเอง</div></div>
+      <div class="card"><div class="q">คู่ค้าหนีไปตกลงกันเอง</div><div class="a">เก็บเงินจากบริการหลังจับคู่</div><div class="d">สัญญา · QC · escrow · หลักฐาน · ประวัติ AgriTrust ได้เฉพาะเมื่อทำธุรกรรมในระบบ</div></div>
+      <div class="card"><div class="q">Go-to-market</div><div class="a">ผลไม้ส่งออก 1 ชนิด × 1 จังหวัด</div><div class="d">ผ่าน LINE OA · สหกรณ์ · ธ.ก.ส. · สมาคมผู้ส่งออก · NIA / depa</div></div>
+    </div>
+  </div>
+  <footer><span class="brand">AgriGuard</span><span>ราคาแพ็กเกจเป็นข้อเสนอเบื้องต้น ปรับได้หลังสัมภาษณ์ผู้ใช้</span></footer>
+</section>
+
+<!-- 6 FINANCIAL -->
+<section class="slide" id="s6">
+  <header>
+    <div>
+      <div class="eyebrow">Feasibility 6 / 6</div>
+      <h1>Financial Feasibility</h1>
+      <div class="sub">ต้นทุนระบบถูก แต่ต้องมีทุนตั้งต้น และเริ่มมีกำไรในปีที่ 3</div>
+    </div>
+    <div class="verdict"><small>ความเป็นไปได้</small><div class="pill v-low"><i></i>ต้องใช้ทุนตั้งต้น</div></div>
+  </header>
+  <div class="body" style="grid-template-columns: 1fr 640px;">
+    <div class="card" style="display:flex; flex-direction:column;">
+      <div style="display:flex; justify-content: space-between; align-items: baseline;">
+        <h3 style="margin:0;">รายได้ vs ต้นทุน 3 ปี (฿ ล้าน)</h3>
+        <div class="legend"><span><i style="background: var(--rev)"></i>รายได้</span><span><i style="background: var(--cost)"></i>ต้นทุน</span></div>
+      </div>
+      <svg id="chart" viewBox="0 0 1000 600" style="width:100%; flex:1; margin-top: 10px;"></svg>
+    </div>
+    <div style="display:grid; grid-template-rows: auto auto auto; gap: 16px; align-content: start;">
+      <div class="tiles">
+        <div class="tile hero"><div class="l">ทุนตั้งต้นที่ต้องใช้</div><div class="n">฿6–8 ล้าน</div><div class="s">ก่อนถึงจุดคุ้มทุน</div></div>
+        <div class="tile hero"><div class="l">จุดคุ้มทุน</div><div class="n">ปี 2–3</div><div class="s">ปลายปีที่ 2 ถึงต้นปีที่ 3</div></div>
+        <div class="tile"><div class="l">รายได้ต่อดีล</div><div class="n">~฿3.5–4.5k</div><div class="s">fee สองฝั่ง จากดีลเฉลี่ย ฿300k</div></div>
+        <div class="tile"><div class="l">ต้นทุน AI ต่อดีล</div><div class="n">~฿10</div><div class="s">gross margin มากกว่า 95%</div></div>
+      </div>
+      <div class="card" style="padding: 16px 22px;">
+        <table style="font-size: 19px;">
+          <tr><th></th><th>ปี 1</th><th>ปี 2</th><th>ปี 3</th></tr>
+          <tr><td class="muted">ผู้ซื้อ / สวน</td><td>20 / 200</td><td>80 / 1,000</td><td>250 / 4,000</td></tr>
+          <tr><td class="muted">ดีล</td><td>150</td><td>800</td><td>2,500</td></tr>
+          <tr><td class="muted">GMV</td><td>฿45M</td><td>฿240M</td><td>฿750M</td></tr>
+        </table>
+      </div>
+      <div class="card" style="padding: 16px 24px; background: var(--warn-bg); border-color: #FCD34D;">
+        <div style="font-size: 20px; font-weight: 700; color: #78350F; margin-bottom: 4px;">ความเสี่ยง</div>
+        <div style="font-size: 19px; line-height: 1.45; color: #78350F;">ต้นทุนหลักคือค่าคน ไม่ใช่ระบบ · รายได้กระจุกตามฤดู (subscription ช่วยได้) · ถ้าต้องจ่ายเงินล่วงหน้าแข่งกับล้ง ให้ธนาคารพันธมิตรรับส่วนนั้น</div>
+      </div>
+    </div>
+  </div>
+  <footer><span class="brand">AgriGuard</span><span>ตัวเลขทั้งหมดเป็นสมมติฐานของทีม · ต้นทุน AI คิดจาก Claude Sonnet 5.5 ($2 / $10 ต่อ 1M token)</span></footer>
+</section>
+
+<script>
+  // Financial chart: grouped bars, two series, direct labels, net result per year.
+  (function () {
+    const data = [
+      { y: "ปีที่ 1", rev: 0.6, cost: 4.5 },
+      { y: "ปีที่ 2", rev: 4.9, cost: 7.0 },
+      { y: "ปีที่ 3", rev: 16.0, cost: 11.0 },
+    ];
+    const svg = document.getElementById("chart");
+    const NS = "http://www.w3.org/2000/svg";
+    const L = 80, R = 980, T = 30, B = 470, max = 18;
+    const sy = v => B - (v / max) * (B - T);
+    const el = (tag, attrs, text) => {
+      const e = document.createElementNS(NS, tag);
+      for (const k in attrs) { e.setAttribute(k, attrs[k]); }
+      if (text != null) { e.textContent = text; }
+      svg.appendChild(e);
+      return e;
+    };
+    const font = 'IBM Plex Sans Thai, Sukhumvit Set, sans-serif';
+    [0, 5, 10, 15].forEach(v => {
+      el("line", { x1: L, x2: R, y1: sy(v), y2: sy(v), stroke: v === 0 ? "#94A3B8" : "#E2E8F0", "stroke-width": v === 0 ? 2 : 1.5 });
+      el("text", { x: L - 14, y: sy(v) + 7, "text-anchor": "end", "font-size": 20, fill: "#64748B", "font-family": font }, v);
+    });
+    const bar = (x, w, v, fill) => {
+      const y = sy(v), h = B - y, r = Math.min(6, h);
+      el("path", { d: `M${x},${B} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${B} Z`, fill });
+    };
+    const gw = (R - L) / data.length, bw = 120, gap = 4;
+    data.forEach((d, i) => {
+      const cx = L + gw * i + gw / 2;
+      bar(cx - bw - gap / 2, bw, d.rev, "#15803D");
+      bar(cx + gap / 2, bw, d.cost, "#7C3AED");
+      el("text", { x: cx - bw / 2 - gap / 2, y: sy(d.rev) - 12, "text-anchor": "middle", "font-size": 24, "font-weight": 700, fill: "#111827", "font-family": font }, d.rev.toFixed(1));
+      el("text", { x: cx + bw / 2 + gap / 2, y: sy(d.cost) - 12, "text-anchor": "middle", "font-size": 24, "font-weight": 700, fill: "#111827", "font-family": font }, d.cost.toFixed(1));
+      el("text", { x: cx, y: B + 40, "text-anchor": "middle", "font-size": 26, "font-weight": 700, fill: "#111827", "font-family": font }, d.y);
+      const net = d.rev - d.cost;
+      el("text", { x: cx, y: B + 78, "text-anchor": "middle", "font-size": 22, "font-weight": 600, fill: net >= 0 ? "#166534" : "#475569", "font-family": font }, (net >= 0 ? "กำไร +฿" : "ขาดทุน −฿") + Math.abs(net).toFixed(1) + "M");
+    });
+  })();
+
+  function show() {
+    const id = (location.hash || "#s1").slice(1);
+    document.querySelectorAll(".slide").forEach(s => s.classList.toggle("active", s.id === id));
+  }
+  window.addEventListener("hashchange", show); show();
+</script>
+</body>
+</html>
