@@ -173,6 +173,61 @@
   .aitable tr.grp.alg td { color: var(--forest); border-bottom-color: #BBF7D0; }
   .aitable td b.k { color: var(--ink); font-weight: 600; }
   .aitable td.nx { color: var(--muted); width: 230px; }
+
+  /* sequence diagrams */
+  .seqcard { background: var(--surface); border: 2px solid var(--border); border-radius: 24px; padding: 14px 20px; }
+  .seqcard svg { width: 100%; height: auto; display: block; }
+  .seqpair { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .seqpair h3 { font-size: 24px; margin: 4px 0 4px 6px; }
+  /* deal flow table */
+  .flowt td { font-size: 17px; padding: 11px 12px; line-height: 1.32; color: var(--ink2); }
+  .flowt th { font-size: 16px; padding: 0 12px 8px; }
+  .flowt td.no { font-size: 22px; font-weight: 700; color: var(--forest); width: 44px; text-align: center; }
+  .flowt td.api { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 14.5px; color: var(--ink); width: 440px; white-space: nowrap; }
+  .flowt td.st { width: 250px; }
+  .role { display: inline-block; font-size: 15px; font-weight: 700; padding: 3px 12px; border-radius: 999px; white-space: nowrap; }
+  .r-b { background: #DBEAFE; color: #1E3A8A; } .r-f { background: #DCFCE7; color: #14532D; } .r-q { background: #FEF3C7; color: #78350F; }
+  .state { display: inline-block; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 14px; font-weight: 600; padding: 3px 10px; border-radius: 8px; background: #F1F5F9; color: #0F172A; border: 1px solid var(--border); }
+  /* marketing */
+  .seg td { font-size: 18px; padding: 8px 12px; }
+  .seg td.g { font-weight: 700; color: var(--ink); white-space: nowrap; }
+  .seg tr.tg td { background: var(--soft); }
+  .seg tr.tg td:first-child { border-radius: 12px 0 0 12px; } .seg tr.tg td:last-child { border-radius: 0 12px 12px 0; }
+  .star { color: var(--forest); font-weight: 700; }
+  .pmap { position: relative; height: 100%; min-height: 330px; }
+  .quote { font-size: 22px; line-height: 1.45; color: var(--ink); }
+  .quote b { color: var(--forest); white-space: nowrap; }
+  .msg { display: grid; grid-template-columns: 150px 1fr; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); align-items: baseline; }
+  .msg:last-child { border-bottom: none; }
+  .msg .w { font-size: 18px; font-weight: 700; color: var(--muted); }
+  .msg .t { font-size: 21px; font-weight: 600; }
+  .steps { display: flex; flex-direction: column; gap: 12px; }
+  .step { display: grid; grid-template-columns: 52px 1fr; gap: 16px; align-items: start; }
+  .step .b { width: 52px; height: 52px; border-radius: 50%; background: var(--forest); color: #fff; font-size: 24px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .step .t { font-size: 23px; font-weight: 700; line-height: 1.3; }
+  .step .d { font-size: 19px; color: var(--ink2); line-height: 1.4; margin-top: 2px; }
+  .cal { display: grid; grid-template-columns: 150px repeat(12, 1fr); gap: 4px; align-items: center; }
+  .cal .m { font-size: 16px; color: var(--muted); text-align: center; font-weight: 600; }
+  .cal .lab { font-size: 18px; font-weight: 700; }
+  .cal .c { height: 30px; border-radius: 6px; background: #F1F5F9; }
+  .cal .c.on { background: #A7F3D0; } .cal .c.hv { background: var(--forest); }
+  .cal-legend { display: flex; gap: 22px; font-size: 16px; color: var(--ink2); margin-top: 10px; }
+  .cal-legend i { display: inline-block; width: 16px; height: 16px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; }
+  .funnel { display: flex; flex-direction: column; gap: 8px; }
+  .fstep { display: grid; grid-template-columns: 130px 1fr auto; gap: 14px; align-items: center; background: var(--bg); border: 2px solid var(--border); border-radius: 14px; padding: 9px 16px; }
+  .fstep .k { font-size: 18px; font-weight: 700; color: var(--forest); }
+  .fstep .d { font-size: 18px; color: var(--ink2); }
+  .fstep .v { font-size: 21px; font-weight: 700; white-space: nowrap; }
+  .fstep.key { background: var(--soft); border-color: #86EFAC; }
+  .errc { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .eq { border-radius: 20px; padding: 20px 24px; border: 2px solid var(--border); background: var(--surface); }
+  .eq .h { font-size: 15px; font-weight: 700; letter-spacing: .1em; }
+  .eq .t { font-size: 26px; font-weight: 700; margin: 2px 0 10px; }
+  .eq ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .eq li { font-size: 20px; line-height: 1.35; padding-left: 22px; position: relative; color: var(--ink); }
+  .eq li::before { content: ""; position: absolute; left: 2px; top: 11px; width: 9px; height: 9px; border-radius: 50%; background: currentColor; opacity: .5; }
+  .eq.e .h { color: #B91C1C; } .eq.r .h { color: #B45309; } .eq.ra .h { color: #15803D; } .eq.c .h { color: #6D28D9; }
+  .eq.c { background: #F5F3FF; border-color: #DDD6FE; }
 </style>
 </head>
 <body>
@@ -568,6 +623,208 @@
   <footer><span class="brand">AgriGuard</span><span>ต้นทุน AI ~฿10 ต่อดีล · ไม่มี AI key ระบบยังทำงานด้วย rule / keyword</span></footer>
 </section>
 
+<!-- 9 SEQUENCE: REQUEST LIFECYCLE -->
+<section class="slide" id="s9">
+  <header>
+    <div>
+      <div class="eyebrow">Tech Stack · Sequence 1 / 4</div>
+      <h1>ทุก request เดินทางอย่างไร</h1>
+      <div class="sub">ตัวอย่าง: ผู้ซื้อกดยืนยัน HarvestLock ตั้งแต่กดปุ่มจนหน้าจออัปเดต</div>
+    </div>
+  </header>
+  <div class="body" style="grid-template-rows: auto; align-content: start;">
+    <div class="seqcard"><svg id="seq1"></svg></div>
+  </div>
+  <footer><span class="brand">AgriGuard</span><span>โหมดเดโมส่ง X-Demo-User แทน JWT ได้เฉพาะตอน DEMO_LOGIN=true · ทุกเส้นทางผ่าน CORS ก่อน</span></footer>
+</section>
+
+<!-- 10 SEQUENCE: ONE DEAL -->
+<section class="slide" id="s10">
+  <header>
+    <div>
+      <div class="eyebrow">Tech Stack · Sequence 2 / 4</div>
+      <h1>1 ดีล ตั้งแต่ต้นจนจบ</h1>
+      <div class="sub">ใครเรียก API ไหน, Backend ทำอะไร, และสถานะเปลี่ยนเป็นอะไร</div>
+    </div>
+  </header>
+  <div class="body" style="grid-template-rows: auto; align-content: start;">
+    <div class="card" style="padding: 12px 20px 6px;">
+      <table class="flowt">
+        <tr><th></th><th>ใคร</th><th>API</th><th>Backend ทำอะไร</th><th>สถานะหลังจบ</th></tr>
+        <tr><td class="no">1</td><td><span class="role r-b">ผู้ซื้อ</span></td><td class="api">POST /purchase-requests</td><td>สร้างคำขอซื้อ เลือกซื้อจากรายเดียว (SINGLE) หรือหลายราย (MULTI) + จำนวนผู้ขายสูงสุด</td><td class="st"><span class="state">OPEN</span></td></tr>
+        <tr><td class="no">2</td><td><span class="role r-b">ผู้ซื้อ</span></td><td class="api">GET /purchase-requests/{id}/matches</td><td>กรองเงื่อนไขบังคับ → ให้คะแนนถ่วงน้ำหนัก 5 ปัจจัย พร้อมเหตุผลรายข้อ</td><td class="st">รายการสวนเรียงตามคะแนน</td></tr>
+        <tr><td class="no">3</td><td><span class="role r-b">ผู้ซื้อ</span></td><td class="api">POST /offers</td><td>ตรวจว่าไม่เกินปริมาณที่ยังขาด · audit + แจ้งเตือนเกษตรกร</td><td class="st"><span class="state">PENDING</span></td></tr>
+        <tr><td class="no">4</td><td><span class="role r-f">เกษตรกร</span></td><td class="api">POST /listings/{id}/allocation/preview<br>&nbsp;&nbsp;→ /allocation/confirm</td><td>ล็อกแถว listing ด้วย <b>SELECT … FOR UPDATE</b> กัน overbook · optimizer แบ่งของ · สร้าง HarvestLock + การจองที่มีวันหมดอายุ</td><td class="st"><span class="state">AWAITING_CONFIRMATION</span></td></tr>
+        <tr><td class="no">5</td><td><span class="role r-b">ผู้ซื้อ</span></td><td class="api">POST /contracts/{id}/accept</td><td>terms → canonical JSON → <b>SHA-256 terms_hash</b> · บันทึกการยอมรับ + ชื่อที่พิมพ์ลงนาม · ปิดข้อเสนออื่นตามโหมดซื้อ</td><td class="st"><span class="state">CONFIRMED</span></td></tr>
+        <tr><td class="no">6</td><td><span class="role r-f">เกษตรกร</span></td><td class="api">POST /contracts/{id}/lots</td><td>สร้างล็อต LOT-… + QR token สำหรับหน้า trace สาธารณะ (ไม่มีข้อมูลส่วนบุคคลหรือราคา)</td><td class="st"><span class="state">HARVESTED</span></td></tr>
+        <tr><td class="no">7</td><td><span class="role r-f">เกษตรกร</span> <span class="role r-b">ผู้ซื้อ</span></td><td class="api">POST /lots/{id}/dispatch · /receive</td><td>บันทึกน้ำหนักตอนส่งและตอนรับ</td><td class="st"><span class="state">IN_TRANSIT</span> → <span class="state">QC_PENDING</span></td></tr>
+        <tr><td class="no">8</td><td><span class="role r-q">ผู้ตรวจ QC</span></td><td class="api">POST /lots/{id}/inspections<br>&nbsp;&nbsp;(+ /lots/{id}/ai-grade)</td><td>เทียบเกรดกับสัญญา → discrepancy flags · ตรวจครบทุกล็อต → สร้าง settlement snapshot</td><td class="st"><span class="state">PAYMENT_PENDING</span></td></tr>
+        <tr><td class="no">9</td><td><span class="role r-b">ผู้ซื้อ</span></td><td class="api">POST /settlements/{id}/payments<br>+ Idempotency-Key</td><td>Net = Σ(กก. × ราคาตามเกรด) − มัดจำ · ถ้า key ซ้ำจะไม่บันทึกซ้ำ</td><td class="st"><span class="state">PAID</span></td></tr>
+        <tr><td class="no">10</td><td><span class="role r-f">เกษตรกร</span></td><td class="api">POST /contracts/{id}/complete</td><td>record_trust_events: นับเฉพาะเหตุการณ์ที่ตรวจสอบแล้ว → คำนวณ AgriTrust ใหม่</td><td class="st"><span class="state">COMPLETED</span></td></tr>
+      </table>
+    </div>
+  </div>
+  <footer><span class="brand">AgriGuard</span><span>ทุกขั้นเขียน AuditLog + แจ้งเตือนอีกฝ่าย · ข้อพิพาทหยุด flow ได้ทุกขั้น (DISPUTED) และกลับสถานะเดิมเมื่อยุติ</span></footer>
+</section>
+
+<!-- 11 SEQUENCE: AI REQUEST -->
+<section class="slide" id="s11">
+  <header>
+    <div>
+      <div class="eyebrow">Tech Stack · Sequence 3 / 4</div>
+      <h1>AI request ทำงานอย่างไร</h1>
+      <div class="sub">ตัวอย่าง: Legal AI ตรวจสัญญา โดย AI package ไม่แตะฐานข้อมูลเอง</div>
+    </div>
+  </header>
+  <div class="body" style="grid-template-rows: auto auto; gap: 14px; align-content: start;">
+    <div class="seqcard"><svg id="seq3"></svg></div>
+    <div class="card" style="padding: 12px 22px; background: #F5F3FF; border-color: #DDD6FE;">
+      <div class="infra">
+        <div class="lb" style="color:#5B21B6; font-size: 20px;">ฟีเจอร์อื่นใช้ pipeline เดียวกัน</div>
+        <div class="chips" style="--cs: 16px;">
+          <span class="chip"><b>QC Photo</b> · รูปจาก Storage → Pillow ย่อ ≤1568px → vision → แปลง % เป็น กก. → ผู้ตรวจยืนยัน</span>
+          <span class="chip"><b>AgriBot</b> · คำถามกฎหมายส่งไป Legal AI · เรื่องอื่นใช้ catalog ตามบทบาท + งานค้างจาก DB</span>
+          <span class="chip"><b>ไม่มี key</b> · ใช้ rule / keyword แทน</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer><span class="brand">AgriGuard</span><span>ถ้าโมเดลปฏิเสธ (refusal) จะไม่สลับไปลองอีกเจ้า · ทุกคำตอบติดป้าย AI-generated + disclaimer</span></footer>
+</section>
+
+<!-- 12 SEQUENCE: SIGN-IN + EVIDENCE -->
+<section class="slide" id="s12">
+  <header>
+    <div>
+      <div class="eyebrow">Tech Stack · Sequence 4 / 4</div>
+      <h1>เข้าสู่ระบบ &amp; อัปโหลดหลักฐาน</h1>
+      <div class="sub">Google sign-in แบบ PKCE และไฟล์หลักฐานที่เปิดได้ผ่านลิงก์อายุ 5 นาทีเท่านั้น</div>
+    </div>
+  </header>
+  <div class="body" style="grid-template-rows: auto; align-content: start;">
+    <div class="seqpair">
+      <div class="seqcard"><h3>Google sign-in + onboarding</h3><svg id="seq4a"></svg></div>
+      <div class="seqcard"><h3>อัปโหลดและเปิดดูหลักฐาน</h3><svg id="seq4b"></svg></div>
+    </div>
+  </div>
+  <footer><span class="brand">AgriGuard</span><span>Secret key ของ Supabase อยู่ที่ Backend เท่านั้น · Frontend ถือแค่ publishable key · RLS เปิดทุกตาราง</span></footer>
+</section>
+
+<!-- 13 MARKETING: STP -->
+<section class="slide" id="s13">
+  <header>
+    <div>
+      <div class="eyebrow">Marketing 1 / 3</div>
+      <h1>STP &amp; Positioning</h1>
+      <div class="sub">เริ่มจากผู้ส่งออกที่ต้องการ trace แล้วให้ผู้ซื้อพาสวนเข้ามา</div>
+    </div>
+  </header>
+  <div class="body" style="grid-template-columns: 860px 1fr; align-content: start;">
+    <div style="display:grid; gap: 20px; align-content: start;">
+      <div class="card" style="padding: 18px 22px;">
+        <h3 style="font-size: 24px; margin-bottom: 6px;">Segmentation &amp; Target <span class="tag ok">★ = beachhead</span></h3>
+        <table class="seg">
+          <tr><th>กลุ่ม</th><th>ลักษณะ</th></tr>
+          <tr class="tg"><td class="g"><span class="star">★</span> ผู้ส่งออก / ล้ง</td><td>ซื้อปริมาณมาก ต้องมี trace เพื่อส่งจีน · จ่ายได้และมีอำนาจ</td></tr>
+          <tr><td class="g">โรงงานแปรรูป</td><td>ต้องการวัตถุดิบสม่ำเสมอ วางแผนล่วงหน้า</td></tr>
+          <tr><td class="g">Modern trade / ค้าส่ง</td><td>สนใจเกรดและความต่อเนื่องของ supply</td></tr>
+          <tr class="tg"><td class="g"><span class="star">★</span> สวนขนาดกลาง</td><td>10–50 ไร่ ปลูกผลไม้ส่งออก · ถูกกดราคาบ่อย</td></tr>
+          <tr><td class="g">สวนรายย่อย</td><td>ต่ำกว่า 10 ไร่ · อ่อนไหวเรื่องราคา · ใช้ LINE</td></tr>
+          <tr><td class="g">สหกรณ์ / วิสาหกิจ</td><td>รวมผลผลิตจากสมาชิก · ใช้เป็นช่องทางเข้าถึงเกษตรกร</td></tr>
+        </table>
+      </div>
+      <div class="card" style="padding: 18px 22px;">
+        <h3 style="font-size: 24px; margin-bottom: 4px;">Message แยกตามกลุ่ม</h3>
+        <div class="msg"><div class="w">เกษตรกร</div><div class="t">"ล็อกราคาก่อนเก็บ ไม่โดนกดราคา ไม่ได้เงินไม่ต้องจ่าย"</div></div>
+        <div class="msg"><div class="w">ผู้ส่งออก</div><div class="t">"รู้ล่วงหน้าว่าได้ของเท่าไร เกรดอะไร trace ส่งจีนได้ทุกล็อต"</div></div>
+        <div class="msg"><div class="w">สหกรณ์</div><div class="t">"จัดการการขายของสมาชิกทั้งกลุ่มในระบบเดียว"</div></div>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-rows: 1fr auto; gap: 20px;">
+      <div class="card" style="padding: 16px 20px; display:flex; flex-direction:column;">
+        <h3 style="font-size: 24px; margin-bottom: 4px;">Positioning map</h3>
+        <svg id="pmap" viewBox="0 0 820 440" style="width:100%; flex:1;"></svg>
+      </div>
+      <div class="card" style="padding: 18px 24px; background: var(--soft); border-color: #BBF7D0;">
+        <div style="font-size: 17px; font-weight: 700; color: var(--forest); letter-spacing: .08em; margin-bottom: 6px;">POSITIONING STATEMENT</div>
+        <div class="quote">สำหรับ<b>ผู้ส่งออกผลไม้</b>ที่ต้องการวัตถุดิบที่ตรวจสอบย้อนกลับได้ AgriGuard คือ<b>ระบบจัดการดีลก่อนเก็บเกี่ยว</b>ที่ล็อกราคา ตรวจเกรด และเก็บหลักฐานครบในที่เดียว <span style="white-space:nowrap">ต่างจากล้ง</span>และกลุ่ม LINE ที่ตกลงกันด้วยปากเปล่า</div>
+      </div>
+    </div>
+  </div>
+  <footer><span class="brand">AgriGuard</span><span>ตำแหน่งบนแผนที่เป็นการประเมินเชิงคุณภาพของทีม</span></footer>
+</section>
+
+<!-- 14 MARKETING: GTM -->
+<section class="slide" id="s14">
+  <header>
+    <div>
+      <div class="eyebrow">Marketing 2 / 3</div>
+      <h1>Go-to-Market &amp; Funnel</h1>
+      <div class="sub">Buyer-led (B2B2C) และลงพื้นที่ก่อนฤดูเก็บเกี่ยว 2–3 เดือน</div>
+    </div>
+  </header>
+  <div class="body" style="grid-template-columns: 1fr 760px; align-content: start;">
+    <div style="display:grid; gap: 20px; align-content: start;">
+      <div class="card" style="padding: 20px 26px;">
+        <h3 style="font-size: 24px;">Buyer-led ใน 4 ขั้น</h3>
+        <div class="steps">
+          <div class="step"><div class="b">1</div><div><div class="t">ปิดดีลกับผู้ซื้อหลัก 3–5 ราย</div><div class="d">ใช้ฟรีช่วง pilot แลกกับชวนสวนที่ซื้ออยู่แล้วเข้าระบบ</div></div></div>
+          <div class="step"><div class="b">2</div><div><div class="t">สวนเข้ามาตามผู้ซื้อ</div><div class="d">ผู้ซื้อเป็นคนบอกให้ใช้ ซึ่งน่าเชื่อกว่าโฆษณา</div></div></div>
+          <div class="step"><div class="b">3</div><div><div class="t">ขยายผ่านพันธมิตร</div><div class="d">สหกรณ์ · ธ.ก.ส. · สำนักงานเกษตรจังหวัด · สมาคมทุเรียนไทย · Young Smart Farmer</div></div></div>
+          <div class="step"><div class="b">4</div><div><div class="t">Content + Referral</div><div class="d">คลิปสั้น "โดนกดราคา vs มี HarvestLock" · เกร็ดสิทธิ์เกษตรกรจาก Legal AI · ชวนเพื่อนได้ลด fee</div></div></div>
+        </div>
+      </div>
+      <div class="card" style="padding: 18px 26px;">
+        <h3 style="font-size: 24px; margin-bottom: 12px;">ปฏิทินตามฤดู</h3>
+        <div class="cal" id="cal"></div>
+        <div class="cal-legend"><span><i style="background:#A7F3D0"></i>ช่วงลงพื้นที่ / onboarding</span><span><i style="background:var(--forest)"></i>ฤดูเก็บเกี่ยว</span></div>
+      </div>
+    </div>
+    <div style="display:grid; gap: 20px; align-content: start;">
+      <div class="card" style="padding: 20px 24px;">
+        <h3 style="font-size: 24px;">Funnel (AARRR) · เป้า pilot*</h3>
+        <div class="funnel">
+          <div class="fstep"><div class="k">Awareness</div><div class="d">ได้คุยด้วย</div><div class="v">600 สวน · 40 ผู้ซื้อ</div></div>
+          <div class="fstep"><div class="k">Acquisition</div><div class="d">สมัครใช้งาน</div><div class="v">200 สวน · 20 ผู้ซื้อ</div></div>
+          <div class="fstep key"><div class="k">Activation</div><div class="d">เซ็น HarvestLock ดีลแรก</div><div class="v">40%</div></div>
+          <div class="fstep"><div class="k">Retention</div><div class="d">กลับมาใช้ฤดูที่ 2</div><div class="v">≥ 60%</div></div>
+          <div class="fstep"><div class="k">Revenue</div><div class="d">สมัคร Pro / Business</div><div class="v">10%</div></div>
+          <div class="fstep"><div class="k">Referral</div><div class="d">สวนชวนสวน</div><div class="v">0.5 ต่อราย</div></div>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile hero"><div class="l">งบการตลาดช่วง pilot*</div><div class="n">฿300–500k</div><div class="s">ส่วนใหญ่เป็นค่าลงพื้นที่และออกงาน</div></div>
+        <div class="tile"><div class="l">CAC เป้าหมาย*</div><div class="n" style="font-size: 32px;">฿10–15k / ฿500</div><div class="s">ผู้ซื้อ 1 ราย / เกษตรกร 1 ราย</div></div>
+      </div>
+    </div>
+  </div>
+  <footer><span class="brand">AgriGuard</span><span>* สมมติฐานของทีม · ฤดูเก็บเกี่ยวเป็นช่วงโดยประมาณ</span></footer>
+</section>
+
+<!-- 15 MARKETING: ERRC + FLYWHEEL -->
+<section class="slide" id="s15">
+  <header>
+    <div>
+      <div class="eyebrow">Marketing 3 / 3</div>
+      <h1>ต่างจากเดิมอย่างไร &amp; โตแล้วแข็งแรงขึ้นอย่างไร</h1>
+      <div class="sub">ERRC Grid (Blue Ocean) เทียบกับล้งและพ่อค้าคนกลาง และ Flywheel ของแพลตฟอร์ม</div>
+    </div>
+  </header>
+  <div class="body" style="grid-template-columns: 1fr 760px; align-content: start;">
+    <div class="errc">
+      <div class="eq e"><div class="h">ELIMINATE</div><div class="t">ตัดออก</div><ul><li>การตกลงด้วยปากเปล่า</li><li>การกดราคาตอนเก็บเกี่ยว</li></ul></div>
+      <div class="eq r"><div class="h">REDUCE</div><div class="t">ลดลง</div><ul><li>ข้อพิพาทเรื่องเกรด</li><li>เวลาที่ผู้ซื้อใช้หาสวน</li></ul></div>
+      <div class="eq ra"><div class="h">RAISE</div><div class="t">เพิ่มขึ้น</div><ul><li>ความโปร่งใสของราคา</li><li>หลักฐานทุกขั้นตอน</li><li>ความมั่นใจว่าจะได้เงิน</li></ul></div>
+      <div class="eq c"><div class="h">CREATE</div><div class="t">สร้างใหม่</div><ul><li>คะแนนผู้ซื้อ (AgriTrust)</li><li>QR trace รายล็อต</li><li>ผู้ช่วยอ่านสัญญาด้วย AI</li></ul></div>
+    </div>
+    <div class="card" style="padding: 16px 20px;">
+      <h3 style="font-size: 24px; margin-bottom: 0;">Flywheel</h3>
+      <svg id="fly" viewBox="0 0 780 620" style="width:100%;"></svg>
+    </div>
+  </div>
+  <footer><span class="brand">AgriGuard</span><span>Moat มาจากข้อมูลธุรกรรมที่ตรวจสอบแล้ว ซึ่งคู่แข่งลอกไม่ได้</span></footer>
+</section>
+
 <script>
   // Financial chart: grouped bars, two series, direct labels, net result per year.
   (function () {
@@ -607,6 +864,189 @@
       const net = d.rev - d.cost;
       el("text", { x: cx, y: B + 78, "text-anchor": "middle", "font-size": 22, "font-weight": 600, fill: net >= 0 ? "#166534" : "#475569", "font-family": font }, (net >= 0 ? "กำไร +฿" : "ขาดทุน −฿") + Math.abs(net).toFixed(1) + "M");
     });
+  })();
+
+  // ---------- sequence diagram renderer ----------
+  function seq(id, lanes, msgs, o) {
+    o = Object.assign({ W: 1700, rowH: 52, headH: 66, font: 17, mx: 120, headW: 230 }, o || {});
+    const svg = document.getElementById(id), NS = "http://www.w3.org/2000/svg";
+    const H = o.headH + 34 + msgs.length * o.rowH + 10;
+    svg.setAttribute("viewBox", `0 0 ${o.W} ${H}`);
+    const font = 'IBM Plex Sans Thai, Sukhumvit Set, sans-serif';
+    const el = (tag, attrs, text) => {
+      const e = document.createElementNS(NS, tag);
+      for (const k in attrs) { e.setAttribute(k, attrs[k]); }
+      if (text != null) { e.textContent = text; }
+      svg.appendChild(e);
+      return e;
+    };
+    const defs = el("defs", {});
+    const mk = document.createElementNS(NS, "marker");
+    for (const [k, v] of Object.entries({ id: id + "-ah", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 9, markerHeight: 9, orient: "auto-start-reverse" })) mk.setAttribute(k, v);
+    const mp = document.createElementNS(NS, "path"); mp.setAttribute("d", "M0,0 L10,5 L0,10 z"); mp.setAttribute("fill", "#334155");
+    mk.appendChild(mp); defs.appendChild(mk);
+    const n = lanes.length, gap = (o.W - 2 * o.mx) / (n - 1);
+    const X = i => o.mx + i * gap;
+    const hw = Math.min(o.headW, gap - 16);
+    lanes.forEach((l, i) => {
+      el("line", { x1: X(i), x2: X(i), y1: o.headH, y2: H - 4, stroke: "#CBD5E1", "stroke-width": 2, "stroke-dasharray": "6 6" });
+      el("rect", { x: X(i) - hw / 2, y: 2, width: hw, height: o.headH - 6, rx: 12, fill: l.bg || "#F8FAFC", stroke: l.c || "#94A3B8", "stroke-width": 2.5 });
+      el("text", { x: X(i), y: l.s ? 30 : 40, "text-anchor": "middle", "font-size": 19, "font-weight": 700, fill: "#111827", "font-family": font }, l.t);
+      if (l.s) el("text", { x: X(i), y: 52, "text-anchor": "middle", "font-size": 14.5, fill: "#64748B", "font-family": font }, l.s);
+    });
+    msgs.forEach((m, k) => {
+      const y = o.headH + 34 + k * o.rowH;
+      const x1 = X(m.f), x2 = X(m.t);
+      const label = (k + 1) + ". " + m.l;
+      if (m.f === m.t) {
+        el("path", { d: `M${x1},${y - 12} h34 v${o.rowH * 0.42} h-30`, fill: "none", stroke: "#334155", "stroke-width": 2, "marker-end": `url(#${id}-ah)` });
+        const right = x1 + 44 + label.length * o.font * 0.5 > o.W - 8;
+        el("text", { x: right ? x1 - 12 : x1 + 44, y: y + 2, "text-anchor": right ? "end" : "start", "font-size": o.font, fill: "#111827", "font-family": font, stroke: "#fff", "stroke-width": 6, "paint-order": "stroke", "font-weight": 500 }, label);
+        return;
+      }
+      el("line", { x1, x2: x2 + (x2 > x1 ? -3 : 3), y1: y, y2: y, stroke: m.r ? "#64748B" : "#334155", "stroke-width": 2, "stroke-dasharray": m.r ? "7 6" : "", "marker-end": `url(#${id}-ah)` });
+      const over = Math.min(x1, x2) + 12 + label.length * o.font * 0.5 > o.W - 8;
+      const lx = over ? Math.max(x1, x2) - 16 : Math.min(x1, x2) + 12;
+      el("text", { x: lx, y: y - 9, "text-anchor": over ? "end" : "start", "font-size": o.font, fill: m.r ? "#475569" : "#111827", "font-family": font, stroke: "#fff", "stroke-width": 6, "paint-order": "stroke", "font-weight": m.r ? 400 : 500 }, label);
+    });
+  }
+  const C = { user: ["#94A3B8", "#F8FAFC"], fe: ["#0F766E", "#F0FDFA"], auth: ["#D97706", "#FFFBEB"], be: ["#166534", "#F0FDF4"], ai: ["#6D28D9", "#F5F3FF"], db: ["#475569", "#F1F5F9"] };
+  const L = (t, s, c) => ({ t, s, c: C[c][0], bg: C[c][1] });
+
+  seq("seq1", [L("ผู้ใช้", "เบราว์เซอร์ / มือถือ", "user"), L("Next.js", "api.ts + SWR", "fe"), L("Supabase Auth", "Google · JWT", "auth"), L("FastAPI", "deps + router", "be"), L("Service", "state machine", "be"), L("PostgreSQL", "Supabase", "db")], [
+    { f: 0, t: 1, l: "กดปุ่ม \"ยืนยัน HarvestLock\"" },
+    { f: 1, t: 2, l: "getSession() ขอ access token (refresh อัตโนมัติ)" },
+    { f: 2, t: 1, l: "JWT (ES256)", r: 1 },
+    { f: 1, t: 3, l: "POST /api/contracts/{id}/accept · Authorization: Bearer JWT" },
+    { f: 3, t: 2, l: "ดึง JWKS (cache) → ตรวจ signature · iss · aud · exp" },
+    { f: 3, t: 5, l: "หา User จาก auth_user_id (ไม่พบ → 409 ONBOARDING_REQUIRED)" },
+    { f: 3, t: 4, l: "require_role() ตรวจสิทธิ์ (RBAC) แล้วเรียก service" },
+    { f: 4, t: 4, l: "ตรวจ TRANSITIONS ว่าเปลี่ยนสถานะได้ไหม (ไม่ได้ → 409)" },
+    { f: 4, t: 5, l: "เขียนข้อมูล + AuditLog + Notification → COMMIT (transaction เดียว)" },
+    { f: 3, t: 1, l: "JSON 200 หรือ error ภาษาไทย", r: 1 },
+    { f: 1, t: 0, l: "SWR mutate → หน้าจออัปเดต · กระดิ่งแจ้งเตือนดึงทุก 15 วิ", r: 1 },
+  ], { rowH: 54 });
+
+  seq("seq3", [L("Frontend", "ผู้ช่วยอ่านสัญญา", "fe"), L("FastAPI", "ai router + ai_bridge", "be"), L("agriguard_ai", "legal · retrieval", "ai"), L("Claude / Gemini", "LLM API", "ai"), L("PostgreSQL", "ai_runs", "db")], [
+    { f: 0, t: 1, l: "POST /api/legal/contracts/{id}/review" },
+    { f: 1, t: 2, l: "rule_findings(terms): rule engine ทำงานเสมอ ไม่ต้องมี key" },
+    { f: 1, t: 2, l: "review_sources: ข้อสัญญา C-* (redact แล้ว) + นโยบายจาก 3-gram TF-IDF" },
+    { f: 1, t: 4, l: "หา ai_runs ที่ input_hash ตรงกัน → ถ้ามีใช้ cache" },
+    { f: 2, t: 3, l: "Claude Sonnet 5.5 · JSON schema · effort medium" },
+    { f: 3, t: 2, l: "JSON (ถ้าล้มเหลว → ลอง Gemini 3.8 Flash)", r: 1 },
+    { f: 1, t: 4, l: "บันทึก ai_runs: model · prompt version · hash · tokens · output" },
+    { f: 1, t: 2, l: "review_result: ตัด citation ที่ id ไม่อยู่ใน sources" },
+    { f: 1, t: 1, l: "needs_human_review(rules, output)" },
+    { f: 1, t: 0, l: "สรุป + ข้อเสี่ยง + อ้างอิง + human_review_required + ป้าย AI-generated", r: 1 },
+  ], { rowH: 52 });
+
+  seq("seq4a", [L("ผู้ใช้", "เบราว์เซอร์", "user"), L("Next.js", "Supabase JS", "fe"), L("Supabase", "Google OAuth", "auth"), L("FastAPI", "+ PostgreSQL", "be")], [
+    { f: 0, t: 1, l: "กด \"เข้าสู่ระบบด้วย Google\"" },
+    { f: 1, t: 2, l: "signInWithOAuth (PKCE)" },
+    { f: 2, t: 1, l: "redirect /auth/callback?code=…", r: 1 },
+    { f: 1, t: 2, l: "exchangeCodeForSession(code)" },
+    { f: 1, t: 3, l: "GET /api/auth/session (Bearer)" },
+    { f: 3, t: 1, l: "onboarding_required (ครั้งแรก)", r: 1 },
+    { f: 1, t: 3, l: "POST /api/onboarding · เลือกเกษตรกร / ผู้ซื้อ" },
+    { f: 3, t: 1, l: "สร้าง User + Organization", r: 1 },
+    { f: 1, t: 0, l: "เข้า dashboard ตามบทบาท", r: 1 },
+  ], { W: 820, mx: 90, headW: 170, rowH: 60, font: 16 });
+
+  seq("seq4b", [L("Frontend", "ผู้ใช้", "fe"), L("FastAPI", "files router", "be"), L("Storage", "bucket ส่วนตัว", "auth"), L("PostgreSQL", "EvidenceFile", "db")], [
+    { f: 0, t: 1, l: "POST /api/files (รูป / PDF)" },
+    { f: 1, t: 1, l: "ตรวจสิทธิ์คู่สัญญา + ชนิดไฟล์" },
+    { f: 1, t: 1, l: "คำนวณ SHA-256 ของไฟล์" },
+    { f: 1, t: 2, l: "put ไฟล์ลง bucket ส่วนตัว" },
+    { f: 1, t: 3, l: "บันทึก sha256 · ขนาด · เจ้าของ + audit" },
+    { f: 0, t: 1, l: "GET /api/files/{id}/link" },
+    { f: 1, t: 2, l: "ขอ signed URL อายุ 300 วินาที" },
+    { f: 1, t: 0, l: "ลิงก์ที่หมดอายุใน 5 นาที", r: 1 },
+    { f: 0, t: 2, l: "เปิดไฟล์ผ่านลิงก์ (หมดเวลาแล้วเปิดไม่ได้)" },
+  ], { W: 820, mx: 90, headW: 170, rowH: 60, font: 16 });
+
+  // ---------- positioning map ----------
+  (function () {
+    const svg = document.getElementById("pmap"), NS = "http://www.w3.org/2000/svg";
+    const font = 'IBM Plex Sans Thai, Sukhumvit Set, sans-serif';
+    const el = (tag, attrs, text) => {
+      const e = document.createElementNS(NS, tag);
+      for (const k in attrs) { e.setAttribute(k, attrs[k]); }
+      if (text != null) { e.textContent = text; }
+      svg.appendChild(e);
+      return e;
+    };
+    const L = 70, R = 800, T = 10, B = 400, cx = (L + R) / 2, cy = (T + B) / 2;
+    el("rect", { x: L, y: T, width: (R - L) / 2, height: (B - T) / 2, fill: "#F0FDF4" });
+    el("line", { x1: L, x2: R, y1: cy, y2: cy, stroke: "#CBD5E1", "stroke-width": 2 });
+    el("line", { x1: cx, x2: cx, y1: T, y2: B, stroke: "#CBD5E1", "stroke-width": 2 });
+    el("rect", { x: L, y: T, width: R - L, height: B - T, fill: "none", stroke: "#E2E8F0", "stroke-width": 2 });
+    const t = (x, y, s, a) => el("text", Object.assign({ x, y, "font-family": font }, a || {}), s);
+    t(L + 8, T + 26, "มีสัญญา / หลักฐาน", { "font-size": 17, fill: "#64748B", "font-weight": 600 });
+    t(L + 8, B - 12, "ไม่เป็นทางการ", { "font-size": 17, fill: "#64748B", "font-weight": 600 });
+    t(L + 10, B + 30, "← ดีลก่อนเก็บเกี่ยว", { "font-size": 17, fill: "#64748B", "font-weight": 600 });
+    t(R - 10, B + 30, "ของพร้อมขาย →", { "font-size": 17, fill: "#64748B", "font-weight": 600, "text-anchor": "end" });
+    const dot = (x, y, label, hero) => {
+      el("circle", { x, cx: x, cy: y, r: hero ? 16 : 10, fill: hero ? "#166534" : "#94A3B8", stroke: "#fff", "stroke-width": 3 });
+      t(x + (hero ? 26 : 18), y + 7, label, { "font-size": hero ? 24 : 19, "font-weight": hero ? 700 : 600, fill: hero ? "#166534" : "#334155" });
+    };
+    dot(180, 110, "AgriGuard", true);
+    dot(530, 130, "Freshket · สี่มุมเมืองออนไลน์");
+    dot(160, 300, "ล้ง / พ่อค้าคนกลาง");
+    dot(520, 330, "กลุ่ม LINE / Facebook");
+  })();
+
+  // ---------- season calendar ----------
+  (function () {
+    const cal = document.getElementById("cal");
+    const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+    const rows = [
+      { lab: "ทุเรียน (ตะวันออก)", on: [0, 1, 2], hv: [3, 4, 5, 6] },
+      { lab: "มะม่วง", on: [11, 0, 1], hv: [2, 3, 4] },
+    ];
+    let html = '<div></div>' + months.map(m => `<div class="m">${m}</div>`).join("");
+    rows.forEach(r => {
+      html += `<div class="lab">${r.lab}</div>` + months.map((_, i) => `<div class="c ${r.hv.includes(i) ? "hv" : r.on.includes(i) ? "on" : ""}"></div>`).join("");
+    });
+    cal.innerHTML = html;
+  })();
+
+  // ---------- flywheel ----------
+  (function () {
+    const svg = document.getElementById("fly"), NS = "http://www.w3.org/2000/svg";
+    const font = 'IBM Plex Sans Thai, Sukhumvit Set, sans-serif';
+    const el = (tag, attrs, text) => {
+      const e = document.createElementNS(NS, tag);
+      for (const k in attrs) { e.setAttribute(k, attrs[k]); }
+      if (text != null) { e.textContent = text; }
+      svg.appendChild(e);
+      return e;
+    };
+    const defs = el("defs", {});
+    defs.innerHTML = '<marker id="fly-ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#166534"/></marker>';
+    const cx = 390, cy = 305, R = 235;
+    el("circle", { cx, cy, r: R, fill: "none", stroke: "#BBF7D0", "stroke-width": 14 });
+    const nodes = [
+      ["ผู้ซื้อมากขึ้น", "ดีมานด์ชัด ราคาโปร่งใส"],
+      ["สวนเข้ามามากขึ้น", "ทางเลือกและ supply มากขึ้น"],
+      ["ธุรกรรมที่ตรวจสอบแล้ว", "สะสมเป็นข้อมูลจริง"],
+      ["AgriTrust แม่นขึ้น", "matching ดีขึ้น · เชื่อใจมากขึ้น"],
+    ];
+    const ang = [-90, 0, 90, 180].map(a => a * Math.PI / 180);
+    for (let i = 0; i < 4; i++) {
+      const a0 = ang[i] + 0.5, a1 = ang[(i + 1) % 4] - 0.5 + (i === 3 ? 2 * Math.PI : 0);
+      const p = (a) => [cx + R * Math.cos(a), cy + R * Math.sin(a)];
+      const [x0, y0] = p(a0), [x1, y1] = p(a1);
+      el("path", { d: `M${x0},${y0} A${R},${R} 0 0 1 ${x1},${y1}`, fill: "none", stroke: "#166534", "stroke-width": 4, "marker-end": "url(#fly-ah)" });
+    }
+    nodes.forEach(([t1, t2], i) => {
+      const x = cx + R * Math.cos(ang[i]), y = cy + R * Math.sin(ang[i]);
+      const w = 230, h = 84;
+      el("rect", { x: x - w / 2, y: y - h / 2, width: w, height: h, rx: 18, fill: "#fff", stroke: "#166534", "stroke-width": 2.5 });
+      el("text", { x, y: y - 6, "text-anchor": "middle", "font-size": 20, "font-weight": 700, fill: "#111827", "font-family": font }, t1);
+      el("text", { x, y: y + 22, "text-anchor": "middle", "font-size": 16, fill: "#475569", "font-family": font }, t2);
+    });
+    el("text", { x: cx, y: cy - 6, "text-anchor": "middle", "font-size": 26, "font-weight": 700, fill: "#166534", "font-family": font }, "AgriGuard");
+    el("text", { x: cx, y: cy + 24, "text-anchor": "middle", "font-size": 16, fill: "#475569", "font-family": font }, "ยิ่งใช้ ยิ่งแม่น");
   })();
 
   function show() {
