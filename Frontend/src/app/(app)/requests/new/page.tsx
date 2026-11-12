@@ -4,6 +4,8 @@ import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import useSWR from "swr";
+import Link from "next/link";
+import { PlanBadge, useMyPlan } from "@/components/plan";
 import { Button, Card, DL, Field, Input, PageHeader, Select, Textarea, cx } from "@/components/ui";
 import { post } from "@/lib/api";
 import { fmtKg, fmtRange, fmtTHB } from "@/lib/format";
@@ -42,10 +44,13 @@ export default function NewRequestPage() {
   });
   const set = (k: keyof Form, v: Form[keyof Form]) => setF((x) => ({ ...x, [k]: v }));
   const spec = catalog?.products.find((p) => p.key === f.product_type);
+  // Basic plan: up to 3 farms per request (Business Feasibility slide); Premium and Enterprise are unlimited.
+  const [plan] = useMyPlan();
+  const cap = plan === "BASIC" ? 3 : null;
 
   const stepErrors = [
     !f.product_type ? "เลือกชนิดผลผลิต" : null,
-    !Number(f.quantity_kg) ? "ระบุปริมาณ" : !f.accepted_grades.length ? "เลือกอย่างน้อยหนึ่งเกรด" : f.sourcing_mode === "MULTI" && Number(f.min_quantity_kg) > Number(f.quantity_kg) ? "ขั้นต่ำต้องไม่เกินปริมาณที่ต้องการ" : f.max_suppliers && Number(f.max_suppliers) < 2 ? "จำนวนผู้ขายสูงสุดต้องอย่างน้อย 2 ราย" : null,
+    !Number(f.quantity_kg) ? "ระบุปริมาณ" : !f.accepted_grades.length ? "เลือกอย่างน้อยหนึ่งเกรด" : f.sourcing_mode === "MULTI" && Number(f.min_quantity_kg) > Number(f.quantity_kg) ? "ขั้นต่ำต้องไม่เกินปริมาณที่ต้องการ" : f.max_suppliers && Number(f.max_suppliers) < 2 ? "จำนวนผู้ขายสูงสุดต้องอย่างน้อย 2 ราย" : cap && f.sourcing_mode === "MULTI" && Number(f.max_suppliers) > cap ? `แผน Basic ซื้อได้สูงสุด ${cap} สวนต่อคำขอ` : null,
     !f.delivery_start || !f.delivery_end ? "ระบุช่วงรับสินค้า" : f.delivery_end < f.delivery_start ? "วันสิ้นสุดต้องไม่ก่อนวันเริ่ม" : null,
     null,
   ];
@@ -68,7 +73,7 @@ export default function NewRequestPage() {
           payment_terms_days: Number(f.payment_terms_days || 0),
           expires_on: f.expires_on || null,
           sourcing_mode: f.sourcing_mode,
-          max_suppliers: f.sourcing_mode === "MULTI" ? num(f.max_suppliers) : null,
+          max_suppliers: f.sourcing_mode === "MULTI" ? (num(f.max_suppliers) ?? cap) : null,
         }),
       "สร้างคำขอซื้อแล้ว — ดูสวนที่จับคู่ได้",
     );
@@ -125,7 +130,12 @@ export default function NewRequestPage() {
             {f.sourcing_mode === "MULTI" ? (
               <>
                 <Field label="ปริมาณขั้นต่ำต่อสวน (กก.)" hint="สวนที่ส่งได้น้อยกว่านี้จะไม่ถูกจับคู่"><Input type="number" min="0" value={f.min_quantity_kg} onChange={(e) => set("min_quantity_kg", e.target.value)} /></Field>
-                <Field label="จำนวนผู้ขายสูงสุด" hint="เว้นว่างได้ ถ้าไม่จำกัด"><Input type="number" min="2" max="20" value={f.max_suppliers} onChange={(e) => set("max_suppliers", e.target.value)} /></Field>
+                <Field
+                  label="จำนวนผู้ขายสูงสุด"
+                  hint={cap ? <>แผน <PlanBadge plan="BASIC" /> สูงสุด {cap} สวน · <Link href="/plans" className="font-medium text-green-800 hover:underline">อัปเกรดเพื่อไม่จำกัด</Link></> : "เว้นว่างได้ ถ้าไม่จำกัด"}
+                >
+                  <Input type="number" min="2" max={cap ?? 20} placeholder={cap ? String(cap) : undefined} value={f.max_suppliers} onChange={(e) => set("max_suppliers", e.target.value)} />
+                </Field>
               </>
             ) : (
               <Field label="ปริมาณขั้นต่ำ"><Input value={f.quantity_kg ? `${Number(f.quantity_kg).toLocaleString("th-TH")} (เต็มจำนวน)` : "เต็มจำนวน"} disabled /></Field>
@@ -161,7 +171,7 @@ export default function NewRequestPage() {
           <DL
             items={[
               ["ผลผลิต", productName(f.product_type, f.variety)],
-              ["รูปแบบการซื้อ", f.sourcing_mode === "SINGLE" ? "ผู้ขายรายเดียว (ส่งครบทั้งหมด)" : `หลายผู้ขาย${f.max_suppliers ? ` สูงสุด ${f.max_suppliers} ราย` : ""}`],
+              ["รูปแบบการซื้อ", f.sourcing_mode === "SINGLE" ? "ผู้ขายรายเดียว (ส่งครบทั้งหมด)" : `หลายผู้ขาย${f.max_suppliers || cap ? ` สูงสุด ${f.max_suppliers || cap} ราย` : ""}`],
               ["ปริมาณ", f.sourcing_mode === "SINGLE" ? fmtKg(Number(f.quantity_kg)) : `${fmtKg(Number(f.quantity_kg))} (ขั้นต่ำต่อสวน ${f.min_quantity_kg ? fmtKg(Number(f.min_quantity_kg)) : "—"})`],
               ["เกรดที่รับ", f.accepted_grades.join(", ")],
               ["ราคาเป้าหมาย", f.target_price ? `${fmtTHB(Number(f.target_price))}/กก.` : "—"],

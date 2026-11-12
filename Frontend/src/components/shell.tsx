@@ -3,7 +3,9 @@
 import {
   Activity,
   BadgeCheck,
+  BarChart3,
   Bot,
+  Crown,
   ClipboardCheck,
   ClipboardList,
   FileSignature,
@@ -21,6 +23,7 @@ import {
   Sprout,
   Truck,
   Users,
+  UsersRound,
   Wallet,
   X,
 } from "lucide-react";
@@ -34,6 +37,7 @@ import { useSession } from "@/lib/session";
 import type { Role, User } from "@/lib/types";
 import { NavChat } from "./nav-chat";
 import { NotificationBell } from "./notifications";
+import { PlanBadge, useMyPlan } from "./plan";
 import { Avatar, cx } from "./ui";
 
 type NavItem = { href: string; label: string; icon: React.ElementType; short?: string; also?: string[] };
@@ -77,6 +81,9 @@ function toolsFor(user: User): NavItem[] {
       c.disputes,
       { href: `/buyers/${user.organization.id}`, label: "AgriTrust ของฉัน", icon: ShieldCheck },
       c.history,
+      { href: "/insights", label: "Procurement Insights", icon: BarChart3 },
+      { href: "/team", label: "ทีม & ระบบองค์กร", icon: UsersRound },
+      { href: "/plans", label: "แผนบริการ", icon: Crown },
     ],
     INSPECTOR: [{ href: "/deliveries", label: "ล็อตที่กำลังขนส่ง", icon: Truck }, c.law, c.history],
     ADMIN: [
@@ -149,6 +156,7 @@ function Frame({ user, children }: { user: User; children: React.ReactNode }) {
   const pathname = usePathname();
   const [menu, setMenu] = useState(false);
   const unread = useUnreadChats(user);
+  const [plan] = useMyPlan();
   useEffect(() => setMenu(false), [pathname]);
 
   const tabs = tabsFor(user);
@@ -167,7 +175,7 @@ function Frame({ user, children }: { user: User; children: React.ReactNode }) {
       key={item.href}
       href={item.href}
       className={cx(
-        "flex items-center gap-3 rounded-full px-3.5 py-2.5 text-sm font-medium transition",
+        "flex items-center gap-3 rounded-full px-3.5 py-2 text-sm font-medium transition",
         isActive(item.href, item.also) ? "bg-green-900 text-white shadow-md shadow-green-950/15" : "text-slate-600 hover:bg-slate-900/[0.04] hover:text-slate-900",
       )}
     >
@@ -183,6 +191,9 @@ function Frame({ user, children }: { user: User; children: React.ReactNode }) {
       <div className="min-w-0 flex-1 leading-tight">
         <div className="truncate text-sm font-semibold text-slate-900">{user.name}</div>
         <div className="truncate text-xs text-slate-500">{ROLE[user.role]} · {user.organization.name}</div>
+        {user.role === "BUYER" && (
+          <Link href="/plans" className="mt-1 inline-block"><PlanBadge plan={plan} /></Link>
+        )}
       </div>
     </div>
   );
@@ -192,7 +203,7 @@ function Frame({ user, children }: { user: User; children: React.ReactNode }) {
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-3 left-3 z-30 hidden w-[17rem] flex-col rounded-[28px] bg-white shadow-[0_1px_2px_rgb(12_31_23/0.04),0_12px_32px_-16px_rgb(12_31_23/0.12)] ring-1 ring-slate-900/[0.05] lg:flex print:hidden">
         <Logo className="px-5 py-5" />
-        <div className="flex-1 space-y-6 overflow-y-auto px-3 pb-4">
+        <div className="no-scrollbar flex-1 space-y-5 overflow-y-auto px-3 pb-2">
           <div className="space-y-1">
             <div className="px-3.5 pb-1 text-[11px] font-medium tracking-wide text-slate-400">เมนูหลัก</div>
             {tabs.map((t) => navLink(t, t.href === "/chat" ? unread : 0))}

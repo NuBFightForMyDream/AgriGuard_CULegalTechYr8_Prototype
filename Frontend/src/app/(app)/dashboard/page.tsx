@@ -20,6 +20,7 @@ import useSWR from "swr";
 import { ActivityList } from "@/components/activity";
 import { OrdersTable } from "@/components/orders";
 import { DealCard } from "@/components/deal-card";
+import { PlanCard } from "@/components/plan";
 import { TrustBadge } from "@/components/trust";
 import { Avatar, Card, cx, Empty, ErrorState, LinkButton, PageSkeleton, Stat, StatusBadge, Table, Td } from "@/components/ui";
 import { fmtDate, fmtKg, fmtNum, fmtRange, fmtTHB, fmtTHBShort } from "@/lib/format";
@@ -306,6 +307,7 @@ function Buyer({ d, user }: { d: BuyerDash; user: User }) {
           { href: "/payments", label: "ชำระเงิน", icon: Wallet },
         ]}
       />
+      <PlanCard />
       <Todo
         items={[
           { show: k.awaiting_my_confirmation > 0, href: "/status", text: `มี HarvestLock ${k.awaiting_my_confirmation} ฉบับรอคุณยืนยัน — การจองจะหมดอายุถ้าไม่ยืนยันทันเวลา` },
