@@ -1,6 +1,7 @@
 # AgriGuard
 
 **Secure Every Harvest. Trust Every Trade.**
+![Cover Page](https://github.com/NuBFightForMyDream/AgriGuard_CULegalTechYr8_ReLaw/blob/main/CULGT8_ReLaw_AgriGuard.jpg)
 
 AgriGuard manages **pre-harvest B2B fruit deals** between farms and buyers (exporters, packing houses, processing factories, modern trade). Prices are locked before harvest, grades are settled with evidence, and every step leaves an audit trail. This replaces verbal agreements that often end with the price cut at harvest time.
 
