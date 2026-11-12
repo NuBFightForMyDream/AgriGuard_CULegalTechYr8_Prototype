@@ -80,8 +80,8 @@ Features that protect users are always free. Features that help users earn more 
 | Farmer | Free | 0.5% per deal, capped at ฿3,000/deal | Contracts, evidence, disputes, AgriBot. Farmers pay only once paid, and the first season is free. |
 | Farmer | Farm Pro | ฿1,500/season + 0.3% | Smart Allocation, forecast, AI grading, QR trace |
 | Buyer / factory | Basic | ฿0 + 1% per deal | 1 user, up to 3 farms per request |
-| Buyer / factory | Premium | ฿3,000/month + 0.6% | Up to 10 users, Procurement Insights, supplier scorecard, CSV export, export QR trace |
-| Buyer / factory | Enterprise | Volume-based | Multiple factories and sites, approval rules, supply calendar, supply-risk alerts, API & ERP, SSO, custom contract templates, SLA |
+| Buyer / factory | Premium (the deck's "Business") | ฿3,000/month + 0.6% | Multiple users, procurement dashboard, export QR trace, supplier scorecard, CSV export. Worth it above ฿750k of purchases per month. |
+| Buyer / factory | Enterprise (not in the deck) | Quoted per volume | Multiple factories and sites, approval rules, supply calendar, supply-risk alerts, API & ERP, SSO, custom contract templates, SLA |
 
 - Combined fees come to about 0.9–1.5% per deal, plus subscriptions that bring in revenue outside the season.
 - **Later revenue:** loan and insurance referrals based on transaction data (embedded finance), and licences for cooperatives and government agencies (B2G).

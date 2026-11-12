@@ -34,7 +34,6 @@ export default function TeamPage() {
   const toast = useToast();
   const [email, setEmail] = useState("");
   if (!user) return null;
-  const seats = plan === "ENTERPRISE" ? "ไม่จำกัด" : plan === "PREMIUM" ? "10" : "1";
   const used = 1 + SAMPLE_TEAM.length;
 
   return (
@@ -48,7 +47,7 @@ export default function TeamPage() {
       <PlanGate need="PREMIUM" title="ทีมจัดซื้อหลายคน">
         <Card
           title="สมาชิกในทีม"
-          action={<span className="text-sm text-slate-500">ใช้ไป <b className="tabular text-slate-900">{used}</b> / {seats} ที่นั่ง</span>}
+          action={<span className="text-sm text-slate-500">ผู้ใช้ <b className="tabular text-slate-900">{used}</b> คน · แผน {PLANS[plan].name} {PLANS[plan].seats === "1 คน" ? "ใช้ได้ 1 คน" : "เพิ่มได้หลายคน"}</span>}
         >
           <form
             className="flex flex-col gap-2 sm:flex-row"

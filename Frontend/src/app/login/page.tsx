@@ -288,8 +288,8 @@ export default function LoginPage() {
             <div className="text-sm text-slate-500">ผู้ซื้อ & โรงงาน · ล้ง ผู้ส่งออก โรงงานแปรรูป modern trade</div>
             <PlanRows
               rows={[
-                ["Basic", "฿0 + 1% ต่อดีล", "ผู้ใช้ 1 คน · สูงสุด 3 สวนต่อคำขอซื้อ"],
-                ["Premium", "฿3,000/เดือน + 0.6%", "ทีม 10 คน · Procurement Insights · Supplier scorecard · QR trace ส่งออก"],
+                ["Basic", "ค่าสมาชิก ฿0 + 1% ต่อดีล", "ผู้ใช้ 1 คน · ซื้อได้สูงสุด 3 สวนต่อคำขอ"],
+                ["Premium", "฿3,000/เดือน + 0.6%", "ผู้ใช้หลายคน · dashboard จัดซื้อ · QR trace ส่งออก · คุ้มเมื่อซื้อเกิน ฿750k ต่อเดือน"],
                 ["Enterprise", "ตามปริมาณ", "หลายโรงงาน · สายอนุมัติ · แผนวัตถุดิบล่วงหน้า · API & ERP · SLA"],
               ]}
               highlight="Enterprise"

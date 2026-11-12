@@ -5,7 +5,9 @@ import type { Org } from "./types";
 
 /**
  * Buyer (factory / exporter) subscription plans. Prices follow the Business Feasibility slide:
- * Basic = ฿0 + 1% per deal, Premium = the slide's "Business" ฿3,000/month + 0.6%; Enterprise is quoted per volume.
+ * Basic = ฿0 + 1% per deal (1 user, up to 3 farms per request); Premium = the slide's "Business" ฿3,000/month + 0.6%
+ * (multiple users, procurement dashboard, export QR trace, worth it above ฿750k of purchases a month).
+ * Enterprise is not priced on the slide, so it stays "quoted per volume".
  * The prototype keeps the chosen plan in this browser only (no billing): see `usePlan`.
  */
 export type PlanId = "BASIC" | "PREMIUM" | "ENTERPRISE";
@@ -18,6 +20,8 @@ export type Plan = {
   price: string;
   priceNote: string;
   fee: string;
+  /** Break-even hint from the slide, when it gives one. */
+  worth?: string;
   tagline: string;
   seats: string;
   farmsPerRequest: string;
@@ -42,10 +46,11 @@ export const PLANS: Record<PlanId, Plan> = {
     price: "฿3,000",
     priceNote: "ต่อเดือน",
     fee: "0.6% ต่อดีล",
+    worth: "คุ้มเมื่อซื้อเกิน ฿750k ต่อเดือน",
     tagline: "ฝ่ายจัดซื้อทั้งทีม พร้อมข้อมูลตัดสินใจ",
-    seats: "สูงสุด 10 คน",
+    seats: "หลายคน",
     farmsPerRequest: "ไม่จำกัด",
-    highlights: ["Procurement Insights", "Supplier scorecard", "QR trace ส่งออก + ส่งออก CSV", "ทีมจัดซื้อหลายคน"],
+    highlights: ["Dashboard จัดซื้อ (Procurement Insights)", "Supplier scorecard", "QR trace ส่งออก + ส่งออก CSV"],
   },
   ENTERPRISE: {
     id: "ENTERPRISE",
@@ -86,7 +91,7 @@ export const PLAN_FEATURES: { group: string; rows: { label: string; values: Reco
   {
     group: "ทีมและองค์กร",
     rows: [
-      { label: "ผู้ใช้", values: { BASIC: "1 คน", PREMIUM: "10 คน", ENTERPRISE: "ไม่จำกัด" } },
+      { label: "ผู้ใช้", values: { BASIC: "1 คน", PREMIUM: "หลายคน", ENTERPRISE: "ไม่จำกัด" } },
       { label: "หลายโรงงาน / สาขา", values: { BASIC: false, PREMIUM: false, ENTERPRISE: true } },
       { label: "สายอนุมัติการสั่งซื้อ", values: { BASIC: false, PREMIUM: false, ENTERPRISE: true } },
       { label: "API · webhook · เชื่อม ERP", values: { BASIC: false, PREMIUM: false, ENTERPRISE: true } },

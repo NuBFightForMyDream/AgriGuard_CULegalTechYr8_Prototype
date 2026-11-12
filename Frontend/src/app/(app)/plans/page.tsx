@@ -54,6 +54,7 @@ export default function PlansPage() {
                 <span className={cx("text-sm", dark ? "text-green-100/70" : "text-slate-500")}>{p.priceNote}</span>
               </div>
               <div className={cx("relative mt-1 text-sm font-medium", dark ? "text-lime-300" : "text-green-800")}>+ {p.fee}</div>
+              {p.worth && <div className="relative mt-1 text-xs text-slate-500">{p.worth}</div>}
               <ul className="relative mt-5 flex-1 space-y-2.5 text-sm">
                 <li className="flex gap-2"><Check className={cx("mt-0.5 size-4 shrink-0", dark ? "text-lime-300" : "text-green-700")} />ผู้ใช้ {p.seats} · สวนต่อคำขอ {p.farmsPerRequest}</li>
                 {p.highlights.map((h) => (
