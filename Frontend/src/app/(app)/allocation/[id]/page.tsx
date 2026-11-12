@@ -40,7 +40,7 @@ const STRATEGIES: { value: Strategy; label: string; hint: string }[] = [
   { value: "RISK_AWARE", label: "คำนึงความเสี่ยง", hint: "เหมือนรายได้สูงสุด แต่จำกัดสัดส่วนของผู้ซื้อที่ AgriTrust ต่ำหรือยังไม่มีประวัติ" },
 ];
 
-const PALETTE = ["#166534", "#0284c7", "#7c3aed", "#d97706", "#db2777", "#0f766e"];
+const PALETTE = ["#18462d", "#0284c7", "#7c3aed", "#d97706", "#db2777", "#0f766e"];
 const STEP = 10;
 
 export default function AllocationWorkspace() {

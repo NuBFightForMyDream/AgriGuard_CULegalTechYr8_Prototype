@@ -42,7 +42,7 @@ type BuyerDash = Base & {
 type InspectorDash = Base & { kpis: { queue: number; in_transit: number }; queue: Lot[] };
 type AdminDash = Base & { kpis: { transactions: number; contract_value: number; farmers: number; buyers: number; completion_rate: number | null; open_disputes: number; dispute_rate: number | null } };
 
-const COLORS = { contracted: "#166534", reserved: "#22c55e", available: "#d9f99d" };
+const COLORS = { contracted: "#18462d", reserved: "#5c9f73", available: "#d9ecc0" };
 
 export default function DashboardPage() {
   const { user } = useSession();
@@ -58,36 +58,38 @@ export default function DashboardPage() {
 type Tile = { label: string; value: React.ReactNode; hint?: React.ReactNode; href?: string };
 
 /** Greeting card from the sketch: avatar, "สวัสดี คุณ…", and three tiles. */
-function Hero({ user, tiles }: { user: User; tiles: Tile[] }) {
+function Hero({ user, tiles, extra }: { user: User; tiles: Tile[]; extra?: React.ReactNode }) {
   const first = user.name.split(" ")[0];
   return (
-    <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-green-900 via-green-800 to-emerald-600 p-5 text-white shadow-lg shadow-green-900/20 sm:p-6">
-      <div className="pointer-events-none absolute -right-10 -top-16 size-56 rounded-full bg-lime-300/15" />
-      <div className="pointer-events-none absolute -bottom-20 left-1/3 size-48 rounded-full bg-white/5" />
+    <section className="relative overflow-hidden rounded-[32px] bg-green-950 p-5 text-white shadow-xl shadow-green-950/20 sm:p-7">
+      <div className="glow-lime pointer-events-none absolute -right-24 -top-28 size-80" />
+      <div className="pointer-events-none absolute -bottom-32 -left-16 size-72 rounded-full bg-green-700/30 blur-3xl" />
       <div className="relative flex items-center gap-4">
-        <Avatar name={user.name} size="xl" className="ring-4 ring-white/25" />
-        <div className="min-w-0">
-          <div className="text-sm text-green-100">สวัสดี</div>
-          <h1 className="truncate text-2xl font-semibold tracking-tight">คุณ{first}</h1>
-          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-green-100">
+        <Avatar name={user.name} size="xl" className="ring-4 ring-white/10" />
+        <div className="min-w-0 flex-1">
+          <div className="text-sm text-green-100/70">สวัสดี</div>
+          <h1 className="truncate text-2xl font-semibold tracking-tight sm:text-3xl">คุณ{first}</h1>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-green-100/80">
             <span className="truncate">{ROLE[user.role]} · {user.organization.name}</span>
-            {user.organization.verified && <span className="inline-flex items-center gap-0.5 rounded-full bg-white/15 px-1.5 py-0.5"><BadgeCheck className="size-3" />ยืนยันแล้ว</span>}
+            {user.organization.verified && <span className="inline-flex items-center gap-0.5 rounded-full bg-lime-300/15 px-2 py-0.5 text-lime-200"><BadgeCheck className="size-3" />ยืนยันแล้ว</span>}
+            {extra}
           </div>
         </div>
       </div>
-      <div className={cx("relative mt-5 grid gap-2 sm:gap-3", tiles.length === 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4")}>
+      <div className={cx("relative mt-6 grid gap-2 sm:gap-3", tiles.length === 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4")}>
         {tiles.map((t) => {
           const body = (
             <>
-              <div className="truncate text-[11px] text-green-100 sm:text-xs">{t.label}</div>
-              <div className="tabular mt-1 truncate text-base font-semibold sm:text-2xl">{t.value}</div>
-              {t.hint && <div className="mt-0.5 truncate text-[10px] text-green-100/90 sm:text-xs">{t.hint}</div>}
+              <div className="truncate text-[11px] text-green-100/70 sm:text-xs">{t.label}</div>
+              <div className="tabular mt-1 truncate text-[15px] font-semibold tracking-tight sm:text-[26px]">{t.value}</div>
+              {t.hint && <div className="mt-0.5 truncate text-[10px] text-green-100/60 sm:text-xs">{t.hint}</div>}
             </>
           );
+          const cls = "min-w-0 rounded-3xl bg-white/[0.06] p-3 ring-1 ring-inset ring-white/10 backdrop-blur sm:p-4";
           return t.href ? (
-            <Link key={t.label} href={t.href} className="min-w-0 rounded-2xl bg-white/10 p-3 ring-1 ring-inset ring-white/15 backdrop-blur transition hover:bg-white/15">{body}</Link>
+            <Link key={t.label} href={t.href} className={cx(cls, "transition hover:bg-white/[0.11]")}>{body}</Link>
           ) : (
-            <div key={t.label} className="min-w-0 rounded-2xl bg-white/10 p-3 ring-1 ring-inset ring-white/15 backdrop-blur">{body}</div>
+            <div key={t.label} className={cls}>{body}</div>
           );
         })}
       </div>
@@ -98,20 +100,21 @@ function Hero({ user, tiles }: { user: User; tiles: Tile[] }) {
 /** The two big buttons under the greeting (sketch: create + Status). */
 function BigActions({ primary }: { primary: { href: string; label: string; hint: string } }) {
   return (
-    <div className="mt-4 grid grid-cols-2 gap-3">
-      <Link href={primary.href} className="group flex items-center gap-3 rounded-2xl bg-lime-300 p-4 text-green-950 shadow-sm transition hover:bg-lime-200">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-green-900 text-lime-300"><Plus className="size-5" /></span>
+    <div className="mt-3 grid grid-cols-2 gap-3">
+      <Link href={primary.href} className="group flex items-center gap-3 rounded-3xl bg-lime-300 p-4 text-green-950 shadow-sm transition hover:bg-lime-200 active:scale-[0.98]">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-green-950 text-lime-300 transition group-hover:rotate-90"><Plus className="size-5" /></span>
         <span className="min-w-0 leading-tight">
           <span className="block font-semibold">{primary.label}</span>
-          <span className="block truncate text-xs text-green-900/70">{primary.hint}</span>
+          <span className="block truncate text-xs text-green-950/60">{primary.hint}</span>
         </span>
       </Link>
-      <Link href="/status" className="group flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:border-green-700">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-800"><Activity className="size-5" /></span>
+      <Link href="/status" className="group flex items-center gap-3 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-900/[0.05] transition hover:shadow-md active:scale-[0.98]">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-green-50 text-green-800"><Activity className="size-5" /></span>
         <span className="min-w-0 leading-tight">
           <span className="block font-semibold text-slate-900">Status</span>
           <span className="block truncate text-xs text-slate-500">สถานะการซื้อขายทั้งหมด</span>
         </span>
+        <ChevronRight className="ml-auto hidden size-4 text-slate-300 transition group-hover:translate-x-0.5 sm:block" />
       </Link>
     </div>
   );
@@ -119,14 +122,14 @@ function BigActions({ primary }: { primary: { href: string; label: string; hint:
 
 function Shortcuts({ items }: { items: { href: string; label: string; icon: React.ElementType; badge?: number }[] }) {
   return (
-    <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+    <div className={cx("mt-3 grid gap-2 sm:gap-3", items.length === 4 ? "grid-cols-4" : "grid-cols-3")}>
       {items.map((i) => (
         <Link
           key={i.href}
           href={i.href}
-          className="relative flex flex-col items-center gap-1.5 rounded-2xl p-2 text-center text-[11px] font-medium leading-tight text-slate-700 hover:bg-white sm:flex-row sm:gap-3 sm:border sm:border-slate-200/80 sm:bg-white sm:p-3 sm:text-left sm:text-sm sm:shadow-sm sm:hover:border-green-700"
+          className="relative flex flex-col items-center gap-2 rounded-3xl p-2 text-center text-[11px] font-medium leading-tight text-slate-700 transition hover:bg-white sm:flex-row sm:gap-3 sm:bg-white sm:p-3 sm:text-left sm:text-sm sm:shadow-sm sm:ring-1 sm:ring-slate-900/[0.05] sm:hover:shadow-md"
         >
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white text-green-800 shadow-sm ring-1 ring-slate-200/80 sm:size-10 sm:rounded-xl sm:bg-green-50 sm:shadow-none sm:ring-0"><i.icon className="size-5" /></span>
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-[18px] bg-white text-green-800 shadow-sm ring-1 ring-slate-900/[0.05] sm:size-10 sm:rounded-2xl sm:bg-green-50 sm:shadow-none sm:ring-0"><i.icon className="size-5" /></span>
           <span className="min-w-0">{i.label}</span>
           {!!i.badge && <span className="absolute right-2 top-1 min-w-[18px] rounded-full bg-red-500 px-1 text-center text-[10px] font-semibold leading-[18px] text-white sm:static sm:ml-auto">{i.badge}</span>}
         </Link>
@@ -141,7 +144,7 @@ function Todo({ items }: { items: { show: boolean; href: string; text: string; t
   return (
     <div className="mt-4 space-y-2">
       {shown.map((i) => (
-        <Link key={i.href + i.text} href={i.href} className={cx("flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm", i.tone === "red" ? "border-red-200 bg-red-50 text-red-800" : "border-amber-200 bg-amber-50 text-amber-900")}>
+        <Link key={i.href + i.text} href={i.href} className={cx("flex items-center gap-2.5 rounded-3xl px-4 py-3 text-sm ring-1 ring-inset transition hover:brightness-[0.98]", i.tone === "red" ? "bg-red-50 text-red-800 ring-red-200/70" : "bg-amber-50 text-amber-900 ring-amber-200/70")}>
           <AlertCircle className="size-4 shrink-0" />
           <span className="flex-1">{i.text}</span>
           <ChevronRight className="size-4" />
@@ -155,7 +158,7 @@ function Deals({ orders, role }: { orders: ContractBrief[]; role: User["role"] }
   return (
     <section className="mt-6">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-900">ดีลที่กำลังดำเนินการ</h2>
+        <h2 className="text-lg font-semibold tracking-tight text-slate-900">ดีลที่กำลังดำเนินการ</h2>
         <Link href="/status" className="text-sm font-medium text-green-800 hover:underline">ดูทั้งหมด</Link>
       </div>
       {orders.length ? (
@@ -171,11 +174,11 @@ function Pipeline({ data }: { data: Base["pipeline"] }) {
   return (
     <ResponsiveContainer width="100%" height={220}>
       <BarChart data={data} margin={{ left: -20, right: 8 }}>
-        <CartesianGrid vertical={false} stroke="#e2e8f0" />
-        <XAxis dataKey="stage" tick={{ fontSize: 12 }} interval={0} />
-        <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-        <Tooltip formatter={(v) => [`${v} สัญญา`, "จำนวน"]} />
-        <Bar dataKey="count" fill="#166534" radius={[4, 4, 0, 0]} />
+        <CartesianGrid vertical={false} stroke="#eef0ea" />
+        <XAxis dataKey="stage" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} interval={0} />
+        <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+        <Tooltip cursor={{ fill: "#f0f7f2" }} formatter={(v) => [`${v} สัญญา`, "จำนวน"]} contentStyle={{ borderRadius: 16, border: "none", boxShadow: "0 8px 24px -8px rgb(12 31 23 / 0.25)" }} />
+        <Bar dataKey="count" fill="#18462d" radius={[8, 8, 0, 0]} maxBarSize={44} isAnimationActive={false} />
       </BarChart>
     </ResponsiveContainer>
   );

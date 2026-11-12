@@ -60,7 +60,7 @@ export default function ChatThreadPage() {
   if (error) {
     const gone = error instanceof ApiError && (error.status === 404 || error.status === 403);
     return (
-      <div className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-3 bg-white p-6 text-center lg:static lg:h-full lg:rounded-2xl lg:border lg:border-slate-200/80">
+      <div className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-3 bg-white p-6 text-center lg:static lg:h-full lg:rounded-3xl lg:ring-1 lg:ring-slate-900/[0.05]">
         <MessageCircleOff className="size-10 text-slate-300" />
         <div className="font-medium text-slate-800">{gone ? "ไม่พบห้องแชทนี้" : "โหลดแชทไม่สำเร็จ"}</div>
         <p className="max-w-xs text-sm text-slate-500">{gone ? "ห้องแชทอาจถูกลบไปแล้ว (เช่น หลังรีเซ็ตข้อมูลเดโม) หรือคุณไม่มีสิทธิ์เข้าห้องนี้" : error.message}</p>
@@ -73,7 +73,7 @@ export default function ChatThreadPage() {
   const deals = data ? data.contracts.filter((c) => !["CANCELLED", "RESERVATION_EXPIRED"].includes(c.order_status)) : [];
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-[#eef3ec] lg:static lg:z-auto lg:h-full lg:overflow-hidden lg:rounded-2xl lg:border lg:border-slate-200/80 lg:shadow-sm">
+    <div className="fixed inset-0 z-40 flex flex-col bg-[#eef3ec] lg:static lg:z-auto lg:h-full lg:overflow-hidden lg:rounded-3xl lg:ring-1 lg:ring-slate-900/[0.05] lg:shadow-sm">
       {/* Header */}
       <header className="flex items-center gap-3 border-b border-slate-200/80 bg-white px-3 py-2.5">
         <Link href="/chat" className="rounded-full p-1.5 text-slate-600 hover:bg-slate-100 lg:hidden" aria-label="กลับไปรายการแชท">

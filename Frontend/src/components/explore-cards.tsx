@@ -26,7 +26,7 @@ export function MatchPill({ score, className }: { score: number; className?: str
 /** Buyer's view of a farm listing: "สวน A ขาย…". */
 export function ListingCard({ l, score, note, onOffer, offered }: { l: Listing; score?: number; note?: React.ReactNode; onOffer?: () => void; offered?: boolean }) {
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.03]">
+    <article className="flex flex-col overflow-hidden rounded-3xl bg-white ring-1 ring-slate-900/[0.05] shadow-sm shadow-slate-900/[0.03]">
       <div className="relative">
         <ProduceArt type={l.product_type} className="h-28" />
         <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-slate-800 shadow-sm">
@@ -66,7 +66,7 @@ export function ListingCard({ l, score, note, onOffer, offered }: { l: Listing; 
 export function RequestCard({ r }: { r: PurchaseRequest }) {
   const remaining = r.fill?.remaining_kg ?? r.quantity_kg;
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.03]">
+    <article className="flex flex-col overflow-hidden rounded-3xl bg-white ring-1 ring-slate-900/[0.05] shadow-sm shadow-slate-900/[0.03]">
       <div className="relative">
         <ProduceArt type={r.product_type} className="h-24" compact />
         <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-slate-800 shadow-sm">

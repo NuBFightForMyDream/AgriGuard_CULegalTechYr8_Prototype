@@ -1,12 +1,38 @@
 @import "tailwindcss";
 
-/* Spec palette (overall_flow §4) maps onto Tailwind defaults:
-   green-800 #166534 primary · green-500 #22C55E secondary · lime-400 #A3E635 accent
-   slate-500 #64748B secondary text · slate-200 #E2E8F0 border · amber-500 warning · red-500 danger */
+/* Brand: a deep forest green with a lime accent.
+   The green scale below replaces Tailwind's default green everywhere (green-800 is the primary),
+   so every page picks up the calmer palette without per-file changes.
+   lime-300 #bef264 accent · slate text · amber warning · red danger. */
 @theme {
-  --color-canvas: #f3f6f1;
-  --color-ink: #111827;
+  --color-canvas: #f4f5f0;
+  --color-ink: #0c1f17;
+
+  --color-green-50: #f0f7f2;
+  --color-green-100: #dcede1;
+  --color-green-200: #bad9c3;
+  --color-green-300: #8cbf9c;
+  --color-green-400: #5c9f73;
+  --color-green-500: #3c8457;
+  --color-green-600: #2b6c45;
+  --color-green-700: #215838;
+  --color-green-800: #18462d;
+  --color-green-900: #113622;
+  --color-green-950: #0a2215;
+
   --font-sans: var(--font-thai), ui-sans-serif, system-ui, sans-serif;
+
+  --animate-rise: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 html,
@@ -17,12 +43,60 @@ body {
 
 body {
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+::selection {
+  background: #d9f99d;
+  color: #0a2215;
 }
 
 input[type="range"] {
-  accent-color: #166534;
+  accent-color: #18462d;
 }
 
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* Scroll-reveal (components/reveal.tsx). Content stays visible without JS or with reduced motion. */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.8s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Hide scrollbars on sideways strips while keeping them scrollable. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Soft noise-free glow used behind hero cards. */
+.glow-lime {
+  background: radial-gradient(closest-side, rgb(190 242 100 / 0.35), transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }

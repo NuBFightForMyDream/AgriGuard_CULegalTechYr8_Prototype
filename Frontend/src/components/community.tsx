@@ -45,7 +45,7 @@ export function LikeButton({ p }: { p: CommunityPost }) {
 
 export function PostCard({ p }: { p: CommunityPost }) {
   return (
-    <article className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-900/[0.03] transition hover:border-green-300">
+    <article className="rounded-3xl bg-white ring-1 ring-slate-900/[0.05] p-4 shadow-sm shadow-slate-900/[0.03] transition hover:border-green-300">
       <div className="flex items-start justify-between gap-2">
         <AuthorLine a={p.author} at={p.created_at} />
         <Link href={`/community?group=${p.group.slug}`} className="shrink-0 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-800 hover:bg-green-100">{p.group.name}</Link>

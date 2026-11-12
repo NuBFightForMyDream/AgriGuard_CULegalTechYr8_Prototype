@@ -34,7 +34,7 @@ export default function PostPage() {
       <Link href={`/community?group=${data.group.slug}`} className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-green-800 hover:underline">
         <ChevronLeft className="size-4" />{data.group.name}
       </Link>
-      <article className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+      <article className="rounded-3xl bg-white ring-1 ring-slate-900/[0.05] p-5 shadow-sm">
         <div className="flex items-start justify-between gap-2">
           <AuthorLine a={data.author} at={data.created_at} />
           {data.can_delete && <DeleteButton path={`/community/posts/${data.id}`} label="กระทู้" onDone={() => router.replace("/community")} />}
@@ -45,7 +45,7 @@ export default function PostPage() {
       </article>
 
       <h2 className="mb-3 mt-6 font-semibold text-slate-900">{data.comments} ความคิดเห็น</h2>
-      <form onSubmit={comment} className="mb-4 flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
+      <form onSubmit={comment} className="mb-4 flex items-start gap-3 rounded-3xl bg-white ring-1 ring-slate-900/[0.05] p-3 shadow-sm">
         <Avatar name={user.name} size="sm" />
         <textarea
           value={text}
@@ -63,7 +63,7 @@ export default function PostPage() {
       {data.comment_list?.length ? (
         <ul className="space-y-3">
           {data.comment_list.map((c) => (
-            <li key={c.id} className="rounded-2xl border border-slate-200/80 bg-white p-4">
+            <li key={c.id} className="rounded-3xl bg-white ring-1 ring-slate-900/[0.05] p-4">
               <div className="flex items-start justify-between gap-2">
                 <AuthorLine a={c.author} at={c.created_at} size="sm" />
                 {c.can_delete && <DeleteButton path={`/community/comments/${c.id}`} label="ความคิดเห็น" />}
