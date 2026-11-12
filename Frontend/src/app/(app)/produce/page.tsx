@@ -25,7 +25,7 @@ export default function ProducePage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {data.map((l) => (
-            <Link key={l.id} href={`/produce/${l.id}`} className="block rounded-xl border border-slate-200 bg-white p-5 transition hover:border-green-700 hover:shadow-sm">
+            <Link key={l.id} href={`/produce/${l.id}`} className="block rounded-3xl bg-white p-5 ring-1 ring-slate-900/[0.05] transition hover:shadow-md hover:ring-green-800/25">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-xs text-slate-500">{l.code}</div>

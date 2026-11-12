@@ -8,7 +8,7 @@ import { cx } from "@/components/ui";
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
   const root = usePathname() === "/chat";
   return (
-    <div className="-mx-4 -my-5 sm:-mx-6 lg:mx-0 lg:my-0 lg:grid lg:h-[calc(100dvh-8.5rem)] lg:grid-cols-[360px_1fr] lg:gap-4">
+    <div className="-mx-4 -mt-2 sm:-mx-6 lg:mx-0 lg:mt-0 lg:grid lg:h-[calc(100dvh-7rem)] lg:grid-cols-[360px_1fr] lg:gap-4">
       <div className={cx("min-h-[calc(100dvh-10rem)] lg:min-h-0", root ? "block" : "hidden lg:block")}>
         <ChatList />
       </div>

@@ -38,21 +38,19 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const VARIANTS = {
-  primary: "bg-green-800 text-white hover:bg-green-900 disabled:bg-green-800/50",
-  secondary: "bg-white text-slate-800 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 disabled:text-slate-400",
-  ghost: "text-slate-700 hover:bg-slate-100 disabled:text-slate-400",
+  primary: "bg-green-800 text-white shadow-sm shadow-green-900/20 hover:bg-green-900 active:scale-[0.98] disabled:bg-green-800/50 disabled:shadow-none",
+  secondary: "bg-white text-slate-800 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 hover:ring-slate-300 active:scale-[0.98] disabled:text-slate-400",
+  ghost: "text-slate-700 hover:bg-slate-900/[0.04] disabled:text-slate-400",
   danger: "bg-white text-red-600 ring-1 ring-inset ring-red-200 hover:bg-red-50 disabled:text-red-300",
 };
+
+const BTN = "inline-flex items-center justify-center gap-1.5 rounded-full font-medium transition disabled:cursor-not-allowed";
+const BTN_SIZE = { sm: "px-3 py-1.5 text-sm", md: "px-4.5 py-2.5 text-sm" };
 
 export function Button({ variant = "primary", size = "md", loading, className, children, disabled, ...rest }: ButtonProps) {
   return (
     <button
-      className={cx(
-        "inline-flex items-center justify-center gap-1.5 rounded-xl font-medium transition-colors disabled:cursor-not-allowed",
-        size === "sm" ? "px-2.5 py-1.5 text-sm" : "px-4 py-2 text-sm",
-        VARIANTS[variant],
-        className,
-      )}
+      className={cx(BTN, BTN_SIZE[size], VARIANTS[variant], className)}
       disabled={disabled || loading}
       {...rest}
     >
@@ -66,12 +64,7 @@ export function LinkButton({ href, variant = "primary", size = "md", className, 
   return (
     <Link
       href={href}
-      className={cx(
-        "inline-flex items-center justify-center gap-1.5 rounded-xl font-medium transition-colors",
-        size === "sm" ? "px-2.5 py-1.5 text-sm" : "px-4 py-2 text-sm",
-        VARIANTS[variant ?? "primary"],
-        className,
-      )}
+      className={cx(BTN, BTN_SIZE[size], VARIANTS[variant ?? "primary"], className)}
     >
       {children}
     </Link>
@@ -80,10 +73,10 @@ export function LinkButton({ href, variant = "primary", size = "md", className, 
 
 export function Card({ title, action, children, className, bodyClassName }: { title?: React.ReactNode; action?: React.ReactNode; children: React.ReactNode; className?: string; bodyClassName?: string }) {
   return (
-    <section className={cx("min-w-0 rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.03]", className)}>
+    <section className={cx("min-w-0 rounded-3xl bg-white shadow-[0_1px_2px_rgb(12_31_23/0.04),0_8px_24px_-12px_rgb(12_31_23/0.08)] ring-1 ring-slate-900/[0.05]", className)}>
       {(title || action) && (
-        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-5 py-3.5">
-          <h2 className="text-[15px] font-semibold text-slate-900">{title}</h2>
+        <header className="flex flex-wrap items-center justify-between gap-2 px-5 pt-4 pb-1">
+          <h2 className="text-[15px] font-semibold tracking-tight text-slate-900">{title}</h2>
           {action}
         </header>
       )}
@@ -97,7 +90,7 @@ export function PageHeader({ title, subtitle, actions, eyebrow }: { title: React
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
         {eyebrow && <div className="mb-1 text-sm text-slate-500">{eyebrow}</div>}
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-[28px]">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
@@ -107,12 +100,12 @@ export function PageHeader({ title, subtitle, actions, eyebrow }: { title: React
 
 export function Stat({ label, value, hint, icon, tone }: { label: string; value: React.ReactNode; hint?: React.ReactNode; icon?: React.ReactNode; tone?: "default" | "warn" }) {
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-900/[0.03]">
-      <div className="flex items-center justify-between text-sm text-slate-500">
+    <div className="rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgb(12_31_23/0.04)] ring-1 ring-slate-900/[0.05]">
+      <div className="flex items-center justify-between gap-2 text-sm text-slate-500">
         <span>{label}</span>
-        {icon && <span className={tone === "warn" ? "text-amber-500" : "text-green-700"}>{icon}</span>}
+        {icon && <span className={cx("flex size-8 items-center justify-center rounded-full", tone === "warn" ? "bg-amber-50 text-amber-600" : "bg-green-50 text-green-700")}>{icon}</span>}
       </div>
-      <div className="tabular mt-2 text-2xl font-semibold text-slate-900">{value}</div>
+      <div className="tabular mt-2 text-2xl font-semibold tracking-tight text-slate-900">{value}</div>
       {hint && <div className="mt-1 text-xs text-slate-500">{hint}</div>}
     </div>
   );
@@ -148,7 +141,7 @@ export function PageSkeleton() {
 
 export function ErrorState({ error }: { error: Error }) {
   return (
-    <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+    <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
       โหลดข้อมูลไม่สำเร็จ: {error.message}
     </div>
   );
@@ -168,7 +161,7 @@ export function Field({ label, hint, error, children, className, group }: { labe
 }
 
 const inputCls =
-  "w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-700/20 disabled:bg-slate-50";
+  "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-green-700 focus:ring-4 focus:ring-green-700/10 disabled:bg-slate-50";
 
 export const Input = (p: React.InputHTMLAttributes<HTMLInputElement>) => <input {...p} className={cx(inputCls, p.className)} />;
 export const Select = (p: React.SelectHTMLAttributes<HTMLSelectElement>) => <select {...p} className={cx(inputCls, p.className)} />;
@@ -187,13 +180,13 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
       ref={ref}
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
-      className={cx("m-auto w-[calc(100%-2rem)] rounded-xl p-0 shadow-xl backdrop:bg-slate-900/40", wide ? "max-w-2xl" : "max-w-lg")}
+      className={cx("m-auto w-[calc(100%-2rem)] rounded-3xl p-0 shadow-2xl backdrop:bg-slate-950/40 backdrop:backdrop-blur-sm", wide ? "max-w-2xl" : "max-w-lg")}
     >
       {open && (
         <div>
-          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
-            <h2 className="font-semibold">{title}</h2>
-            <button onClick={onClose} className="rounded p-1 text-slate-500 hover:bg-slate-100" aria-label="ปิด">
+          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+            <h2 className="font-semibold tracking-tight">{title}</h2>
+            <button onClick={onClose} className="rounded-full p-1.5 text-slate-500 hover:bg-slate-100" aria-label="ปิด">
               <X className="size-4" />
             </button>
           </div>
@@ -241,7 +234,7 @@ export function Table({ head, children }: { head: React.ReactNode[]; children: R
     <div className="-mx-5 overflow-x-auto">
       <table className="w-full min-w-[640px] text-sm">
         <thead>
-          <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+          <tr className="border-b border-slate-100 text-left text-xs tracking-wide text-slate-400">
             {head.map((h, i) => (
               <th key={i} className="whitespace-nowrap px-5 py-2 font-medium">
                 {h}
@@ -261,12 +254,12 @@ export const Td = ({ children, className }: { children: React.ReactNode; classNa
 
 export function Tabs<T extends string>({ value, onChange, tabs }: { value: T; onChange: (v: T) => void; tabs: { value: T; label: string; count?: number }[] }) {
   return (
-    <div className="mb-4 flex flex-wrap gap-1 rounded-xl bg-slate-100 p-1 text-sm">
+    <div className="mb-4 flex flex-wrap gap-1 rounded-full bg-slate-900/[0.05] p-1 text-sm sm:w-fit">
       {tabs.map((t) => (
         <button
           key={t.value}
           onClick={() => onChange(t.value)}
-          className={cx("rounded-lg px-3 py-1.5 font-medium", value === t.value ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900")}
+          className={cx("rounded-full px-3.5 py-1.5 font-medium transition", value === t.value ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900")}
         >
           {t.label}
           {t.count !== undefined && <span className="ml-1.5 text-xs text-slate-400">{t.count}</span>}
@@ -314,7 +307,7 @@ export function Chips<T extends string>({ value, onChange, items, className }: {
           onClick={() => onChange(t.value)}
           className={cx(
             "shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium ring-1 ring-inset transition",
-            value === t.value ? "bg-green-800 text-white ring-green-800" : "bg-white text-slate-600 ring-slate-200 hover:bg-slate-50",
+            value === t.value ? "bg-green-900 text-white ring-green-900" : "bg-white text-slate-600 ring-slate-900/[0.07] hover:bg-slate-50",
           )}
         >
           {t.label}
@@ -329,7 +322,7 @@ export function Chips<T extends string>({ value, onChange, items, className }: {
 export function SubNav({ items }: { items: { href: string; label: string }[] }) {
   const pathname = usePathname();
   return (
-    <nav className="mb-4 flex gap-1 overflow-x-auto rounded-xl bg-white p-1 shadow-sm ring-1 ring-slate-200/80 sm:w-fit" aria-label="หน้าย่อย">
+    <nav className="no-scrollbar mb-4 flex gap-1 overflow-x-auto rounded-full bg-white p-1 shadow-sm ring-1 ring-slate-900/[0.06] sm:w-fit" aria-label="หน้าย่อย">
       {items.map((i) => {
         const active = pathname === i.href || pathname.startsWith(i.href + "/");
         return (
@@ -337,7 +330,7 @@ export function SubNav({ items }: { items: { href: string; label: string }[] }) 
             key={i.href}
             href={i.href}
             aria-current={active ? "page" : undefined}
-            className={cx("shrink-0 whitespace-nowrap rounded-lg px-4 py-1.5 text-sm font-medium", active ? "bg-green-800 text-white" : "text-slate-600 hover:bg-slate-50")}
+            className={cx("shrink-0 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition", active ? "bg-green-900 text-white" : "text-slate-600 hover:bg-slate-50")}
           >
             {i.label}
           </Link>

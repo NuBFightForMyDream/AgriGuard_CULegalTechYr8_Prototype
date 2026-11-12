@@ -56,7 +56,7 @@ export function ChatList() {
   const rows = (data ?? []).filter((c) => match(c) && (!needle || c.counterpart.name.toLowerCase().includes(needle) || c.last_message?.body.toLowerCase().includes(needle)));
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-none bg-white lg:rounded-2xl lg:border lg:border-slate-200/80 lg:shadow-sm">
+    <div className="flex h-full flex-col overflow-hidden rounded-none bg-white lg:rounded-3xl lg:ring-1 lg:ring-slate-900/[0.05] lg:shadow-sm">
       <div className="space-y-3 border-b border-slate-100 p-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold text-slate-900">แชท</h1>
